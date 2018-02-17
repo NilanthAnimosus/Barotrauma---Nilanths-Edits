@@ -555,13 +555,31 @@ namespace Barotrauma
                         }
                     }
 
-                    if (Character.Controlled != null && TeamID != Character.Controlled.TeamID)
+                    if (Character.Controlled != null)
                     {
-                        nameColor = Color.Red;
-                        if (IsDead)
+                        if (TeamID == Character.Controlled.TeamID)
                         {
-                            nameColor = Color.DarkRed;
+                            nameColor = Color.LightBlue;
+                            if (IsDead)
+                            {
+                                nameColor = Color.DarkBlue;
+                            }
                         }
+                        if (TeamID != Character.Controlled.TeamID)
+                        {
+                            nameColor = Color.Red;
+                            if (IsDead)
+                            {
+                                nameColor = Color.DarkRed;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    if (Character.Controlled != null)
+                    {
+                        if(TeamID != Character.Controlled.TeamID) nameColor = Color.Red;
                     }
                 }
 

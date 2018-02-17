@@ -1757,7 +1757,7 @@ namespace Barotrauma
                     if(GameMain.Server.ConnectedClients.Count > 0)
                     {
                         int nilModClientCounter = 0;
-                        for (int i = 0; i < GameMain.Server.ConnectedClients.Count - 1; i++)
+                        for (int i = 0; i < GameMain.Server.ConnectedClients.Count; i++)
                         {
                             if(GameMain.Server.ConnectedClients[i].IsNilModClient)
                             {

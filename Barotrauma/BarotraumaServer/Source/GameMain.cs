@@ -106,7 +106,7 @@ namespace Barotrauma
 
         public void StartServer()
         {
-            if (GameMain.NilMod.OverrideGamesettings)
+            if (GameMain.NilMod.OverrideServerSettings)
             {
                 NetLobbyScreen.ServerName = GameMain.NilMod.ServerName;
                 Server = new GameServer(GameMain.NilMod.ServerName,

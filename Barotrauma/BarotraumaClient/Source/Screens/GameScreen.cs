@@ -7,7 +7,7 @@ namespace Barotrauma
 {
     partial class GameScreen : Screen
     {
-        public Color waterColor = GameMain.NilMod.WaterColour;
+        //public Color waterColor = GameMain.NilMod.WaterColour;
 
         private BlurEffect lightBlur;
         
@@ -193,7 +193,7 @@ namespace Barotrauma
 
             spriteBatch.Begin(SpriteSortMode.Deferred,
                 BlendState.Opaque);
-            spriteBatch.Draw(renderTarget, new Rectangle(0, 0, GameMain.GraphicsWidth, GameMain.GraphicsHeight), waterColor);
+            spriteBatch.Draw(renderTarget, new Rectangle(0, 0, GameMain.GraphicsWidth, GameMain.GraphicsHeight), GameMain.NilMod.WaterColour);
             spriteBatch.End();
 
 #if LINUX

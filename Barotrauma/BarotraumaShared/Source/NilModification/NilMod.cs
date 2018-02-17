@@ -40,7 +40,7 @@ namespace Barotrauma
         public List<ConvertingHusk> convertinghusklist = new List<ConvertingHusk>();
 
         const string SettingsSavePath = "Data/NilModSettings.xml";
-        public const string NilModVersionDate = "12/02/2017 - 1";
+        public const string NilModVersionDate = "17/02/2017 - 1";
         public Version NilModNetworkingVersion = new Version(0,0,0,0);
 
         public int Admins;
@@ -214,7 +214,7 @@ namespace Barotrauma
         public Boolean DisableParticles = false;
 
         //Server Settings
-        public Boolean OverrideGamesettings;
+        public Boolean OverrideServerSettings;
         public string ServerName;
         public int ServerPort;
         public int MaxPlayers;
@@ -349,6 +349,7 @@ namespace Barotrauma
         public Boolean CreatureRespawnMonsterEvents;
         public Boolean CreatureLimitRespawns;
         public int CreatureMaxRespawns;
+        public Boolean HideConciousCreatureHealth = true;
         //Add fish auto-deletion on death
         //Add fish deletion timer on death (Allows them to be eaten still?)
 
@@ -716,6 +717,8 @@ namespace Barotrauma
             GameMain.Server.ServerLog.WriteLine("--------------------------------", ServerLog.MessageType.NilMod);
 
             //Server autostart Related Settings
+            //OverrideServerSettings
+            GameMain.Server.ServerLog.WriteLine("OverrideServerSettings = " + (OverrideServerSettings ? "Enabled" : "Disabled"), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("ServerName = " + ServerName.ToString(), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("ServerPort = " + ServerPort.ToString(), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("MaxPlayers = " + MaxPlayers.ToString(), ServerLog.MessageType.NilMod);
@@ -889,6 +892,7 @@ namespace Barotrauma
             GameMain.Server.ServerLog.WriteLine("CreatureRespawnMonsterEvents = " + (CreatureRespawnMonsterEvents ? "Enabled" : "Disabled"), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("CreatureLimitRespawns = " + (CreatureLimitRespawns ? "Enabled" : "Disabled"), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("CreatureMaxRespawns = " + CreatureMaxRespawns.ToString() + "x spawn", ServerLog.MessageType.NilMod);
+            GameMain.Server.ServerLog.WriteLine("HideConciousCreatureHealth = " + (HideConciousCreatureHealth ? "Enabled" : "Disabled"), ServerLog.MessageType.NilMod);
 
             GameMain.Server.ServerLog.WriteLine("--------------------------------", ServerLog.MessageType.NilMod);
 
@@ -1031,7 +1035,7 @@ namespace Barotrauma
 
                     //Server Default Settings
                     XElement ServerModDefaultServerSettings = doc.Root.Element("ServerModDefaultServerSettings");
-
+                    OverrideServerSettings = ServerModDefaultServerSettings.GetAttributeBool("OverrideServerSettings", false);
                     ServerName = ServerModDefaultServerSettings.GetAttributeString("ServerName", "Barotrauma Server");
                     //Sanitize Server Name Code here
                     if (ServerName != "")
@@ -1276,6 +1280,7 @@ namespace Barotrauma
                     CreatureRespawnMonsterEvents = ServerModAICreatureSettings.GetAttributeBool("CreatureRespawnMonsterEvents", true);
                     CreatureLimitRespawns = ServerModAICreatureSettings.GetAttributeBool("CreatureLimitRespawns", false);
                     CreatureMaxRespawns = Math.Min(Math.Max(ServerModAICreatureSettings.GetAttributeInt("CreatureMaxRespawns", 1), 1), 50);
+                    HideConciousCreatureHealth = ServerModAICreatureSettings.GetAttributeBool("HideConciousCreatureHealth", false);
 
                     //Nilmod Client specific settings
                     XElement ServerModClientSettings = doc.Root.Element("ServerModClientSettings");
@@ -1439,6 +1444,7 @@ namespace Barotrauma
 
                 "  <!--If Barotrauma is started with -startserver OR StartToServer above is true, allows to immediately start the server with the following setup-->",
                 "  <ServerModDefaultServerSettings",
+                @"    OverrideServerSettings=""" + OverrideServerSettings + @"""",
                 @"    ServerName=""" + ServerName + @"""",
                 @"    ServerPort=""" + ServerPort + @"""",
                 @"    MaxPlayers=""" + MaxPlayers + @"""",
@@ -1656,6 +1662,7 @@ namespace Barotrauma
                 @"    CreatureRespawnMonsterEvents=""" + CreatureRespawnMonsterEvents + @"""",
                 @"    CreatureLimitRespawns=""" + CreatureLimitRespawns + @"""",
                 @"    CreatureMaxRespawns=""" + CreatureMaxRespawns + @"""",
+                @"    HideConciousCreatureHealth=""" + HideConciousCreatureHealth + @"""",
                 "  />",
 
                 "",
@@ -1888,6 +1895,7 @@ namespace Barotrauma
             ClearKicksOnRoundStart = false;
 
             //Server Default Settings
+            OverrideServerSettings = false;
             ServerName = "Barotrauma Server";
             ServerPort = 14242;
             MaxPlayers = 8;
@@ -2067,9 +2075,6 @@ namespace Barotrauma
             ArmourResistanceMultiplierBleed = 0f;
             ArmourMinimumBleedPercent = 0f;
 
-
-
-
             //Player Settings
             PlayerCanTraumaDeath = true;
             PlayerCanImplodeDeath = true;
@@ -2105,6 +2110,9 @@ namespace Barotrauma
             CreatureHealthRegenMax = 100f;
             CreatureEatDyingPlayers = true;
             CreatureRespawnMonsterEvents = true;
+            CreatureLimitRespawns = false;
+            CreatureMaxRespawns = 1;
+            HideConciousCreatureHealth = false;
 
             //Client Settings
             AllowVanillaClients = true;
@@ -2339,11 +2347,11 @@ namespace Barotrauma
                 Entity.Spawner.AddToRemoveQueue(character);
             }
         }
-
+#if CLIENT
         //Code for reading nilmod settings sync data
         public void ClientSyncRead(Lidgren.Network.NetIncomingMessage inc)
         {
-            Lidgren.Network.NetOutgoingMessage outmsg = GameMain.Server.server.CreateMessage();
+            Lidgren.Network.NetOutgoingMessage outmsg = GameMain.Client.client.CreateMessage();
 
             outmsg.Write((Byte)ClientPacketHeader.NILMODSYNCRECEIVED);
 
@@ -2353,9 +2361,11 @@ namespace Barotrauma
             {
                 //Client Settings
                 UseUpdatedCharHUD = inc.ReadBoolean();
-                UseUpdatedCharHUD = inc.ReadBoolean();
+                UseRecolouredNameInfo = inc.ReadBoolean();
                 UseCreatureZoomBoost = inc.ReadBoolean();
                 CreatureZoomMultiplier = inc.ReadFloat();
+
+                //Shader settings should go here if/when done.
 
                 //Submarine Settings
                 Byte OceanColourR;
@@ -2412,10 +2422,10 @@ namespace Barotrauma
                 DebugConsole.ThrowError("Press the F3 key to close the console.");
             }
 
-
-
             outmsg.Write((byte)ServerNetObject.END_OF_MESSAGE);
+            GameMain.Client.client.SendMessage(outmsg, Lidgren.Network.NetDeliveryMethod.Unreliable);
         }
+#endif
 
         //Code for writing nilmod settings sync data packets
         public void ServerSyncWrite(Client c)

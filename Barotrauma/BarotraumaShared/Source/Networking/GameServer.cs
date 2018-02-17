@@ -2288,7 +2288,7 @@ namespace Barotrauma.Networking
                             {
                                 targetClient = connectedClients.Find(c =>
                                     command == c.Name.ToLowerInvariant() ||
-                                    (c.Character != null && command == c.Character.Name.ToLowerInvariant()));
+                                    (c.Character != null && command == c.Character.Name.ToLowerInvariant()) || Homoglyphs.Compare(command.ToLowerInvariant(),c.Name.ToLowerInvariant()));
 
                                 if (targetClient == null)
                                 {

@@ -11,7 +11,7 @@ namespace Barotrauma.Networking
 {
     class GameClient : NetworkMember
     {
-        private NetClient client;
+        public NetClient client;
 
         private ClientLog clientLog;
         private GUIButton clientLogButton;

@@ -307,10 +307,10 @@ namespace Barotrauma
                         character = (Character)Arguments[0];
                         WorldCoordinate = new Vector2(float.Parse(Arguments[1].ToString()), float.Parse(Arguments[2].ToString()));
 
-                        Character.Controlled.AnimController.CurrentHull = null;
-                        Character.Controlled.Submarine = null;
-                        Character.Controlled.AnimController.SetPosition(FarseerPhysics.ConvertUnits.ToSimUnits(WorldCoordinate));
-                        Character.Controlled.AnimController.FindHull(WorldCoordinate, true);
+                        character.AnimController.CurrentHull = null;
+                        character.Submarine = null;
+                        character.AnimController.SetPosition(FarseerPhysics.ConvertUnits.ToSimUnits(WorldCoordinate));
+                        character.AnimController.FindHull(WorldCoordinate, true);
                         break;
 
                     //case "handcuff":
