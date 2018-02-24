@@ -93,11 +93,11 @@ namespace Barotrauma
 
             if (damageOverlayTimer > 0.0f) damageOverlayTimer -= deltaTime;
 
-            if (!character.IsUnconscious && character.Stun <= 0.0f)
+            if ((!character.IsUnconscious && character.Stun <= 0.0f) || character == Character.Spied)
             {
                 if (character.Inventory != null)
                 {
-                    if (!character.LockHands && character.Stun >= -0.1f)
+                    if ((!character.LockHands && character.Stun >= -0.1f) || character == Character.Spied)
                     {
                         character.Inventory.Update(deltaTime);
                     }
@@ -156,9 +156,9 @@ namespace Barotrauma
 
             DrawStatusIcons(spriteBatch, character);
 
-            if (!character.IsUnconscious && character.Stun <= 0.0f)
+            if ((!character.IsUnconscious && character.Stun <= 0.0f) || character == Character.Spied)
             {
-                if (character.Inventory != null && !character.LockHands && character.Stun >= -0.1f)
+                if (character.Inventory != null && ((!character.LockHands && character.Stun >= -0.1f) || character == Character.Spied))
                 {
                     character.Inventory.DrawOffset = Vector2.Zero;
                     character.Inventory.DrawOwn(spriteBatch);

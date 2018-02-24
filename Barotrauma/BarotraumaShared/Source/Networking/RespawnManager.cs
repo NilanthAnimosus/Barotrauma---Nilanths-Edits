@@ -600,7 +600,7 @@ namespace Barotrauma.Networking
                     GameServer.Log("Respawn: " + clients[i].Character.Name + " As " + clients[i].Character.Info.Job.Name + " On " + clients[i].Connection.RemoteEndPoint.Address, ServerLog.MessageType.Spawns);
 
 #if CLIENT
-                    GameSession.inGameInfo.UpdateClientCharacter(clients[i], character, false);
+                    GameSession.inGameInfo.UpdateClientCharacter(clients[i], character, true);
                 }
 #endif
 

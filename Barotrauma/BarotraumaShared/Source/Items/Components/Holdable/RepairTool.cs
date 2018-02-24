@@ -164,19 +164,28 @@ namespace Barotrauma.Items.Components
             {
                 List<FireSource> fireSourcesInRange = new List<FireSource>();
                 //step along the ray in 10% intervals, collecting all fire sources in the range 
-                for (float x = 0.0f; x <= Submarine.LastPickedFraction; x += 0.1f)
+                float x = 0.0f;
+                try
                 {
-                    Vector2 displayPos = ConvertUnits.ToDisplayUnits(rayStart + (rayEnd - rayStart) * x);
-                    displayPos += item.CurrentHull.Submarine.Position;
-
-                    Hull hull = Hull.FindHull(displayPos, item.CurrentHull);
-                    foreach (FireSource fs in hull.FireSources)
+                    for (x = 0.0f; x <= Submarine.LastPickedFraction; x += 0.1f)
                     {
-                        if (fs.IsInDamageRange(displayPos, 125.0f) && !fireSourcesInRange.Contains(fs))
+                        Vector2 displayPos = ConvertUnits.ToDisplayUnits(rayStart + (rayEnd - rayStart) * x);
+                        displayPos += item.CurrentHull.Submarine.Position;
+
+                        Hull hull = Hull.FindHull(displayPos, item.CurrentHull);
+                        foreach (FireSource fs in hull.FireSources)
                         {
-                            fireSourcesInRange.Add(fs);
+                            if (fs.IsInDamageRange(displayPos, 125.0f) && !fireSourcesInRange.Contains(fs))
+                            {
+                                fireSourcesInRange.Add(fs);
+                            }
                         }
                     }
+                }
+                //Error occured
+                catch(Exception e)
+                {
+                    DebugConsole.NewMessage("NILMOD Error in RepairTool: " + e.Message, Color.DarkRed);
                 }
                 foreach (FireSource fs in fireSourcesInRange)
                 {
