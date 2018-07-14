@@ -8,7 +8,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>BarotraumaServer</RootNamespace>
     <AssemblyName>BarotraumaServer NilEdit</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <TargetFrameworkProfile />
@@ -83,7 +83,7 @@
     <Compile Include="Source\Characters\Character.cs" />
     <Compile Include="Source\DebugConsole.cs" />
     <Compile Include="Source\GameMain.cs" />
-	<Compile Include="Source\GameSession\MultiPlayerCampaign.cs" />
+    <Compile Include="Source\GameSession\MultiPlayerCampaign.cs" />
     <Compile Include="Source\Items\Components\ItemComponent.cs" />
     <Compile Include="Source\Items\Components\ItemLabel.cs" />
     <Compile Include="Source\Items\Components\Machines\Steering.cs" />
@@ -137,6 +137,7 @@
     <WCFMetadata Include="Service References\" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup />

@@ -87,7 +87,7 @@ namespace Barotrauma
 
             if (doc == null)
             {
-                DebugConsole.ThrowError("NilMod permissions file 'Data/NilModPermissions.xml' failed to load - Permissions system disabled until resolved.");
+                DebugConsole.ThrowError("NilMod permissions file 'Data/NilMod/Permissions.xml' failed to load - Permissions system disabled until resolved.");
                 //DebugConsole.ThrowError("If you cannot correct the issue above, deleting or renaming the XML and restarting or reloading in-server will generate a new one.");
                 //GameMain.NilMod.EnableAdminSystem = false;
             }

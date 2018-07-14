@@ -79,6 +79,9 @@ namespace Barotrauma
             NilMod = new NilMod();
             NilMod.Load(false);
 
+            NilMod.NilModVPNBanlist = new VPNBanlist();
+            NilMod.NilModVPNBanlist.LoadVPNBans();
+
             GameScreen = new GameScreen();
         }
 

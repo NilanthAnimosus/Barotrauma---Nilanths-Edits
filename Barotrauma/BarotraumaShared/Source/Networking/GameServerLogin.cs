@@ -422,6 +422,20 @@ namespace Barotrauma.Networking
             newClient.Connection = unauthClient.Connection;
             unauthenticatedClients.Remove(unauthClient);
             unauthClient = null;
+
+            var savedPermissions = clientPermissions.Find(cp => cp.IP == newClient.Connection.RemoteEndPoint.Address.ToString());
+            if (savedPermissions != null)
+            {
+                newClient.SetPermissions(savedPermissions.Permissions, savedPermissions.PermittedCommands);
+                newClient.OwnerSlot = savedPermissions.OwnerSlot;
+                newClient.AdministratorSlot = savedPermissions.AdministratorSlot;
+                newClient.TrustedSlot = savedPermissions.TrustedSlot;
+            }
+            else
+            {
+                newClient.SetPermissions(ClientPermissions.None, new List<DebugConsole.Command>());
+            }
+
             ConnectedClients.Add(newClient);
 
 #if CLIENT
@@ -480,19 +494,6 @@ namespace Barotrauma.Networking
                         Log(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") has reconnected to the server.", ServerLog.MessageType.Connection);
                     }
                 }
-            }
-
-            var savedPermissions = clientPermissions.Find(cp => cp.IP == newClient.Connection.RemoteEndPoint.Address.ToString());
-            if (savedPermissions != null)
-            {
-                newClient.SetPermissions(savedPermissions.Permissions, savedPermissions.PermittedCommands);
-                newClient.OwnerSlot = savedPermissions.OwnerSlot;
-                newClient.AdministratorSlot = savedPermissions.AdministratorSlot;
-                newClient.TrustedSlot = savedPermissions.TrustedSlot;
-            }
-            else
-            {
-                newClient.SetPermissions(ClientPermissions.None, new List<DebugConsole.Command>());
             }
         }
 
