@@ -11,12 +11,14 @@ float4 main(float4 position : SV_Position, float4 color : COLOR0, float2 texCoor
 	float4 losColor = xLosTexture.Sample(LosSampler, texCoord);
 	
 	float obscureAmount = 1.0f - losColor.r;
-
-	float4 outColor = float4(
-		sampleColor.r * color.r, 
-		sampleColor.g * color.g, 
-		sampleColor.b * color.b,
-		obscureAmount);
+	
+	float4 outColor;
+	
+	outColor = float4(
+	(sampleColor.r * color.r) * losColor.r, 
+	(sampleColor.g * color.g) * losColor.r, 
+	(sampleColor.b * color.b) * losColor.r,
+	obscureAmount);
 		
 	return outColor;
 }

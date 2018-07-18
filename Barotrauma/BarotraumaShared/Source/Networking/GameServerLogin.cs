@@ -137,6 +137,7 @@ namespace Barotrauma.Networking
 
                         Log(inc.SenderConnection.RemoteEndPoint.Address.ToString() + " has been banned from the server (too many wrong passwords)", ServerLog.MessageType.Error);
                         DebugConsole.NewMessage(inc.SenderConnection.RemoteEndPoint.Address.ToString() + " has been banned from the server (too many wrong passwords)", Color.Red);
+                        GameServer.LogToClientconsole(inc.SenderConnection.RemoteEndPoint.Address.ToString() + " has been banned from the server (too many wrong passwords)");
                         return;
                     }
                     else
@@ -147,6 +148,7 @@ namespace Barotrauma.Networking
                         reject.Write("Wrong password! You have " + Convert.ToString(4 - unauthClient.failedAttempts) + " more attempts before you're banned from the server.");
                         Log(inc.SenderConnection.RemoteEndPoint.Address.ToString() + " failed to join the server (incorrect password)", ServerLog.MessageType.Error);
                         DebugConsole.NewMessage(inc.SenderConnection.RemoteEndPoint.Address.ToString() + " failed to join the server (incorrect password)", Color.Red);
+                        GameServer.LogToClientconsole(inc.SenderConnection.RemoteEndPoint.Address.ToString() + " failed to join the server (incorrect password)");
                         server.SendMessage(reject, unauthClient.Connection, NetDeliveryMethod.Unreliable);
                         unauthClient.AuthTimer = 10.0f;
                         return;
@@ -164,6 +166,7 @@ namespace Barotrauma.Networking
 
                 Log(inc.SenderConnection.RemoteEndPoint.Address.ToString() + " couldn't join the server (no name given)", ServerLog.MessageType.Connection);
                 DebugConsole.NewMessage(inc.SenderConnection.RemoteEndPoint.Address.ToString() + " couldn't join the server (no name given)", Color.Red);
+                GameServer.LogToClientconsole(inc.SenderConnection.RemoteEndPoint.Address.ToString() + " couldn't join the server (no name given)");
                 return;
             }
 
@@ -173,6 +176,7 @@ namespace Barotrauma.Networking
 
                 Log(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (wrong game version) - CLVersion: " + clVersion + " vs servers " + GameMain.Version, ServerLog.MessageType.Connection);
                 DebugConsole.NewMessage(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (wrong game version) - CLVersion: " + clVersion + " vs servers " + GameMain.Version, Color.Red);
+                GameServer.LogToClientconsole(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (wrong game version) - CLVersion: " + clVersion + " vs servers " + GameMain.Version);
                 return;
             }
             if (clPackageName != GameMain.SelectedPackage.Name)
@@ -180,6 +184,7 @@ namespace Barotrauma.Networking
                 DisconnectUnauthClient(inc, unauthClient, "Your content package (" + clPackageName + ") doesn't match the server's version (" + GameMain.SelectedPackage.Name + ")");
                 Log(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server with Incorrect Content Package: (" + clPackageName + ") vs servers (" + GameMain.SelectedPackage.Name + ")", ServerLog.MessageType.Connection);
                 DebugConsole.NewMessage(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server with Incorrect Content Package: (" + clPackageName + ") vs servers (" + GameMain.SelectedPackage.Name + ")", Color.Red);
+                GameServer.LogToClientconsole(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server with Incorrect Content Package: (" + clPackageName + ") vs servers (" + GameMain.SelectedPackage.Name + ")");
                 return;
             }
 
@@ -190,6 +195,7 @@ namespace Barotrauma.Networking
                     DisconnectUnauthClient(inc, unauthClient, "This server does not permit Nilmod clients (Please rejoin using Vanilla).");
                     Log(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (Nilmod clients are not permitted to connect).", ServerLog.MessageType.Connection);
                     DebugConsole.NewMessage(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (Nilmod clients are not permitted to connect).", Color.Red);
+                    GameServer.LogToClientconsole(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (Nilmod clients are not permitted to connect).");
                     return;
                 }
                 else
@@ -205,6 +211,7 @@ namespace Barotrauma.Networking
                     DisconnectUnauthClient(inc, unauthClient, "This server does not permit Vanilla clients (Please rejoin using Nilmod).");
                     Log(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (Vanilla clients are not permitted to connect).", ServerLog.MessageType.Connection);
                     DebugConsole.NewMessage(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (Vanilla clients are not permitted to connect).", Color.Red);
+                    GameServer.LogToClientconsole(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (Vanilla clients are not permitted to connect).");
                     return;
                 }
             }
@@ -216,6 +223,7 @@ namespace Barotrauma.Networking
                     DisconnectUnauthClient(inc, unauthClient, "Your content package (MD5: " + clPackageHash + ") doesn't match the server's version (MD5: " + GameMain.NilMod.ServerMD5A + ")");
                     Log(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (wrong content package hash) MD5: (" + clPackageHash + ") vs servers MD5A: (" + GameMain.NilMod.ServerMD5A + "), MD5B: (" + GameMain.NilMod.ServerMD5B + ")", ServerLog.MessageType.Connection);
                     DebugConsole.NewMessage(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (wrong content package hash):" + clPackageHash + " vs servers " + GameMain.NilMod.ServerMD5A + ", (" + GameMain.NilMod.ServerMD5B + ")", Color.Red);
+                    GameServer.LogToClientconsole(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (wrong content package hash):" + clPackageHash + " vs servers " + GameMain.NilMod.ServerMD5A + ", (" + GameMain.NilMod.ServerMD5B + ")");
                     return;
                 }
             }
@@ -226,6 +234,7 @@ namespace Barotrauma.Networking
                     DisconnectUnauthClient(inc, unauthClient, "Your content package (MD5: " + clPackageHash + ") doesn't match the server's version (MD5: " + GameMain.SelectedPackage.MD5hash.Hash + ")");
                     Log(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (wrong content package hash)", ServerLog.MessageType.Connection);
                     DebugConsole.NewMessage(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (wrong content package hash)", Color.Red);
+                    GameServer.LogToClientconsole(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (wrong content package hash)");
                     return;
                 }
             }
@@ -235,6 +244,15 @@ namespace Barotrauma.Networking
                 DisconnectUnauthClient(inc, unauthClient, "You're not in this server's whitelist.");
                 Log(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (not in whitelist)", ServerLog.MessageType.Connection);
                 DebugConsole.NewMessage(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (not in whitelist)", Color.Red);
+                GameServer.LogToClientconsole(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (not in whitelist)");
+                return;
+            }
+            if (GameMain.NilMod.MinimumNameLength > clName.Length)
+            {
+                DisconnectUnauthClient(inc, unauthClient, "Your name is too short, Minimum length on this server is " + GameMain.NilMod.MinimumNameLength + " characters.");
+                Log(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (name too short)", ServerLog.MessageType.Connection);
+                DebugConsole.NewMessage(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (name too short, minimum length is " + GameMain.NilMod.MinimumNameLength + " characters)", Color.Red);
+                GameServer.LogToClientconsole(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (name too short, minimum length is " + GameMain.NilMod.MinimumNameLength + " characters)");
                 return;
             }
             if (!Client.IsValidName(clName))
@@ -242,6 +260,7 @@ namespace Barotrauma.Networking
                 DisconnectUnauthClient(inc, unauthClient, "Your name contains illegal symbols.");
                 Log(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (invalid name)", ServerLog.MessageType.Connection);
                 DebugConsole.NewMessage(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (invalid name)", Color.Red);
+                GameServer.LogToClientconsole(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (invalid name)");
                 return;
             }
 
@@ -250,6 +269,7 @@ namespace Barotrauma.Networking
                 DisconnectUnauthClient(inc, unauthClient, "This server does not allow Cyrillic alphabets.");
                 Log(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (Name contains cyrillic characters)", ServerLog.MessageType.Connection);
                 DebugConsole.NewMessage(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (Name contains cyrillic characters)", Color.Red);
+                GameServer.LogToClientconsole(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (Name contains cyrillic characters)");
                 return;
             }
 
@@ -258,15 +278,17 @@ namespace Barotrauma.Networking
                 DisconnectUnauthClient(inc, unauthClient, "This server does not allow English alphabets.");
                 Log(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (Name contains english characters)", ServerLog.MessageType.Connection);
                 DebugConsole.NewMessage(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (Name contains english characters)", Color.Red);
+                GameServer.LogToClientconsole(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (Name contains english characters)");
                 return;
             }
 
             //Nilmod prevent players rejoining as server hosts current name OR server name.
             if (Homoglyphs.Compare(clName.ToLower(), Name.ToLower()) || Homoglyphs.Compare(clName.ToLower(), GameMain.NilMod.PlayYourselfName.ToLower()) || Homoglyphs.Compare(clName.ToLower(), NilMod.NilModGriefWatcher.GriefWatchName))
             {
-                DisconnectUnauthClient(inc, unauthClient, "That name is taken.");
+                DisconnectUnauthClient(inc, unauthClient, "That name is taken by the server.");
                 Log(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (name taken by the server)", ServerLog.MessageType.Connection);
                 DebugConsole.NewMessage(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (name taken by the server)", Color.Red);
+                GameServer.LogToClientconsole(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (name taken by the server)");
                 return;
             }
             Client nameTaken = ConnectedClients.Find(c => Homoglyphs.Compare(c.Name.ToLower(), clName.ToLower()));
@@ -288,6 +310,7 @@ namespace Barotrauma.Networking
                     DisconnectUnauthClient(inc, unauthClient, "That name is taken.");
                     Log(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (name already taken)", ServerLog.MessageType.Connection);
                     DebugConsole.NewMessage(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (name already taken)", Color.Red);
+                    GameServer.LogToClientconsole(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (name already taken)");
                     return;
                 }
             }
@@ -300,7 +323,8 @@ namespace Barotrauma.Networking
                 //can't authorize this client
                 DisconnectUnauthClient(inc, unauthClient, "Too many similar IPs are on the server, max is " + GameMain.NilMod.MaxIdenticalIPConnections);
                 Log(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (Max Identical IP Connections exceeded)", ServerLog.MessageType.Connection);
-                DebugConsole.NewMessage(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (Max Identical IP Connections exceeded)", Color.Red);
+                DebugConsole.NewMessage(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (Max Identical IP Connections exceeded, max is " + GameMain.NilMod.MaxIdenticalIPConnections + ")", Color.Red);
+                GameServer.LogToClientconsole(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (Max Identical IP Connections exceeded, max is " + GameMain.NilMod.MaxIdenticalIPConnections + ")");
                 return;
             }
 
@@ -332,11 +356,13 @@ namespace Barotrauma.Networking
                 {
                     DebugConsole.NewMessage("Banned Player tried to join the server (" + inc.SenderEndPoint.Address.ToString() + " - " + clName.ToString() + ")" + NilMod.NilModPlayerLog.ListPrevious(inc.SenderConnection.RemoteEndPoint.Address.ToString(), clName, false, true, false), Color.Red);
                     ServerLog.WriteLine("Banned Player tried to join the server (" + inc.SenderEndPoint.Address.ToString() + " - " + clName.ToString() + ")" + NilMod.NilModPlayerLog.ListPrevious(inc.SenderConnection.RemoteEndPoint.Address.ToString(), clName, false, true, false), ServerLog.MessageType.Connection);
+                    GameServer.LogToClientconsole("Banned Player tried to join the server (" + inc.SenderEndPoint.Address.ToString() + " - " + clName.ToString() + ")" + NilMod.NilModPlayerLog.ListPrevious(inc.SenderConnection.RemoteEndPoint.Address.ToString(), clName, false, true, false));
                 }
                 else
                 {
                     DebugConsole.NewMessage("Banned Player tried to join the server (" + inc.SenderEndPoint.Address.ToString() + " - " + clName.ToString() + ")", Color.Red);
                     ServerLog.WriteLine("Banned Player tried to join the server (" + inc.SenderEndPoint.Address.ToString() + " - " + clName.ToString() + ")", ServerLog.MessageType.Connection);
+                    GameServer.LogToClientconsole("Banned Player tried to join the server (" + inc.SenderEndPoint.Address.ToString() + " - " + clName.ToString() + ")");
                 }
                 string banText = "";
 
@@ -423,18 +449,26 @@ namespace Barotrauma.Networking
             unauthenticatedClients.Remove(unauthClient);
             unauthClient = null;
 
-            var savedPermissions = clientPermissions.Find(cp => cp.IP == newClient.Connection.RemoteEndPoint.Address.ToString());
-            if (savedPermissions != null)
-            {
-                newClient.SetPermissions(savedPermissions.Permissions, savedPermissions.PermittedCommands);
-                newClient.OwnerSlot = savedPermissions.OwnerSlot;
-                newClient.AdministratorSlot = savedPermissions.AdministratorSlot;
-                newClient.TrustedSlot = savedPermissions.TrustedSlot;
-            }
-            else
-            {
-                newClient.SetPermissions(ClientPermissions.None, new List<DebugConsole.Command>());
-            }
+            SavedClientPermission savedPermissions = clientPermissions.Find(cp => cp.IP == newClient.Connection.RemoteEndPoint.Address.ToString());
+            if (savedPermissions == null) savedPermissions = defaultpermission;
+
+            newClient.SetPermissions(savedPermissions.Permissions, savedPermissions.PermittedCommands);
+            newClient.OwnerSlot = savedPermissions.OwnerSlot;
+            newClient.AdministratorSlot = savedPermissions.AdministratorSlot;
+            newClient.TrustedSlot = savedPermissions.TrustedSlot;
+
+            newClient.GlobalChatSend = savedPermissions.GlobalChatSend;
+            newClient.GlobalChatReceive = savedPermissions.GlobalChatReceive;
+            newClient.PrioritizeJob = savedPermissions.PrioritizeJob;
+            newClient.KickImmunity = savedPermissions.KickImmunity;
+            newClient.BanImmunity = savedPermissions.BanImmunity;
+
+            newClient.HideJoin = savedPermissions.HideJoin;
+            newClient.AccessDeathChatAlive = savedPermissions.AccessDeathChatAlive;
+            newClient.AdminChannelSend = savedPermissions.AdminChannelSend;
+            newClient.AdminChannelReceive = savedPermissions.AdminChannelReceive;
+            newClient.SendServerConsoleInfo = savedPermissions.SendServerConsoleInfo;
+            newClient.CanBroadcast = savedPermissions.CanBroadcast;
 
             ConnectedClients.Add(newClient);
 
@@ -444,16 +478,18 @@ namespace Barotrauma.Networking
 #endif
             if (GameMain.NilMod.EnableVPNBanlist)
             {
-                CoroutineManager.StartCoroutine(NilMod.NilModVPNBanlist.CheckVPNBan(newClient.Connection, clName.ToString()), "NilModVPNBanlist");
+                CoroutineManager.StartCoroutine(NilMod.NilModVPNBanlist.CheckVPNBan(newClient, clName.ToString()), "NilModVPNBanlist");
             }
 
             if (!GameMain.NilMod.EnableVPNBanlist)
             {
                 if (GameMain.NilMod.EnablePlayerLogSystem)
                 {
-                    GameMain.Server.SendChatMessage(NilMod.NilModPlayerLog.ListPrevious(inc.SenderConnection.RemoteEndPoint.Address.ToString(), clName, false, false, true), ChatMessageType.Server, null);
+                    if (!newClient.HideJoin) GameMain.Server.SendChatMessage(NilMod.NilModPlayerLog.ListPrevious(inc.SenderConnection.RemoteEndPoint.Address.ToString(), clName, false, false, true), ChatMessageType.Server, null);
                     DebugConsole.NewMessage(NilMod.NilModPlayerLog.ListPrevious(inc.SenderConnection.RemoteEndPoint.Address.ToString(), clName, true, true, true), Color.White);
                     Log(NilMod.NilModPlayerLog.ListPrevious(inc.SenderConnection.RemoteEndPoint.Address.ToString(), clName, true, true, true), ServerLog.MessageType.Connection);
+                    GameServer.LogToClientconsole(NilMod.NilModPlayerLog.ListPrevious(inc.SenderConnection.RemoteEndPoint.Address.ToString(), clName, true, true, true));
+
                     NilMod.NilModPlayerLog.LogPlayer(inc.SenderConnection.RemoteEndPoint.Address.ToString(), clName);
                 }
                 else
@@ -470,6 +506,7 @@ namespace Barotrauma.Networking
                         GameMain.Server.SendChatMessage("Recently Kicked Player " + clName + " (" + kickedclient.clientname + ") has rejoined the server.", ChatMessageType.Server, null);
                         DebugConsole.NewMessage("Recently Kicked Player " + clName + " (" + kickedclient.clientname + ") (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") has joined the server.", Color.White);
                         Log("Recently Kicked Player " + clName + " (" + kickedclient.clientname + ") (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") has joined the server.", ServerLog.MessageType.Connection);
+                        GameServer.LogToClientconsole("Recently Kicked Player " + clName + " (" + kickedclient.clientname + ") (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") has joined the server.");
 
                         if (GameMain.NilMod.ClearKickStateNameOnRejoin)
                         {
@@ -483,15 +520,17 @@ namespace Barotrauma.Networking
                     }
                     else if (ReconnectedClient == null)
                     {
-                        GameMain.Server.SendChatMessage(clName + " has joined the server.", ChatMessageType.Server, null);
+                        if(!newClient.HideJoin) GameMain.Server.SendChatMessage(clName + " has joined the server.", ChatMessageType.Server, null);
                         DebugConsole.NewMessage(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") has joined the server.", Color.White);
                         Log(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") has joined the server.", ServerLog.MessageType.Connection);
+                        GameServer.LogToClientconsole(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") has joined the server.");
                     }
                     else
                     {
-                        GameMain.Server.SendChatMessage(clName + " has reconnected to the server.", ChatMessageType.Server, null);
+                        if (!newClient.HideJoin) GameMain.Server.SendChatMessage(clName + " has reconnected to the server.", ChatMessageType.Server, null);
                         DebugConsole.NewMessage(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") has reconnected to the server.", Color.White);
                         Log(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") has reconnected to the server.", ServerLog.MessageType.Connection);
+                        GameServer.LogToClientconsole(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") has reconnected to the server.");
                     }
                 }
             }

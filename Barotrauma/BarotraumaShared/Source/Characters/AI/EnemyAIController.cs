@@ -78,6 +78,12 @@ namespace Barotrauma
         public EnemyAIController(Character c, string file) : base(c)
         {
             targetMemories = new Dictionary<AITarget, AITargetMemory>();
+            outsideSteering = new SteeringManager(this);
+            insideSteering = new IndoorsSteeringManager(this, false);
+
+            steeringManager = outsideSteering;
+
+            state = AIState.None;
 
             XDocument doc = XMLExtensions.TryLoadXml(file);
             if (doc == null || doc.Root == null) return;
@@ -103,13 +109,6 @@ namespace Barotrauma
             fleeHealthThreshold = aiElement.GetAttributeFloat("fleehealththreshold", 0.0f);
 
             attachToWalls = aiElement.GetAttributeBool("attachtowalls", false);
-
-            outsideSteering = new SteeringManager(this);
-            insideSteering = new IndoorsSteeringManager(this, false);
-
-            steeringManager = outsideSteering;
-
-            state = AIState.None;
         }
 
         public override void SelectTarget(AITarget target)

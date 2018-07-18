@@ -9,6 +9,8 @@ namespace Barotrauma.Networking
 
         protected Character myCharacter;
 
+        protected Character SpawnCharacter;
+
         public CharacterInfo CharacterInfo
         {
             get { return characterInfo; }

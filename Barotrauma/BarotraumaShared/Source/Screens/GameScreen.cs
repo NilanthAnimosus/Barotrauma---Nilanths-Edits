@@ -298,7 +298,9 @@ namespace Barotrauma
                         if (GameMain.Server != null)
                         {
                             GameMain.NetworkMember.AddChatMessage(
-                                ((Boolean)Arguments[1] ? character.LogName + " is now shielded from health/oxygen/pressure." : character.LogName + " is no longer shielded.")
+                                ((Boolean)Arguments[1] ?
+                                character.LogName + " is now shielded from health/oxygen/pressure."
+                                : character.LogName + " is no longer shielded.")
                                 , Barotrauma.Networking.ChatMessageType.Private);
                         }
                         break;

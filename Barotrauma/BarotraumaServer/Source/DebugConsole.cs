@@ -215,6 +215,27 @@ namespace Barotrauma
                 }
             }));
 #endif
+
+
+            //"dummy commands" that only exist so that the server can give clients permissions to use them 
+            commands.Add(new Command("control|controlcharacter", CommandType.ClientOnly, "control [character name]: Start controlling the specified character (client-only).", null));
+            commands.Add(new Command("los", CommandType.ClientOnly, "Toggle the line of sight effect on/off (client-only).", null));
+            commands.Add(new Command("lighting|lights", CommandType.ClientOnly, "Toggle lighting on/off (client-only).", null));
+            commands.Add(new Command("debugdraw", CommandType.ClientOnly, "Toggle the debug drawing mode on/off (client-only).", null));
+            commands.Add(new Command("togglehud|hud", CommandType.ClientOnly, "Toggle the character HUD (inventories, icons, buttons, etc) on/off (client-only).", null));
+            commands.Add(new Command("followsub", CommandType.ClientOnly, "Toggle whether the camera should follow the nearest submarine (client-only).", null));
+            commands.Add(new Command("toggleaitargets|aitargets", CommandType.ClientOnly, "Toggle the visibility of AI targets (= targets that enemies can detect and attack/escape from) (client-only).", null));
+            commands.Add(new Command("shake", CommandType.ClientOnly, "", null));
+            commands.Add(new Command("save|savesub", CommandType.ClientOnly, "save [submarine name]: Save the currently loaded submarine using the specified name. (client-only)", null));
+            commands.Add(new Command("togglerenderother|renderother", CommandType.ClientOnly, "togglerenderother/renderother: toggles the rendering of particles, lights, los and such. (client-only)", null));
+            commands.Add(new Command("togglerenderlevel|renderlevel", CommandType.ClientOnly, "togglerenderlevel/renderlevel: Specifically toggles rendering for the level. (client-only)", null));
+            commands.Add(new Command("togglerendercharacters|togglerendercharacter|rendercharacters|rendercharacter", CommandType.ClientOnly, "togglerendercharacter/rendercharacter: Specifically toggles rendering for the level. (client-only)", null));
+            commands.Add(new Command("togglerenderstructures|togglerenderstructure|renderstructures|renderstructure", CommandType.ClientOnly, "togglerenderstructure/renderstructure: Specifically toggles rendering for the submarine structures. (client-only)", null));
+            commands.Add(new Command("toggleparticles|particles", CommandType.ClientOnly, "toggleparticles/particles: Toggle the Particle System on/off. (client-only)", null));
+            commands.Add(new Command("spy|spycharacter", CommandType.ClientOnly, "spy: View the game from another characters HUD and location. (client-only)", null));
+            commands.Add(new Command("spyid|spyclientid", CommandType.ClientOnly, "spy: View the game from another characters HUD and location. (client-only)", null));
+            //commands.Add(new Command("toggledeathchat|toggledeath|deathchat", CommandType.ClientOnly, "toggledeathchat: Toggle the visibility of death chat for a living host. (client-only)", null));
+            //commands.Add(new Command("movemainsub|movesub|teleportsub|teleportmainsub", CommandType.ClientOnly, "", null));
         }        
     }
 }

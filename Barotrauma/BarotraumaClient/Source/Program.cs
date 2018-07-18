@@ -3,6 +3,7 @@
 using System;
 using System.IO;
 using System.Text;
+using GameAnalyticsSDK.Net;
 
 #if WINDOWS
 using System.Windows.Forms;
@@ -23,7 +24,7 @@ namespace Barotrauma
 
         public static string[] CommandLineArgs = Environment.GetCommandLineArgs();
 
-        private static GameMain game;
+        static GameMain game;
 
         /// <summary>
         /// The main entry point for the application.
@@ -174,7 +175,6 @@ namespace Barotrauma
             sb.AppendLine("Barotrauma Client crash report (generated on " + DateTime.Now + ")");
             sb.AppendLine("\n");
             sb.AppendLine("Barotrauma seems to have crashed. Sorry for the inconvenience! ");
-            sb.AppendLine("If you'd like to help fix the bug that caused the crash, please send this file to the developers on the Undertow Games forums.");
             sb.AppendLine("\n");
 #if DEBUG
             sb.AppendLine("Game version " + GameMain.Version + " NILMOD SERVER MODIFICATION" + " (debug build)");
@@ -315,7 +315,9 @@ namespace Barotrauma
                 }
             }
 
-            sw.WriteLine(sb.ToString());
+            string crashReport = sb.ToString();
+
+            sw.WriteLine(crashReport);
             sw.Close();
 
             if (GameMain.NilMod != null)
@@ -333,9 +335,20 @@ namespace Barotrauma
                 {
                     if (GameSettings.SaveDebugConsoleLogs) DebugConsole.SaveLogs();
 
-                    CrashMessageBox("A crash report (\"crashreport.log\") was saved in the root folder of the game." + Environment.NewLine +
-                    "If you'd like to help fix this bug, please post the report on Barotrauma's GitHub issue tracker: https://github.com/Regalis11/Barotrauma/issues/" + Environment.NewLine +
-                    "Alternatively, If you believe this to be a mod bug, please post the report on the forum topic or the mods GitHub issue tracker: https://github.com/NilanthAnimosus/Barotrauma---Nilanths-Edits/issues");
+                    if (GameSettings.SendUserStatistics)
+                    {
+                        CrashMessageBox("A crash report (\"crashreport.log\") was saved in the root folder of the game and sent to the developers.");
+                        GameAnalytics.AddErrorEvent(EGAErrorSeverity.Error, crashReport);
+                        GameAnalytics.OnStop();
+                    }
+                    else
+                    {
+                        CrashMessageBox("A crash report (\"crashreport.log\") was saved in the root folder of the game." + Environment.NewLine +
+                            "If you'd like to help fix this bug, please post the report on Barotrauma's GitHub issue tracker: https://github.com/Regalis11/Barotrauma/issues/" + Environment.NewLine +
+                            "Alternatively, If you believe this to be a mod bug, please post the report on the forum topic or the mods GitHub issue tracker: https://github.com/NilanthAnimosus/Barotrauma---Nilanths-Edits/issues");
+                    }
+
+                    
                 }
             }
             else

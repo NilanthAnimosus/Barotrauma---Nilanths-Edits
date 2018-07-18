@@ -17,7 +17,7 @@ namespace Barotrauma
         public Client previousclient;
         public Character character;
         public Boolean Removed = false;
-        public float RemovalTimer = 3f;
+        public float RemovalTimer = 0f;
         //public CharacterInfo characterinfo;
     }
 
@@ -324,6 +324,7 @@ namespace Barotrauma
                 GUITempImageButton.OnClicked += (btn, userData) =>
                 {
                     InGameInfoCharacter thischar = (InGameInfoCharacter)parent.UserData;
+                    if (thischar.character == null) return true;
 
                     if (!thischar.character.IsDead)
                     {
@@ -332,7 +333,28 @@ namespace Barotrauma
                     else
                     {
                         thischar.character.Revive(true);
+                        Client matchedclient = GameMain.Server.ConnectedClients.Find(c => c.Name == thischar.character.Name);
+
+                        if (thischar.character.IsRemotePlayer && thischar.client == null
+                        && matchedclient != null)
+                        {
+                            //see if the original client is in the server
+                            GameSession.inGameInfo.UpdateClientCharacter(GameMain.Server.ConnectedClients.Find(c => c.Name == thischar.character?.Info?.Name),thischar.character,false);
+                            GameSession.inGameInfo.RemoveEntry(thischar);
+                        }
+                        if (thischar.client != null) GameMain.GameScreen.RunIngameCommand("setclientcharacter", new object[] { thischar.client, thischar.character });
+                        else if (matchedclient != null) GameMain.GameScreen.RunIngameCommand("setclientcharacter", new object[] { matchedclient, thischar.character });
+                        else if (thischar.IsHostCharacter && Character.Controlled == null)
+                        {
+                            GameMain.Server.Character = thischar.character;
+                            Character.Controlled = thischar.character;
+                            Character.SpawnCharacter = thischar.character;
+                            Character.LastControlled = thischar.character;
+                        }
                     }
+
+                    GameSession.inGameInfo.GuiUpdateRequired = true;
+                    GameSession.inGameInfo.Guiupdatetimer = 0f;
 
                     return true;
                 };
@@ -359,13 +381,14 @@ namespace Barotrauma
                 GUITempImageButton.OnClicked += (btn, userData) =>
                 {
                     InGameInfoCharacter thischar = (InGameInfoCharacter)parent.UserData;
+                    if (thischar.character == null) return true;
 
                     GameMain.NilMod.ClickCommandType = "relocate";
                     GameMain.NilMod.ActiveClickCommand = true;
                     GameMain.NilMod.ClickCooldown = 0.5f;
                     GameMain.Server.ClickCommandFrame.Visible = true;
-                    GameMain.NilMod.RelocateTarget = thischar.character;
-                    GameMain.Server.ClickCommandDescription.Text = "RELOCATE - " + GameMain.NilMod.RelocateTarget + " - Left Click to select target to teleport, Left click again to teleport target to new destination, hold shift to repeat (Does not keep last target), Ctrl+Left Click to relocate self, Ctrl+Shift works, Right click to cancel.";
+                    GameMain.NilMod.ClickTargetCharacter = thischar.character;
+                    GameMain.Server.ClickCommandDescription.Text = "RELOCATE - " + GameMain.NilMod.ClickTargetCharacter + " - Left Click to select target to teleport, Left click again to teleport target to new destination, hold shift to repeat (Does not keep last target), Ctrl+Left Click to relocate self, Ctrl+Shift works, Right click to cancel.";
 
                     return true;
                 };
@@ -392,26 +415,30 @@ namespace Barotrauma
                 GUITempImageButton.OnClicked += (btn, userData) =>
                 {
                     InGameInfoCharacter thischar = (InGameInfoCharacter)parent.UserData;
+                    if (thischar.character == null) return true;
 
                     if(!thischar.character.IsDead)
                     {
-                        thischar.character.Kill(CauseOfDeath.Disconnected, true);
+                        thischar.character.Kill(CauseOfDeath.Disconnected, false);
                         thischar.character.Health = -10000f;
                         thischar.character.Oxygen = -100f;
                     }
                     else
                     {
-                        GameSession.inGameInfo.RemoveCharacter(thischar.character);
                         Entity.Spawner.AddToRemoveQueue(thischar.character);
+                        GameSession.inGameInfo.RemoveCharacter(thischar.character);
                     }
+
+                    GameSession.inGameInfo.GuiUpdateRequired = true;
+                    GameSession.inGameInfo.Guiupdatetimer = 0f;
 
                     return true;
                 };
                 Buttoncount += 1;
             }
             //Client OR host character (Specifically, forced respawning really)
-            if((client != null && (client.Character == null || client.Character.IsDead))
-                || (client == null && ((InGameInfoCharacter)parent.UserData).IsHostCharacter && ((Character.Controlled != null && Character.Controlled.IsDead) || (Character.SpawnCharacter != null && Character.SpawnCharacter.IsDead))))
+            if((client != null)
+                || (client == null && ((InGameInfoCharacter)parent.UserData).IsHostCharacter))
             {
                 //Respawn client/host button.
                 ButtonPosition = CalculatePageButtonPosition(Buttoncount, parent);
@@ -429,13 +456,118 @@ namespace Barotrauma
                 GUITempImageButton.CanDoubleClick = false;
 
                 //Button code / specifics
-                GUITempImageButton.ToolTip = "Respawn character";
+                GUITempImageButton.ToolTip = "Respawn character to submarine";
                 GUITempImageButton.UserData = parent.UserData;
                 GUITempImageButton.OnClicked += (btn, userData) =>
                 {
                     InGameInfoCharacter thischar = (InGameInfoCharacter)parent.UserData;
+                    if (!thischar.IsHostCharacter && thischar.client == null) return true;
 
-                    //Respawnlogic goes here 
+                    //Default team for standard rounds
+                    int teamID = 1;
+
+                    if (thischar.client != null)
+                    {
+                        if (thischar.client.Character != null && !thischar.client.Character.IsDead) return true;
+
+                        //If client has no assigned team, give him one.
+                        if (thischar.client.TeamID == 0)
+                        {
+                            if (GameMain.GameSession?.GameMode.Name == "Mission" && GameMain.GameSession?.GameMode.Mission.Prefab.Name == "Combat")
+                            {
+                                int Team1count = GameMain.Server.ConnectedClients.FindAll(c => c.TeamID == 1).Count();
+                                int Team2count = GameMain.Server.ConnectedClients.FindAll(c => c.TeamID == 2).Count();
+                                //team 1 is coalition, 2 is renegades, 0 is AI
+
+                                if (Team1count <= Team2count)
+                                {
+                                    //Coalition
+                                    teamID = 1;
+                                }
+                                else
+                                {
+                                    //Renegade
+                                    teamID = 2;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            teamID = 1;
+                        }
+                    }
+                    else if(thischar.IsHostCharacter)
+                    {
+                        if ((Character.SpawnCharacter != null && !Character.SpawnCharacter.IsDead)
+                        || (Character.Controlled != null
+                        && Character.Controlled.Info.Name == GameMain.NilMod.PlayYourselfName
+                        && !Character.Controlled.IsDead)) return true;
+
+                        if (Character.SpawnCharacter != null)
+                        {
+                            teamID = Character.SpawnCharacter.TeamID;
+                        }
+                        else if (GameMain.NetworkMember.CharacterInfo != null)
+                        {
+                            teamID = GameMain.NetworkMember.CharacterInfo.TeamID;
+                        }
+                    }
+
+
+
+                    if (thischar.IsHostCharacter)
+                    {
+                        if (GameMain.Server.CharacterInfo != null)
+                        {
+                            GameMain.Server.CharacterInfo.Job = new Job(GameMain.NetLobbyScreen.JobPreferences[0]);
+                            //GameMain.Server.AssignJobs(new List<Client>(), true);
+                            WayPoint Waypoint = WayPoint.SelectCrewSpawnPoints(new List<CharacterInfo>() { GameMain.Server.CharacterInfo }, Submarine.MainSubs[teamID - 1])[0];
+                            Character spawnedCharacter = Character.Create(GameMain.Server.CharacterInfo, Waypoint.WorldPosition, true, false);
+                            spawnedCharacter.GiveJobItems(Waypoint);
+                            spawnedCharacter.TeamID = (byte)teamID;
+
+                            GameMain.Server.Character = thischar.character;
+                            Character.SpawnCharacter = spawnedCharacter;
+                            Character.Controlled = spawnedCharacter;
+                            Character.LastControlled = spawnedCharacter;
+
+#if CLIENT
+                            GameSession.inGameInfo.AddNoneClientCharacter(spawnedCharacter, true);
+#endif
+
+#if CLIENT
+                            GameMain.GameSession.CrewManager.AddCharacter(spawnedCharacter);
+#endif
+                        }
+                    }
+                    else if(thischar.client != null && (thischar.client.Character == null || (thischar.client.Character != null && thischar.client.Character.IsDead)))
+                    {
+                        if (thischar.client.CharacterInfo == null)
+                        {
+                            thischar.client.CharacterInfo = new CharacterInfo(Character.HumanConfigFile, thischar.client.Name);
+                        }
+                        GameMain.Server.AssignJobs(new List<Client>() { thischar.client }, false);
+                        thischar.client.CharacterInfo.Job = new Job(thischar.client.AssignedJob);
+
+                        WayPoint Waypoint = WayPoint.SelectCrewSpawnPoints(new List<CharacterInfo>() { thischar.client.CharacterInfo }, Submarine.MainSubs[teamID - 1])[0];
+                        Character spawnedCharacter = Character.Create(thischar.client.CharacterInfo, Waypoint.WorldPosition, true, false);
+                        spawnedCharacter.GiveJobItems(Waypoint);
+                        spawnedCharacter.TeamID = (byte)teamID;
+
+                        GameMain.GameScreen.RunIngameCommand("setclientcharacter", new object[] { thischar.client, spawnedCharacter });
+
+#if CLIENT
+                        GameSession.inGameInfo.UpdateClientCharacter(thischar.client, spawnedCharacter, false);
+#endif
+
+#if CLIENT
+                        GameMain.GameSession.CrewManager.AddCharacter(spawnedCharacter);
+#endif
+
+                    }
+
+                    GameSession.inGameInfo.GuiUpdateRequired = true;
+                    GameSession.inGameInfo.Guiupdatetimer = 0f;
 
                     return true;
                 };
@@ -470,8 +602,8 @@ namespace Barotrauma
                     GameMain.NilMod.ActiveClickCommand = true;
                     GameMain.NilMod.ClickCooldown = 0.5f;
                     GameMain.Server.ClickCommandFrame.Visible = true;
-                    GameMain.NilMod.RelocateTarget = thischar.character;
-                    GameMain.Server.ClickCommandDescription.Text = "RELOCATE - " + GameMain.NilMod.RelocateTarget + " - Left Click to select target to teleport, Left click again to teleport target to new destination, hold shift to repeat (Does not keep last target), Ctrl+Left Click to relocate self, Ctrl+Shift works, Right click to cancel.";
+                    GameMain.NilMod.ClickTargetClient = thischar.client;
+                    GameMain.Server.ClickCommandDescription.Text = "SETCLIENTCHARACTER - " + GameMain.NilMod.ClickTargetClient.Name + " - Left Click close to a creatures center to have the client control it, right click to cancel.";
 
                     return true;
                 };
@@ -555,10 +687,10 @@ namespace Barotrauma
 
         private List<InGameInfoCharacter> filteredcharacterlist;
 
-        private float Guiupdatetimer;
-        private Boolean GuiUpdateRequired;
+        public float Guiupdatetimer;
+        public Boolean GuiUpdateRequired;
         //Used to re-draw controls and other such for characters.
-        private const float GuiUpdateTime = 0.5f;
+        private const float GuiUpdateTime = 2.0f;
         int currentfilter = 0;
         float IngameInfoScroll;
         int LastCharacterCount;
@@ -601,7 +733,7 @@ namespace Barotrauma
             InGameInfoCharacter newingameinfoclient = new InGameInfoCharacter();
             newingameinfoclient.client = newclient;
             characterlist.Add(newingameinfoclient);
-            UpdateGameInfoGUIList();
+            //UpdateGameInfoGUIList();
         }
 
         public void RemoveClient(Client removedclient)
@@ -635,8 +767,31 @@ namespace Barotrauma
         {
             InGameInfoCharacter newingameinfocharacter = new InGameInfoCharacter();
             newingameinfocharacter.character = newcharacter;
-            newingameinfocharacter.IsHostCharacter = IsHost;
-            characterlist.Add(newingameinfocharacter);
+
+            //Only one host
+            if(IsHost)
+            {
+                newingameinfocharacter.IsHostCharacter = IsHost;
+                for (int i = characterlist.Count() - 1; i >= 0; i--)
+                {
+                    if(characterlist[i].IsHostCharacter)
+                    {
+                        characterlist[i].IsHostCharacter = false;
+                        //This reference is no longer a hostcharacter or has a character, so remove it
+                        if (characterlist[i].character == null) RemoveEntry(characterlist[i]);
+                    }
+                }
+                //Set hosts character to be the first in the list by re-sorting it
+                List<InGameInfoCharacter> newlist = new List<InGameInfoCharacter>();
+                newlist.Add(newingameinfocharacter);
+                newlist.AddRange(characterlist);
+                characterlist = newlist;
+            }
+            else
+            {
+                characterlist.Add(newingameinfocharacter);
+            }
+            
             TriggerGUIUpdate();
         }
 
@@ -647,7 +802,7 @@ namespace Barotrauma
             InGameInfoCharacter inGameInfoClienttochange = characterlist.Find(c => c.client == clienttoupdate);
             if (inGameInfoClienttochange != null)
             {
-                if(inGameInfoClienttochange.character != null)
+                if(inGameInfoClienttochange.character != null && inGameInfoClienttochange.character != newcharacter)
                 {
                     //Create a new InGameInfoCharacter for the now orphened char
                     InGameInfoCharacter newingameinfocharacter = new InGameInfoCharacter();
@@ -689,6 +844,11 @@ namespace Barotrauma
                     //We need to keep the client itself.
                     inGameInfoCharactertoremove.character = null;
                 }
+                else if(inGameInfoCharactertoremove.IsHostCharacter)
+                {
+                    //This is the host character, we should keep this even if theres no character or client
+                    inGameInfoCharactertoremove.character = null;
+                }
                 else
                 {
                     //This is not a client, safe to completely remove.
@@ -700,7 +860,9 @@ namespace Barotrauma
 
         public void RemoveEntry(InGameInfoCharacter removed)
         {
-            if(GameMain.Server.GameStarted)
+            if (removed.Removed) return;
+
+            if(GameMain.NetworkMember != null && GameMain.NetworkMember.GameStarted)
             {
                 removed.Removed = true;
                 removed.RemovalTimer = 10f;
@@ -754,20 +916,29 @@ namespace Barotrauma
             if (characterlist != null && characterlist.Count > 0)
             {
                 Boolean NeedsRemoval = false;
-                float HighestTimer = 0f;
+                float? HighestTimer = null;
                 for (int i = characterlist.Count - 1; i >= 0; i--)
                 {
                     if (characterlist[i].Removed)
                     {
                         characterlist[i].RemovalTimer -= deltaTime;
-                        if (HighestTimer < characterlist[i].RemovalTimer) HighestTimer = characterlist[i].RemovalTimer;
-                        if (characterlist[i].RemovalTimer <= 0f)
+                        if (HighestTimer == null)
                         {
-                            //characterlist.RemoveAt(i);
-                            NeedsRemoval = true;
+                            HighestTimer = characterlist[i].RemovalTimer;
                         }
+                        else
+                        {
+                            if (HighestTimer < characterlist[i].RemovalTimer) HighestTimer = characterlist[i].RemovalTimer;
+                        }
+                        //if (characterlist[i].RemovalTimer <= 0f)
+                        //{
+                            //characterlist.RemoveAt(i);
+                            //NeedsRemoval = true;
+                        //}
                     }
                 }
+
+                if(HighestTimer != null && HighestTimer <= 0f) NeedsRemoval = true;
 
                 if (NeedsRemoval)
                 {
@@ -792,10 +963,10 @@ namespace Barotrauma
 
                 if (timerwarning != null)
                 {
-                    if (HighestTimer <= 10f)
+                    if (HighestTimer != null && HighestTimer <= 10f)
                     {
                         timerwarning.Visible = true;
-                        timerwarning.Text = "Removal in: " + Math.Round(HighestTimer, 1) + "s";
+                        timerwarning.Text = "Removal in: " + Math.Round((float)HighestTimer, 1) + "s";
                     }
                     else
                     {
@@ -899,6 +1070,7 @@ namespace Barotrauma
                     int scrolldifference = LastCharacterCount - filteredcharacterlist.Count();
                     float scrollchangepercent = LastCharacterCount / filteredcharacterlist.Count();
                     float newscroll = ((clientguilist.BarScroll * LastCharacterCount * 150)) / (150 * filteredcharacterlist.Count());
+                    IngameInfoScroll = newscroll;
                     //Removed items
                     if (scrolldifference > 0)
                     {
@@ -1094,17 +1266,35 @@ namespace Barotrauma
                                 textBlockteam.Text = "T: Renegades";
                             }
                         }
-                        else if (filteredcharacterlist[i].client.TeamID == 0)
+                        else if(filteredcharacterlist[i].client != null)
                         {
-                            textBlockteam.Text = "T: Neutral";
+                            if (filteredcharacterlist[i].client.TeamID == 0)
+                            {
+                                textBlockteam.Text = "T: Neutral";
+                            }
+                            else if (filteredcharacterlist[i].client.TeamID == 1)
+                            {
+                                textBlockteam.Text = "T: Coalition";
+                            }
+                            else if (filteredcharacterlist[i].client.TeamID == 2)
+                            {
+                                textBlockteam.Text = "T: Renegades";
+                            }
                         }
-                        else if (filteredcharacterlist[i].client.TeamID == 1)
+                        else if(filteredcharacterlist[i].IsHostCharacter)
                         {
-                            textBlockteam.Text = "T: Coalition";
-                        }
-                        else if (filteredcharacterlist[i].client.TeamID == 2)
-                        {
-                            textBlockteam.Text = "T: Renegades";
+                            if (GameMain.NetworkMember.CharacterInfo == null || GameMain.NetworkMember.CharacterInfo != null && GameMain.NetworkMember.CharacterInfo.TeamID == 0)
+                            {
+                                textBlockteam.Text = "T: Neutral";
+                            }
+                            if (GameMain.NetworkMember.CharacterInfo != null && GameMain.NetworkMember.CharacterInfo.TeamID == 1)
+                            {
+                                textBlockteam.Text = "T: Coalition";
+                            }
+                            else if (GameMain.NetworkMember.CharacterInfo != null && GameMain.NetworkMember.CharacterInfo.TeamID == 2)
+                            {
+                                textBlockteam.Text = "T: Renegades";
+                            }
                         }
 
 
@@ -1265,9 +1455,8 @@ namespace Barotrauma
                     }
                     else
                     {
-                        GUITextBlock removallabel = new GUITextBlock(new Rectangle(25, 40, 100, 46), "Character no longer exists.", null, Alignment.Left, Alignment.Center, frame, false);
-                        removallabel.TextColor = Color.Black;
-                        removallabel.TextScale = 0.75f;
+                        GUITextBlock removallabel = new GUITextBlock(new Rectangle(25, 40, 100, 46), "Character no\nlonger exists.", null, Alignment.Left, Alignment.Center, frame, false);
+                        removallabel.TextColor = Color.Red;
                         removallabel.Visible = true;
                         removallabel.Color = new Color(150, 90, 5, 10);
                         removallabel.HoverColor = new Color(150, 90, 5, 10);
@@ -1275,8 +1464,7 @@ namespace Barotrauma
                         removallabel.SelectedColor = new Color(150, 90, 5, 10);
                         //GUI.DrawRectangle(spriteBatch, new Vector2(frame.Rect.X, frame.Rect.Y), new Vector2(frame.Rect.Width, frame.Rect.Height), new Color(150, 90, 5, 10), true, 0f, 1);
                         removallabel.Rect = new Rectangle(frame.Rect.X, frame.Rect.Y, frame.Rect.Width, frame.Rect.Height);
-
-                        removallabel.TextScale = 1.4f;
+                        removallabel.TextScale = 1.1f;
                     }
                 }
 
@@ -1289,13 +1477,33 @@ namespace Barotrauma
         {
             currentfilter = currentfilter + filterincrement;
             //Page Cycling
-            if (currentfilter < 0) currentfilter = 5;
-            if (currentfilter > 5) currentfilter = 0;
+            if (currentfilter < 0) currentfilter = 7;
+            if (currentfilter > 7) currentfilter = 0;
 
             if (characterlist.Count() == 0)
             {
                 currentfilter = 0;
                 return;
+            }
+
+            List<InGameInfoCharacter> Searchlist = characterlist.ToList<InGameInfoCharacter>();
+            if (filterincrement != 0)
+            {
+                if (Searchlist.Count > 0)
+                {
+                    for (int i = Searchlist.Count - 1; i >= 0; i--)
+                    {
+                        if (Searchlist[i].character != null && Searchlist[i].character.Removed)
+                        {
+                            RemoveCharacter(Searchlist[i].character);
+                            if (filterincrement != 0)
+                            {
+                                Searchlist[i].RemovalTimer = 0f;
+                                Searchlist.RemoveAt(i);
+                            }
+                        }
+                    }
+                }
             }
 
             filteredcharacterlist = new List<InGameInfoCharacter>();
@@ -1306,55 +1514,77 @@ namespace Barotrauma
                 {
                     case 0:     //0 - All Clients
                         ingameInfoFilterText.Text = "Filter: All Clients";
-                        //Include the hosts original spawns and respawns, but only if their actually alive or controlled.
-                        filteredcharacterlist = characterlist.FindAll(cl => (!cl.Removed));
-                        filteredcharacterlist = filteredcharacterlist.FindAll(cl => cl.client != null || (cl.character != null && (cl.IsHostCharacter || cl.character == Character.Controlled)));
+
+                        //Host character
+                        filteredcharacterlist.AddRange(Searchlist.FindAll(cl =>
+                        (cl.character != null && (cl.character == Character.Controlled))
+                        || cl.IsHostCharacter));
+
+                        Searchlist.RemoveAll(sl => filteredcharacterlist.Find(fcl => fcl == sl) != null);
+                        filteredcharacterlist.AddRange(Searchlist.FindAll(cl =>
+                        cl.client != null));
                         break;
                     case 1:     //1 - Coalition Clients
                         ingameInfoFilterText.Text = "Filter: Coalition Clients";
-                        filteredcharacterlist = characterlist.FindAll(cl => (!cl.Removed));
-                        filteredcharacterlist = filteredcharacterlist.FindAll(cl => ((cl.client != null || cl.IsHostCharacter) || (cl.character != null && cl.character == Character.Controlled)) && cl.character != null && cl.character.TeamID == 1);
-                        if (filteredcharacterlist.Count == 0) ChangeFilter(filterincrement);
+
+                        filteredcharacterlist.AddRange(Searchlist.FindAll(cl =>
+                        (cl.IsHostCharacter && ((cl.character != null && cl.character.TeamID == 1) || (GameMain.Server.CharacterInfo != null && GameMain.Server.CharacterInfo.TeamID == 1)))));
+
+                        Searchlist.RemoveAll(sl => filteredcharacterlist.Find(fcl => fcl == sl) != null);
+                        filteredcharacterlist.AddRange(Searchlist.FindAll(cl =>
+                        (cl.client != null && cl.client.TeamID == 1)));
                         break;
                     case 2:     //2 - Renegade Clients
                         ingameInfoFilterText.Text = "Filter: Renegade Clients";
-                        filteredcharacterlist = characterlist.FindAll(cl => (!cl.Removed));
-                        filteredcharacterlist = filteredcharacterlist.FindAll(cl => ((cl.client != null || cl.IsHostCharacter) || (cl.character != null && cl.character == Character.Controlled)) && cl.character != null && cl.character.TeamID == 2);
-                        if (filteredcharacterlist.Count == 0) ChangeFilter(filterincrement);
+
+                        filteredcharacterlist.AddRange(Searchlist.FindAll(cl =>
+                        (cl.IsHostCharacter && ((cl.character != null && cl.character.TeamID == 2) || (GameMain.Server.CharacterInfo != null && GameMain.Server.CharacterInfo.TeamID == 2)))));
+
+                        Searchlist.RemoveAll(sl => filteredcharacterlist.Find(fcl => fcl == sl) != null);
+                        filteredcharacterlist.AddRange(Searchlist.FindAll(cl =>
+                        (cl.client != null && cl.client.TeamID == 2)));
                         break;
                     case 3:     //3 - Creature Clients
                         ingameInfoFilterText.Text = "Filter: Creature Clients";
-                        filteredcharacterlist = characterlist.FindAll(cl => (!cl.Removed));
-                        filteredcharacterlist = filteredcharacterlist.FindAll(cl => ((cl.client != null || cl.IsHostCharacter) || (cl.character != null && cl.character == Character.Controlled)) && cl.character != null && cl.character.TeamID == 0);
-                        if (filteredcharacterlist.Count == 0) ChangeFilter(filterincrement);
+                        //filteredcharacterlist = filteredcharacterlist.FindAll(cl => ((cl.client != null || cl.IsHostCharacter) || (cl.character != null && cl.character == Character.Controlled)) && cl.character != null && cl.character.TeamID == 0);
+
+                        filteredcharacterlist.AddRange(Searchlist.FindAll(cl =>
+                        (cl.IsHostCharacter && cl.character != null && cl.character.TeamID == 0)));
+
+                        Searchlist.RemoveAll(sl => filteredcharacterlist.Find(fcl => fcl == sl) != null);
+                        filteredcharacterlist.AddRange(Searchlist.FindAll(cl =>
+                        (cl.client != null && cl.client.TeamID == 0)));
                         break;
                     case 4:     //4 - Creature AI
                         ingameInfoFilterText.Text = "Filter: Creature AI";
-                        filteredcharacterlist = characterlist.FindAll(cl => (!cl.Removed));
-                        filteredcharacterlist = filteredcharacterlist.FindAll(cl => (cl.client == null || !cl.IsHostCharacter) && (cl.character != null && cl.character != Character.Controlled) && (cl.character != null && cl.character.TeamID == 0));
-                        if (filteredcharacterlist.Count == 0) ChangeFilter(filterincrement);
+                        Searchlist = Searchlist.FindAll(cl => cl.client == null || !cl.IsHostCharacter);
+                        filteredcharacterlist = Searchlist.FindAll(cl => cl.character != null && cl.character != Character.Controlled
+                        && cl.character.AIController is EnemyAIController && cl.character.TeamID == 0);
                         break;
-                    case 5:     //4 - Human AI
+                    case 5:     //5 - Human AI
                         ingameInfoFilterText.Text = "Filter: Human AI";
-                        filteredcharacterlist = characterlist.FindAll(cl => (!cl.Removed));
-                        filteredcharacterlist = filteredcharacterlist.FindAll(cl => cl.client == null || !cl.IsHostCharacter);
-                        filteredcharacterlist = filteredcharacterlist.FindAll(cl => cl.character != null && cl.character.AIController is HumanAIController);
-                        if (filteredcharacterlist.Count == 0) ChangeFilter(filterincrement);
+                        Searchlist = Searchlist.FindAll(sl => sl.client == null || !sl.IsHostCharacter);
+                        filteredcharacterlist = Searchlist.FindAll(cl => cl.character != null && cl.character != Character.Controlled
+                        && cl.character.AIController is HumanAIController);
                         break;
-                    case 6:
+                    case 6:     //6 - Player Corpses
                         ingameInfoFilterText.Text = "Filter: Player Corpses";
-                        filteredcharacterlist = characterlist.FindAll(cl => (!cl.Removed));
-                        filteredcharacterlist = filteredcharacterlist.FindAll(cl => cl.character != null && (cl.character.IsRemotePlayer || cl.IsHostCharacter) && cl.character.IsDead);
-                        if (filteredcharacterlist.Count == 0) ChangeFilter(filterincrement);
+                        filteredcharacterlist = Searchlist.FindAll(cl =>
+                        cl.character != null
+                        && (cl.character.IsRemotePlayer || cl.IsHostCharacter || cl.character?.Info?.Name == GameMain.NilMod.PlayYourselfName)
+                        && cl.character.IsDead);
                         break;
-                    case 7:
+                    case 7:     //7 - AI Corpses
                         ingameInfoFilterText.Text = "Filter: AI Corpses";
-                        filteredcharacterlist = characterlist.FindAll(cl => (!cl.Removed));
-                        filteredcharacterlist = filteredcharacterlist.FindAll(cl => cl.character != null && !cl.character.IsRemotePlayer && cl.character.IsDead);
-                        if (filteredcharacterlist.Count == 0) ChangeFilter(filterincrement);
+                        Searchlist = Searchlist.FindAll(cl => cl.character != null && (cl.character.AIController != null));
+                        filteredcharacterlist = Searchlist.FindAll(cl => cl.character != null
+                        && !cl.character.IsRemotePlayer
+                        && cl.character.IsDead
+                        && !cl.IsHostCharacter);
                         break;
-                    default:
+                    default:    // Filter out of range.
                         ingameInfoFilterText.Text = "Filter: ERROR.";
+                        filteredcharacterlist = new List<InGameInfoCharacter>();
                         break;
                 }
             }
@@ -1366,7 +1596,7 @@ namespace Barotrauma
                     case 0:     //0 - All Clients
                         ingameInfoFilterText.Text = "Filter: Humans";
                         //Include the hosts original spawns and respawns, but only if their actually alive or controlled.
-                        filteredcharacterlist = characterlist.FindAll(cl => !cl.Removed && ( cl.character.SpeciesName.ToLowerInvariant() == "human"));
+                        filteredcharacterlist = Searchlist.FindAll(cl => !cl.Removed && ( cl.character.SpeciesName.ToLowerInvariant() == "human"));
                         break;
                     default:
                         ChangeFilter(filterincrement);
@@ -1382,7 +1612,7 @@ namespace Barotrauma
                     case 0:     //0 - All Clients
                         ingameInfoFilterText.Text = "Filter: Humans";
                         //Include the hosts original spawns and respawns, but only if their actually alive or controlled.
-                        filteredcharacterlist = characterlist.FindAll(cl => !cl.Removed && (cl.character.SpeciesName.ToLowerInvariant() == "human"));
+                        filteredcharacterlist = Searchlist.FindAll(cl => !cl.Removed && (cl.character.SpeciesName.ToLowerInvariant() == "human"));
                         break;
 
                     default:
@@ -1391,16 +1621,10 @@ namespace Barotrauma
                 }
             }
 
-            if (filteredcharacterlist.Count > 0)
+            if (filteredcharacterlist.Count == 0 && currentfilter != 0)
             {
-                for (int i = filteredcharacterlist.Count - 1; i >= 0; i--)
-                {
-                    if (filteredcharacterlist[i].character != null && filteredcharacterlist[i].character.Removed)
-                    {
-                        RemoveCharacter(filteredcharacterlist[i].character);
-                        filteredcharacterlist.RemoveAt(i);
-                    }
-                }
+                if (filterincrement == 0) filterincrement = 1;
+                ChangeFilter(filterincrement);
             }
         }
 

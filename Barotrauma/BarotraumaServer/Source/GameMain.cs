@@ -1,5 +1,6 @@
 ﻿using Barotrauma.Networking;
 using FarseerPhysics.Dynamics;
+using GameAnalyticsSDK.Net;
 using Microsoft.Xna.Framework;
 using System;
 using System.Linq;
@@ -14,6 +15,9 @@ namespace Barotrauma
     class GameMain
     {
         public static readonly Version Version = Assembly.GetEntryAssembly().GetName().Version;
+
+        Stopwatch stopwatch;
+        long prevTicks;
 
         public static World World;
         public static GameSettings Config;
@@ -74,6 +78,11 @@ namespace Barotrauma
                 UpdaterUtil.CleanOldFiles();
                 Config.WasGameUpdated = false;
                 Config.Save("config.xml");
+            }
+
+            if (GameSettings.SendUserStatistics)
+            {
+                GameAnalyticsManager.Init();
             }
 
             NilMod = new NilMod();
@@ -142,6 +151,7 @@ namespace Barotrauma
 
         public void CloseServer()
         {
+            if (GameSettings.SendUserStatistics) GameAnalytics.OnStop();
             Server.Disconnect();
             Server = null;
         }
@@ -171,8 +181,8 @@ namespace Barotrauma
             double CurrentUpdatesPerSecond = 0;
             double AverageUpdatesPerSecond = 0;
 
-            Stopwatch stopwatch = Stopwatch.StartNew();
-            long prevTicks = stopwatch.ElapsedTicks;
+            stopwatch = Stopwatch.StartNew();
+            prevTicks = stopwatch.ElapsedTicks;
             while (ShouldRun)
             {
                 long currTicks = stopwatch.ElapsedTicks;
@@ -303,6 +313,9 @@ namespace Barotrauma
                 while (Timing.Accumulator >= Timing.Step)
                 {
                     DebugConsole.Update();
+
+                    NilMod.Update((float)Timing.Step);
+
                     if (Screen.Selected != null) Screen.Selected.Update((float)Timing.Step);
                     Server.Update((float)Timing.Step);
                     CoroutineManager.Update((float)Timing.Step, (float)Timing.Step);
@@ -460,6 +473,45 @@ namespace Barotrauma
                 }
                 DebugConsole.NewMessage(" ", Color.Cyan);
             }
+        }
+
+        //Refresh the entire server
+        public void AutoRestartServer()
+        {
+            CloseServer();
+
+            Config = new GameSettings("config.xml");
+            if (Config.WasGameUpdated)
+            {
+                UpdaterUtil.CleanOldFiles();
+                Config.WasGameUpdated = false;
+                Config.Save("config.xml");
+            }
+
+            NilMod = new NilMod();
+            NilMod.Load(false);
+
+            NilMod.NilModVPNBanlist = new VPNBanlist();
+            NilMod.NilModVPNBanlist.LoadVPNBans();
+
+            GameScreen = new GameScreen();
+
+            //Init();
+
+            Submarine.RefreshSavedSubs();
+
+            Screen.SelectNull();
+
+            NetLobbyScreen = new NetLobbyScreen();
+
+            StartServer();
+
+            DefaultServerStartup();
+
+            Timing.Accumulator = 0.0;
+            stopwatch.Stop();
+            stopwatch = Stopwatch.StartNew();
+            prevTicks = stopwatch.ElapsedTicks;
         }
     }
 }

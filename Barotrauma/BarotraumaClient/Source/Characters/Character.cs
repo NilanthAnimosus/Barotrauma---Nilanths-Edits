@@ -436,6 +436,7 @@ namespace Barotrauma
         partial void DisposeProjSpecific()
         {
             if (controlled == this) controlled = null;
+            if (Spied == this) Spied = null;
 
             if (GameMain.GameSession?.CrewManager != null &&
                 GameMain.GameSession.CrewManager.GetCharacters().Contains(this))
@@ -443,7 +444,7 @@ namespace Barotrauma
                 GameMain.GameSession.CrewManager.RemoveCharacter(this);
             }
 
-            if (GameMain.Client != null && GameMain.Client.Character == this) GameMain.Client.Character = null;
+            if (GameMain.NetworkMember != null && GameMain.NetworkMember.Character == this) GameMain.NetworkMember.Character = null;
 
             if (Lights.LightManager.ViewTarget == this) Lights.LightManager.ViewTarget = null;
         }
@@ -867,7 +868,7 @@ namespace Barotrauma
                     //Husk Bar
                     if (HuskInfectionState > 0.0f)
                     {
-                        GUI.DrawProgressBar(spriteBatch, new Vector2(healthBarPos.X + 80f, healthBarPos.Y - ((pressureFactor > 0.0f) ? 10.0f : 0.0f)), new Vector2(20.0f, (pressureFactor > 0.0f) ? 30.0f : 20.0f), HuskInfectionState, Color.Lerp(HuskPositiveLow, HuskPositiveHigh, HuskInfectionState)  * hudInfoAlpha, outLineColour, 2f, 0f, "Bottom");
+                        GUI.DrawProgressBar(spriteBatch, new Vector2(healthBarPos.X + 80f, healthBarPos.Y + ((pressureFactor > 0.0f) ? 10.0f : 0.0f)), new Vector2(20.0f, (pressureFactor > 0.0f) ? 30.0f : 20.0f), HuskInfectionState, Color.Lerp(HuskPositiveLow, HuskPositiveHigh, HuskInfectionState) * hudInfoAlpha, outLineColour, 2f, 0f, "Bottom");
                     }
                 }
             }

@@ -7,7 +7,7 @@ namespace Barotrauma.Networking
 {
     enum ChatMessageType
     {
-        Default, Error, Dead, Server, Radio, Private, Console, MessageBox
+        Default, Error, Dead, Server, Radio, Private, Console, MessageBox, Global, Admin, Help
     }
 
     partial class ChatMessage
@@ -26,7 +26,11 @@ namespace Barotrauma.Networking
             new Color(157, 225, 160),   //server
             new Color(238, 208, 0),     //radio
             new Color(64, 240, 89),     //private
-            new Color(255, 255, 255)    //console
+            new Color(255, 255, 255),   //console
+            new Color(255, 255, 255),   //messagebox
+            new Color(50, 200, 120),    //global
+            new Color(255, 140, 140),    //admin
+            new Color(157, 225, 160)     //help
         };
         
         public readonly string Text;

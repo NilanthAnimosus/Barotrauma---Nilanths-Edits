@@ -264,22 +264,18 @@ namespace Barotrauma.Items.Components
                 }
                 else if (targetStructure != null)
                 {
-                    Boolean ModifyRangeValues = false;
-                    if (attack.DamageRange == 0) ModifyRangeValues = true;
+                    Boolean ModifyRangeValue = false;
+                    Boolean ModifyDamageRangeValue = false;
+                    if (attack.Range == 0) ModifyRangeValue = true;
+                    if (attack.DamageRange == 0) ModifyDamageRangeValue = true;
 
-                    if (ModifyRangeValues)
-                    {
-                        attack.DamageRange = 75f;
-                        attack.Range = 75f;
-                    }
+                    if (ModifyRangeValue) attack.Range = 75f;
+                    if (ModifyDamageRangeValue) attack.DamageRange = 75f;
 
                     attack.DoDamage(user, targetStructure, item.WorldPosition, 1.0f);
 
-                    if (ModifyRangeValues)
-                    {
-                        attack.DamageRange = 0f;
-                        attack.Range = 0f;
-                    }
+                    if (ModifyRangeValue) attack.Range = 0f;
+                    if (ModifyDamageRangeValue) attack.DamageRange = 0f;
                 }
                 else
                 {

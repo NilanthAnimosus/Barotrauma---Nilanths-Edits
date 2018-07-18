@@ -101,6 +101,8 @@ namespace Barotrauma
 
         public bool Shielded = false;
 
+        public float SpawnProtection = 0f;
+
         protected Item focusedItem;
         private Character focusedCharacter, selectedCharacter, selectedBy;
 
@@ -302,7 +304,12 @@ namespace Barotrauma
         private float pressureProtection;
         public float PressureProtection
         {
-            get { return pressureProtection; }
+            get
+            {
+                if (Shielded) return 100f;
+
+                return pressureProtection;
+            }
             set
             {
                 pressureProtection = MathHelper.Clamp(value, 0.0f, 100.0f);
@@ -778,10 +785,19 @@ namespace Barotrauma
             private set;
         }
 
+        private float pressureTimer;
+
         public float PressureTimer
         {
-            get;
-            private set;
+            get
+            {
+                if (Shielded) return 0f;
+                return pressureTimer;
+            }
+            private set
+            {
+                pressureTimer = value;
+            }
         }
 
         public float DisableImpactDamageTimer
@@ -2124,26 +2140,26 @@ namespace Barotrauma
             //NilMod Health Regen Code
             if (!IsRemotePlayer)
             {
-                if (controlled != this && GameMain.NilMod.CreatureHealthRegen != 0f)
+                if (controlled != this && GameMain.NilMod.CreatureHealthRegen != 0f && huskInfection == null)
                 {
-                    if (Health >= ((GameMain.NilMod.CreatureHealthRegenMin / 100) * MaxHealth) && Health <= ((GameMain.NilMod.CreatureHealthRegenMax / 100) * MaxHealth))
+                    if (Health >= ((GameMain.NilMod.CreatureHealthRegenMin / 100f) * MaxHealth) && Health <= ((GameMain.NilMod.CreatureHealthRegenMax / 100) * MaxHealth))
                     {
-                        Health += GameMain.NilMod.CreatureHealthRegen * deltaTime;
+                        Health += Math.Max((GameMain.NilMod.CreatureHealthRegen - (Bleeding / 3)) * deltaTime,0f);
                     }
                 }
-                else if (GameMain.NilMod.PlayerHealthRegen != 0f)
+                else if (GameMain.NilMod.PlayerHealthRegen != 0f && huskInfection == null)
                 {
-                    if (Health >= ((GameMain.NilMod.PlayerHealthRegenMin / 100) * MaxHealth) && Health <= ((GameMain.NilMod.PlayerHealthRegenMax / 100) * MaxHealth))
+                    if (Health >= ((GameMain.NilMod.PlayerHealthRegenMin / 100f) * MaxHealth) && Health <= ((GameMain.NilMod.PlayerHealthRegenMax / 100) * MaxHealth))
                     {
-                        Health += GameMain.NilMod.PlayerHealthRegen * deltaTime;
+                        Health += Math.Max((GameMain.NilMod.PlayerHealthRegen - (Bleeding / 3)) * deltaTime, 0f);
                     }
                 }
             }
-            else if (GameMain.NilMod.PlayerHealthRegen != 0f)
+            else if (GameMain.NilMod.PlayerHealthRegen != 0f && huskInfection == null)
             {
-                if (Health >= ((GameMain.NilMod.PlayerHealthRegenMin / 100) * MaxHealth) && Health <= ((GameMain.NilMod.PlayerHealthRegenMax / 100) * MaxHealth))
+                if (Health >= ((GameMain.NilMod.PlayerHealthRegenMin / 100f) * MaxHealth) && Health <= ((GameMain.NilMod.PlayerHealthRegenMax / 100) * MaxHealth))
                 {
-                    Health += GameMain.NilMod.PlayerHealthRegen * deltaTime;
+                    Health += Math.Max((GameMain.NilMod.PlayerHealthRegen - (Bleeding / 3)) * deltaTime, 0f);
                 }
             }
 
@@ -2631,7 +2647,21 @@ namespace Barotrauma
 
             AnimController.Frozen = false;
 
-            GameServer.Log(LogName+" has died (Cause of death: "+causeOfDeath+")", ServerLog.MessageType.Attack);
+            GameServer.Log(LogName + " has died (Cause of death: " + causeOfDeath + ")", ServerLog.MessageType.Attack);
+
+            if (GameSettings.SendUserStatistics)
+            {
+                string characterType = "Unknown";
+                if (this == controlled)
+                    characterType = "Player";
+                else if (IsRemotePlayer)
+                    characterType = "RemotePlayer";
+                else if (AIController is EnemyAIController)
+                    characterType = "Enemy";
+                else if (AIController is HumanAIController)
+                    characterType = "AICrew";
+                GameAnalyticsSDK.Net.GameAnalytics.AddDesignEvent("Kill:" + characterType + ":" + SpeciesName + ":" + causeOfDeath);
+            }
 
             if (OnDeath != null) OnDeath(this, causeOfDeath);
 
@@ -2729,7 +2759,6 @@ namespace Barotrauma
             if (SpawnCharacter == this) SpawnCharacter = null;
 #endif
             if (Controlled == this) Controlled = null;
-            if (Spied == this) Spied = null;
 
             if (info != null) info.Remove();
 
@@ -2752,8 +2781,21 @@ namespace Barotrauma
                         GameMain.NilMod.DisconnectedCharacters.Remove(ReconnectedClient);
                     }
                 }
+
+                foreach (Client c in GameMain.Server.ConnectedClients)
+                {
+                    if (c.Spied == this) c.Spied = null;
+                    if (c.Character == this) c.Character = null;
+                }
+                
             }
 
+#if CLIENT
+            if(GameSession.inGameInfo != null)
+            {
+                GameSession.inGameInfo.RemoveCharacter(this);
+            }
+#endif
             CharacterList.Remove(this);
 
             DisposeProjSpecific();

@@ -27,9 +27,24 @@ namespace Barotrauma.Networking
             public readonly string Name;
 
             //Slots
-            public Boolean TrustedSlot;
-            public Boolean AdministratorSlot;
-            public Boolean OwnerSlot;
+            public Boolean TrustedSlot = false;
+            public Boolean AdministratorSlot = false;
+            public Boolean OwnerSlot = false;
+
+            //Extras
+            public Boolean GlobalChatSend = false;
+            public Boolean GlobalChatReceive = false;
+            public Boolean PrioritizeJob = false;
+            public Boolean KickImmunity = false;
+            public Boolean BanImmunity = false;
+
+            //Admin Features
+            public Boolean HideJoin = false;
+            public Boolean AccessDeathChatAlive = false;
+            public Boolean AdminChannelSend = false;
+            public Boolean AdminChannelReceive = false;
+            public Boolean SendServerConsoleInfo = false;
+            public Boolean CanBroadcast = false;
 
             public List<DebugConsole.Command> PermittedCommands;
 
@@ -72,17 +87,19 @@ namespace Barotrauma.Networking
         private WhiteList whitelist;
         private BanList banList;
 
-        private string password;
+        public string password;
 
         public float AutoRestartTimer;
 
         private bool autoRestart;
 
-        private bool isPublic;
+        public bool isPublic;
 
         public int maxPlayers;
 
         private List<SavedClientPermission> clientPermissions = new List<SavedClientPermission>();
+
+        private SavedClientPermission defaultpermission = new SavedClientPermission("","",ClientPermissions.None, new List<DebugConsole.Command>());
 
         [Serialize(true, true)]
         public bool RandomizeSeed
@@ -410,43 +427,42 @@ namespace Barotrauma.Networking
         {
             clientPermissions.Clear();
 
+            int Errorcount = 0;
+
             if (!File.Exists(NilmodClientPermissionsFile))
             {
                 if (File.Exists(VanillaClientPermissionsFile))
                 {
                     LoadVanillaClientPermissions();
-                    SaveClientPermissions();
                 }
                 else if (File.Exists("Data/clientpermissions.txt"))
                 {
                     LoadClientPermissionsOld("Data/clientpermissions.txt");
                 }
+                SaveClientPermissions();
                 return;
             }
 
             XDocument doc = XMLExtensions.TryLoadXml(NilmodClientPermissionsFile);
-            foreach (XElement clientElement in doc.Root.Elements())
-            {
-                string clientName = clientElement.GetAttributeString("name", "");
-                string clientIP = clientElement.GetAttributeString("ip", "");
-                if (string.IsNullOrWhiteSpace(clientName) || string.IsNullOrWhiteSpace(clientIP))
-                {
-                    DebugConsole.ThrowError("Error in " + NilmodClientPermissionsFile + " - all clients must have a name and an IP address.");
-                    continue;
-                }
 
-                string permissionsStr = clientElement.GetAttributeString("permissions", "");
+            //load defaultpermission
+            XElement Xdefaultperms = doc.Root.Element("None");
+            defaultpermission = new SavedClientPermission("", "", ClientPermissions.None, new List<DebugConsole.Command>());
+            if (Xdefaultperms != null)
+            {
+                string permissionsStr = Xdefaultperms.GetAttributeString("permissions", "");
                 ClientPermissions permissions;
                 if (!Enum.TryParse(permissionsStr, out permissions))
                 {
                     DebugConsole.ThrowError("Error in " + NilmodClientPermissionsFile + " - \"" + permissionsStr + "\" is not a valid client permission.");
-                    continue;
+                    DebugConsole.ThrowError("Valid permissions are: Kick, Ban, EndRound, SelectSub, SelectMode, ManageCampaign, ConsoleCommands.");
+                    Errorcount += 1;
                 }
 
                 List<DebugConsole.Command> permittedCommands = new List<DebugConsole.Command>();
                 if (permissions.HasFlag(ClientPermissions.ConsoleCommands))
                 {
-                    foreach (XElement commandElement in clientElement.Elements())
+                    foreach (XElement commandElement in Xdefaultperms.Elements())
                     {
                         if (commandElement.Name.ToString().ToLowerInvariant() != "command") continue;
 
@@ -462,6 +478,66 @@ namespace Barotrauma.Networking
                     }
                 }
 
+                defaultpermission = new SavedClientPermission("", "", permissions, permittedCommands);
+
+                defaultpermission.GlobalChatSend = Xdefaultperms.GetAttributeBool("GlobalChatSend", false);
+                defaultpermission.GlobalChatReceive = Xdefaultperms.GetAttributeBool("GlobalChatReceive", false);
+                defaultpermission.PrioritizeJob = Xdefaultperms.GetAttributeBool("PrioritizeJob", false);
+                defaultpermission.KickImmunity = Xdefaultperms.GetAttributeBool("KickImmunity", false);
+                defaultpermission.BanImmunity = Xdefaultperms.GetAttributeBool("BanImmunity", false);
+
+                defaultpermission.HideJoin = Xdefaultperms.GetAttributeBool("HideJoin", false);
+                defaultpermission.AccessDeathChatAlive = Xdefaultperms.GetAttributeBool("AccessDeathChatAlive", false);
+                defaultpermission.AdminChannelSend = Xdefaultperms.GetAttributeBool("AdminChannelSend", true);
+                defaultpermission.AdminChannelReceive = Xdefaultperms.GetAttributeBool("AdminChannelReceive", false);
+                defaultpermission.CanBroadcast = Xdefaultperms.GetAttributeBool("CanBroadcast", false);
+            }
+            else
+            {
+                defaultpermission.AdminChannelSend = true;
+            }
+
+            foreach (XElement clientElement in doc.Root.Elements())
+            {
+                if (clientElement.Name != "Client") continue;
+                string clientName = clientElement.GetAttributeString("name", "");
+                string clientIP = clientElement.GetAttributeString("ip", "");
+                if (string.IsNullOrWhiteSpace(clientName) || string.IsNullOrWhiteSpace(clientIP))
+                {
+                    DebugConsole.ThrowError("Error in " + NilmodClientPermissionsFile + " - all clients must have a name and an IP address.");
+                    Errorcount += 1;
+                    continue;
+                }
+
+                string permissionsStr = clientElement.GetAttributeString("permissions", "");
+                ClientPermissions permissions;
+                if (!Enum.TryParse(permissionsStr, out permissions))
+                {
+                    DebugConsole.ThrowError("Error in " + NilmodClientPermissionsFile + " - \"" + permissionsStr + "\" is not a valid client permission.");
+                    DebugConsole.ThrowError("Valid permissions are: Kick, Ban, EndRound, SelectSub, SelectMode, ManageCampaign, ConsoleCommands.");
+                    permissions = ClientPermissions.None;
+                    Errorcount += 1;
+                }
+
+                List<DebugConsole.Command> permittedCommands = new List<DebugConsole.Command>();
+                if (permissions.HasFlag(ClientPermissions.ConsoleCommands))
+                {
+                    foreach (XElement commandElement in clientElement.Elements())
+                    {
+                        if (commandElement.Name.ToString().ToLowerInvariant() != "command") continue;
+
+                        string commandName = commandElement.GetAttributeString("name", "");
+                        DebugConsole.Command command = DebugConsole.FindCommand(commandName);
+                        if (command == null)
+                        {
+                            DebugConsole.ThrowError("Error in " + NilmodClientPermissionsFile + " - \"" + commandName + "\" is not a valid console command.");
+                            Errorcount += 1;
+                        }
+
+                        permittedCommands.Add(command);
+                    }
+                }
+
                 SavedClientPermission newsavedpermission = new SavedClientPermission(clientName, clientIP, permissions, permittedCommands);
 
 
@@ -470,7 +546,25 @@ namespace Barotrauma.Networking
                 newsavedpermission.AdministratorSlot = clientElement.GetAttributeBool("AdministratorSlot", false);
                 newsavedpermission.TrustedSlot = clientElement.GetAttributeBool("TrustedSlot", false);
 
+                newsavedpermission.GlobalChatSend = clientElement.GetAttributeBool("GlobalChatSend", false);
+                newsavedpermission.GlobalChatReceive = clientElement.GetAttributeBool("GlobalChatReceive", false);
+                newsavedpermission.PrioritizeJob = clientElement.GetAttributeBool("PrioritizeJob", false);
+                newsavedpermission.KickImmunity = clientElement.GetAttributeBool("KickImmunity", false);
+                newsavedpermission.BanImmunity = clientElement.GetAttributeBool("BanImmunity", false);
+
+                newsavedpermission.HideJoin = clientElement.GetAttributeBool("HideJoin", false);
+                newsavedpermission.AccessDeathChatAlive = clientElement.GetAttributeBool("AccessDeathChatAlive", false);
+                newsavedpermission.AdminChannelSend = clientElement.GetAttributeBool("AdminChannelSend", true);
+                newsavedpermission.AdminChannelReceive = clientElement.GetAttributeBool("AdminChannelReceive", false);
+                newsavedpermission.SendServerConsoleInfo = clientElement.GetAttributeBool("SendServerConsoleInfo", false);
+                newsavedpermission.CanBroadcast = clientElement.GetAttributeBool("CanBroadcast", false);
+
                 clientPermissions.Add(newsavedpermission);
+            }
+
+            if (Errorcount == 0)
+            {
+                SaveClientPermissions();
             }
         }
 
@@ -577,15 +671,76 @@ namespace Barotrauma.Networking
 
             XDocument doc = new XDocument(new XElement("ClientPermissions"));
 
+            //save defaultpermission first
+
+            XElement DefaultPermissionElement = new XElement("None",
+                new XAttribute("GlobalChatSend", defaultpermission.GlobalChatSend),
+                new XAttribute("GlobalChatReceive", defaultpermission.GlobalChatReceive),
+                //new XText(""),
+                //"\r\n\r\n ",
+                new XAttribute("AccessDeathChatAlive", defaultpermission.AccessDeathChatAlive),
+                new XAttribute("AdminChannelSend", defaultpermission.AdminChannelSend),
+                //new XText(""),
+                //"\r\n\r\n ",
+                new XAttribute("permissions", defaultpermission.Permissions.ToString()));
+
+            if (defaultpermission.Permissions.HasFlag(ClientPermissions.ConsoleCommands))
+            {
+                foreach (DebugConsole.Command command in defaultpermission.PermittedCommands)
+                {
+                    DefaultPermissionElement.Add(new XElement("command", new XAttribute("name", command.names[0])));
+                }
+            }
+
+            doc.Root.Add(DefaultPermissionElement);
+
             foreach (SavedClientPermission clientPermission in clientPermissions)
             {
-                XElement clientElement = new XElement("Client",
+                /*
+                    XElement clientElement = new XElement("Client",
                     new XAttribute("name", clientPermission.Name),
                     new XAttribute("ip", clientPermission.IP),
+                    //new XText(""),
+                    "\r\n\r\n ",
                     new XAttribute("OwnerSlot", clientPermission.OwnerSlot),
                     new XAttribute("AdministratorSlot", clientPermission.AdministratorSlot),
                     new XAttribute("TrustedSlot", clientPermission.TrustedSlot),
+                    //new XText(""),
+                    ////"\r\n\r\n ",
+                    //new XAttribute("GlobalChat", clientPermission.GlobalChat),
+                    //new XAttribute("PrioritizeJob", clientPermission.PrioritizeJob),
+                    //new XAttribute("KickImmunity", clientPermission.KickImmunity),
+                    //new XAttribute("BanImmunity", clientPermission.BanImmunity),
+                    //new XText(""),
+                    ////"\r\n\r\n ",
+                    //new XAttribute("HideJoin", clientPermission.HideJoin),
+                    //new XAttribute("AccessDeathChatAlive", clientPermission.AccessDeathChatAlive),
+                    //new XAttribute("AdminChannelSend", clientPermission.AdminChannelSend),
+                    //new XAttribute("AdminChannelReceive", clientPermission.AdminChannelReceive),
+                    //new XAttribute("CanBroadcast", clientPermission.CanBroadcast),
+                    //new XText(""),
+                    ////"\r\n\r\n ",
                     new XAttribute("permissions", clientPermission.Permissions.ToString()));
+                    */
+
+                XElement clientElement = new XElement("Client");
+                clientElement.Add(new XAttribute("name", clientPermission.Name));
+                clientElement.Add(new XAttribute("ip", clientPermission.IP));
+                clientElement.Add(new XAttribute("OwnerSlot", clientPermission.OwnerSlot));
+                clientElement.Add(new XAttribute("AdministratorSlot", clientPermission.AdministratorSlot));
+                clientElement.Add(new XAttribute("TrustedSlot", clientPermission.TrustedSlot));
+                clientElement.Add(new XAttribute("GlobalChatSend", clientPermission.GlobalChatSend));
+                clientElement.Add(new XAttribute("GlobalChatReceive", clientPermission.GlobalChatReceive));
+                clientElement.Add(new XAttribute("PrioritizeJob", clientPermission.PrioritizeJob));
+                clientElement.Add(new XAttribute("KickImmunity", clientPermission.KickImmunity));
+                clientElement.Add(new XAttribute("BanImmunity", clientPermission.BanImmunity));
+                clientElement.Add(new XAttribute("HideJoin", clientPermission.HideJoin));
+                clientElement.Add(new XAttribute("AccessDeathChatAlive", clientPermission.AccessDeathChatAlive));
+                clientElement.Add(new XAttribute("AdminChannelSend", clientPermission.AdminChannelSend));
+                clientElement.Add(new XAttribute("AdminChannelReceive", clientPermission.AdminChannelReceive));
+                clientElement.Add(new XAttribute("SendServerConsoleInfo", clientPermission.SendServerConsoleInfo));
+                clientElement.Add(new XAttribute("CanBroadcast", clientPermission.CanBroadcast));
+                clientElement.Add(new XAttribute("permissions", clientPermission.Permissions.ToString()));
 
                 if (clientPermission.Permissions.HasFlag(ClientPermissions.ConsoleCommands))
                 {

@@ -204,7 +204,7 @@ namespace Barotrauma
 
         private static void InitProjectSpecific()
         {
-            commands.Add(new Command("autohull", "", (string[] args) =>
+            commands.Add(new Command("autohull",CommandType.Generic, "", (string[] args) =>
             {
                 if (Screen.Selected != GameMain.SubEditorScreen) return;
 
@@ -500,7 +500,7 @@ namespace Barotrauma
                 NewMessage("Particle System " + (GameMain.NilMod.DisableParticles ? "disabled" : "enabled"), Color.White);
             }));
 
-            commands.Add(new Command("followsub", CommandType.Render, "followsub: Toggle whether the ", (string[] args) =>
+            commands.Add(new Command("followsub", CommandType.Render, "followsub: Toggle whether the camera should follow the nearest submarine.", (string[] args) =>
             {
                 Camera.FollowSub = !Camera.FollowSub;
 #if CLIENT

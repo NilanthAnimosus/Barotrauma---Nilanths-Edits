@@ -61,12 +61,6 @@ namespace Barotrauma
         public override void Start()
         {
             base.Start();
-
-            if (GameMain.Server != null)
-            {
-                CargoManager.CreateItems();
-            }
-
             lastUpdateID++;
         }
 

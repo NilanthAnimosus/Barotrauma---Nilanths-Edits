@@ -7,6 +7,7 @@ using Barotrauma.Networking;
 using System.Xml.Linq;
 using Microsoft.Xna.Framework;
 using System.IO;
+using System.Diagnostics;
 
 namespace Barotrauma
 {
@@ -47,6 +48,10 @@ namespace Barotrauma
         const string SettingsSavePath = "Data/NilMod/Settings.xml";
         public const string NilModVersionDate = "08/07/2018-2";
         public Version NilModNetworkingVersion = new Version(0,0,0,1);
+
+        public Stopwatch serverruntime;
+        public Boolean AutoRestartServer;
+        public TimeSpan ServerRestartInterval = new TimeSpan(0,0,0);
 
         public int Owners;
         public int Admins;
@@ -108,7 +113,8 @@ namespace Barotrauma
         public string ClickArgTwo = "";
         public string ClickArgThree = "";
         public string[] ClickArgs;
-        public Character RelocateTarget;
+        public Character ClickTargetCharacter;
+        public Client ClickTargetClient;
 
         //Classes for the help system and event Chatter system
         public static NilModPermissions NilModPermissions;
@@ -221,6 +227,7 @@ namespace Barotrauma
         public Boolean ClearKickStateNameOnRejoin;
         public Boolean ClearKicksOnRoundStart;
         public int MaxIdenticalIPConnections = 5;
+        public int MinimumNameLength = 2;
 
         public Boolean AllowCyrillicText;
         public Boolean AllowEnglishText;
@@ -605,69 +612,77 @@ namespace Barotrauma
                     }
 
                     //Code support for allowing client reconnect
-                    if (DisconnectedCharacters.Count >= 1)
+                    for (int i = DisconnectedCharacters.Count - 1; i >= 0; i--)
                     {
-                        for (int i = DisconnectedCharacters.Count - 1; i >= 0; i--)
+                        if (GameMain.NilMod.AllowReconnect)
                         {
-                            if (GameMain.NilMod.AllowReconnect)
+                            DisconnectedCharacters[i].TimeUntilKill -= deltaTime;
+
+                            if (DisconnectedCharacters[i].character != null && !DisconnectedCharacters[i].character.IsDead && !DisconnectedCharacters[i].character.Removed)
                             {
-                                DisconnectedCharacters[i].TimeUntilKill -= deltaTime;
+                                DisconnectedCharacters[i].character.Stunresistance = 0f;
+                                DisconnectedCharacters[i].character.Stun = 600f;
+                            }
 
-                                if (DisconnectedCharacters[i].character != null && !DisconnectedCharacters[i].character.IsDead && !DisconnectedCharacters[i].character.Removed)
+                            Client clientmatch = GameMain.Server?.ConnectedClients?.Find(c => c.Name == DisconnectedCharacters[i].clientname && c.Connection.RemoteEndPoint.Address.ToString() == DisconnectedCharacters[i].IPAddress);
+
+                            if (clientmatch != null && DisconnectedCharacters[i].ClientSetCooldown <= 0f && clientmatch.InGame)
+                            {
+                                if (DisconnectedCharacters[i].character != null && !DisconnectedCharacters[i].character.Removed)
                                 {
-                                    DisconnectedCharacters[i].character.Stun = 60f;
-                                }
-
-                                Client clientmatch = GameMain.Server?.ConnectedClients?.Find(c => c.Name == DisconnectedCharacters[i].clientname && c.Connection.RemoteEndPoint.Address.ToString() == DisconnectedCharacters[i].IPAddress);
-
-                                if (clientmatch != null && DisconnectedCharacters[i].ClientSetCooldown <= 0f && clientmatch.InGame)
-                                {
-                                    if (DisconnectedCharacters[i].character != null && !DisconnectedCharacters[i].character.Removed)
+                                    if (DisconnectedCharacters[i].character.IsDead)
                                     {
-                                        if (DisconnectedCharacters[i].character.IsDead)
-                                        {
-                                            var chatMsg = ChatMessage.Create(
-                                                                "",
-                                                                ("You have been reconnected to your character - However while you were gone your character has been killed."),
-                                                                (ChatMessageType)ChatMessageType.Server,
-                                                                null);
+                                        var chatMsg = ChatMessage.Create(
+                                                            "",
+                                                            ("You have been reconnected to your character - However while you were gone your character has been killed."),
+                                                            (ChatMessageType)ChatMessageType.Server,
+                                                            null);
 
-                                            GameMain.Server.SendChatMessage(chatMsg, clientmatch);
-                                            DisconnectedCharacters[i].TimeUntilKill = 0f;
-                                        }
+                                        GameMain.Server.SendChatMessage(chatMsg, clientmatch);
+                                        DisconnectedCharacters[i].TimeUntilKill = 0f;
+                                    }
+                                    if (!clientmatch.SpectateOnly
+                                        && (clientmatch.Character == null
+                                        || (clientmatch.Character != null && clientmatch.Character == DisconnectedCharacters[i].character)))
+                                    {
+                                        DisconnectedCharacters[i].character.Enabled = true;
+                                        DisconnectedCharacters[i].character.ClearInputs();
+                                        DisconnectedCharacters[i].character.ResetNetState();
+                                        DisconnectedCharacters[i].character.Enabled = true;
                                         GameMain.Server.SetClientCharacter(clientmatch, DisconnectedCharacters[i].character);
                                         DisconnectedCharacters[i].ClientSetCooldown = 0.1f;
                                         DisconnectedCharacters[i].character.SetStun(0f, true, true);
                                     }
-                                    else
-                                    {
-                                        DisconnectedCharacters[i].TimeUntilKill = 0f;
-                                    }
                                 }
-                                else if (clientmatch != null)
+                                else
                                 {
-                                    DisconnectedCharacters[i].ClientSetCooldown -= deltaTime;
+                                    DisconnectedCharacters[i].TimeUntilKill = 0f;
                                 }
                             }
-                            else
+                            else if (clientmatch != null)
                             {
-                                DisconnectedCharacters[i].TimeUntilKill = 0f;
+                                DisconnectedCharacters[i].ClientSetCooldown -= deltaTime;
                             }
+                        }
+                        else
+                        {
+                            DisconnectedCharacters[i].TimeUntilKill = 0f;
+                        }
 
-                            if (DisconnectedCharacters[i].TimeUntilKill <= 0f)
+                        if (DisconnectedCharacters[i].TimeUntilKill <= 0f)
+                        {
+                            if (DisconnectedCharacters[i].character != null && !DisconnectedCharacters[i].character.Removed && !DisconnectedCharacters[i].character.IsDead)
                             {
-                                if (DisconnectedCharacters[i].character != null && !DisconnectedCharacters[i].character.Removed && !DisconnectedCharacters[i].character.IsDead)
-                                {
-                                    DisconnectedCharacters[i].character.Kill(CauseOfDeath.Disconnected, true);
-                                }
-                                DisconnectedCharacters.RemoveAt(i);
+                                DisconnectedCharacters[i].character.Kill(CauseOfDeath.Disconnected, true);
+                                DisconnectedCharacters[i].character.SetStun(0f, true, true);
                             }
+                            DisconnectedCharacters.RemoveAt(i);
                         }
                     }
                 }
 
                 //Handle kicked clients timers
-                if (KickedClients.Count >= 1)
+                if (KickedClients?.Count >= 1)
                 {
                     for (int i = KickedClients.Count - 1; i >= 0; i--)
                     {
@@ -923,8 +938,8 @@ namespace Barotrauma
             GameMain.Server.ServerLog.WriteLine("PlayerHuskHealthMultiplier = " + PlayerHuskHealthMultiplier.ToString(), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("PlayerHuskAiOnDeath = " + PlayerHuskAiOnDeath.ToString(), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("PlayerHealthRegen = " + PlayerHealthRegen.ToString(), ServerLog.MessageType.NilMod);
-            GameMain.Server.ServerLog.WriteLine("PlayerHealthRegenMin = " + (PlayerHealthRegenMin * 100f).ToString(), ServerLog.MessageType.NilMod);
-            GameMain.Server.ServerLog.WriteLine("PlayerHealthRegenMax = " + (PlayerHealthRegenMax * 100f).ToString(), ServerLog.MessageType.NilMod);
+            GameMain.Server.ServerLog.WriteLine("PlayerHealthRegenMin = " + PlayerHealthRegenMin.ToString() + "%", ServerLog.MessageType.NilMod);
+            GameMain.Server.ServerLog.WriteLine("PlayerHealthRegenMax = " + PlayerHealthRegenMax.ToString() + "%", ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("PlayerCPROnlyWhileUnconcious = " + (PlayerCPROnlyWhileUnconcious ? "Enabled" : "Disabled"), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("PlayerCPRHealthBaseValue = " + PlayerCPRHealthBaseValue.ToString(), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("PlayerCPRHealthSkillMultiplier = " + PlayerCPRHealthSkillMultiplier.ToString(), ServerLog.MessageType.NilMod);
@@ -944,8 +959,8 @@ namespace Barotrauma
             //Creature Related Settings
             GameMain.Server.ServerLog.WriteLine("CreatureHealthMultiplier = " + CreatureHealthMultiplier.ToString(), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("CreatureHealthRegen = " + CreatureHealthRegen.ToString(), ServerLog.MessageType.NilMod);
-            GameMain.Server.ServerLog.WriteLine("CreatureHealthRegenMin = " + (CreatureHealthRegenMin * 100f).ToString(), ServerLog.MessageType.NilMod);
-            GameMain.Server.ServerLog.WriteLine("CreatureHealthRegenMax = " + (CreatureHealthRegenMax * 100f).ToString(), ServerLog.MessageType.NilMod);
+            GameMain.Server.ServerLog.WriteLine("CreatureHealthRegenMin = " + CreatureHealthRegenMin.ToString() + "%", ServerLog.MessageType.NilMod);
+            GameMain.Server.ServerLog.WriteLine("CreatureHealthRegenMax = " + CreatureHealthRegenMax.ToString() + "%", ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("CreatureEatDyingPlayers = " + (CreatureEatDyingPlayers ? "Enabled" : "Disabled"), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("CreatureRespawnMonsterEvents = " + (CreatureRespawnMonsterEvents ? "Enabled" : "Disabled"), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("CreatureLimitRespawns = " + (CreatureLimitRespawns ? "Enabled" : "Disabled"), ServerLog.MessageType.NilMod);
@@ -1083,6 +1098,7 @@ namespace Barotrauma
                     CrashRestart = ServerModGeneralSettings.GetAttributeBool("CrashRestart", false);
                     StartXPos = MathHelper.Clamp(ServerModGeneralSettings.GetAttributeInt("StartXPos", 0), 0, 16000);
                     StartYPos = MathHelper.Clamp(ServerModGeneralSettings.GetAttributeInt("StartYPos", 0), 0, 16000);
+                    AutoRestartServer = ServerModGeneralSettings.GetAttributeBool("AutoRestartServer", false);
                     UseStartWindowPosition = ServerModGeneralSettings.GetAttributeBool("UseStartWindowPosition", false);
                     BanListReloadTimer = MathHelper.Clamp(ServerModGeneralSettings.GetAttributeInt("BanListReloadTimer", 15), 0, 60);
                     BansOverrideBannedInfo = ServerModGeneralSettings.GetAttributeBool("BansOverrideBannedInfo", true);
@@ -1101,6 +1117,7 @@ namespace Barotrauma
                     ClearKickStateNameOnRejoin = ServerModGeneralSettings.GetAttributeBool("ClearKickStateNameOnRejoin", false);
                     ClearKicksOnRoundStart = ServerModGeneralSettings.GetAttributeBool("ClearKicksOnRoundStart", false);
                     MaxIdenticalIPConnections = MathHelper.Clamp(ServerModGeneralSettings.GetAttributeInt("MaxIdenticalIPConnections", 5), 1, 32);
+                    MinimumNameLength = MathHelper.Clamp(ServerModGeneralSettings.GetAttributeInt("MinimumNameLength", 2), 2, 5);
                     AllowCyrillicText = ServerModGeneralSettings.GetAttributeBool("AllowCyrillicText", true);
                     AllowEnglishText = ServerModGeneralSettings.GetAttributeBool("AllowEnglishText", true);
 
@@ -1388,7 +1405,7 @@ namespace Barotrauma
                     PlayerHealthMultiplier = MathHelper.Clamp(ServerModPlayerSettings.GetAttributeFloat("PlayerHealthMultiplier", 1f), 0.01f, 10000f); //Implemented
                     PlayerHuskHealthMultiplier = MathHelper.Clamp(ServerModPlayerSettings.GetAttributeFloat("PlayerHuskHealthMultiplier", 1f), 0.01f, 10000f); //Implemented
                     PlayerHuskAiOnDeath = ServerModPlayerSettings.GetAttributeBool("PlayerHuskAiOnDeath", true); //Implemented
-                    PlayerHealthRegen = MathHelper.Clamp(ServerModPlayerSettings.GetAttributeFloat("PlayerHealthRegen", 0f), 0f, 10000000f); //Implemented
+                    PlayerHealthRegen = MathHelper.Clamp(ServerModPlayerSettings.GetAttributeFloat("PlayerHealthRegen", 0f), -100f, 10000000f); //Implemented
                     PlayerHealthRegenMin = MathHelper.Clamp(ServerModPlayerSettings.GetAttributeFloat("PlayerHealthRegenMin", -100f), -100f, 100f) / 100f; //Implemented
                     PlayerHealthRegenMax = MathHelper.Clamp(ServerModPlayerSettings.GetAttributeFloat("PlayerHealthRegenMax", 100f), -100f, 100f) / 100f; //Implemented
                     PlayerCPROnlyWhileUnconcious = ServerModPlayerSettings.GetAttributeBool("PlayerCPROnlyWhileUnconcious", true); //Implemented
@@ -1415,8 +1432,8 @@ namespace Barotrauma
                     XElement ServerModAICreatureSettings = doc.Root.Element("ServerModAICreatureSettings");
 
                     CreatureHealthMultiplier = MathHelper.Clamp(ServerModAICreatureSettings.GetAttributeFloat("CreatureHealthMultiplier", 1f), 0.01f, 1000000f);
-                    CreatureHealthRegen = MathHelper.Clamp(ServerModAICreatureSettings.GetAttributeFloat("CreatureHealthRegen", 0f), 0f, 10000000f); //Implemented
-                    CreatureHealthRegenMin = MathHelper.Clamp(ServerModAICreatureSettings.GetAttributeFloat("CreatureHealthRegenMin", 0f), 0f, 100f) / 100f;
+                    CreatureHealthRegen = MathHelper.Clamp(ServerModAICreatureSettings.GetAttributeFloat("CreatureHealthRegen", -100f), 0f, 10000000f); //Implemented
+                    CreatureHealthRegenMin = MathHelper.Clamp(ServerModAICreatureSettings.GetAttributeFloat("CreatureHealthRegenMin", -100f), 0f, 100f) / 100f;
                     CreatureHealthRegenMax = MathHelper.Clamp(ServerModAICreatureSettings.GetAttributeFloat("CreatureHealthRegenMax", 100f), 0f, 100f) / 100f;
                     CreatureEatDyingPlayers = ServerModAICreatureSettings.GetAttributeBool("CreatureEatDyingPlayers", true); //Implemented
                     CreatureRespawnMonsterEvents = ServerModAICreatureSettings.GetAttributeBool("CreatureRespawnMonsterEvents", true);
@@ -1590,6 +1607,7 @@ namespace Barotrauma
                 @"    ClearKickStateNameOnRejoin=""" + ClearKickStateNameOnRejoin + @"""",
                 @"    ClearKicksOnRoundStart=""" + ClearKicksOnRoundStart + @"""",
                 @"    MaxIdenticalIPConnections=""" + MaxIdenticalIPConnections + @"""",
+                @"    MinimumNameLength=""" + MinimumNameLength + @"""",
                 @"    AllowCyrillicText=""" + AllowCyrillicText + @"""",
                 @"    AllowEnglishText=""" + AllowEnglishText + @"""",
                 "  />",
@@ -1830,8 +1848,8 @@ namespace Barotrauma
                 @"    PlayerHuskHealthMultiplier=""" + PlayerHuskHealthMultiplier + @"""",
                 @"    PlayerHuskAiOnDeath=""" + PlayerHuskAiOnDeath + @"""",
                 @"    PlayerHealthRegen=""" + PlayerHealthRegen + @"""",
-                @"    PlayerHealthRegenMin=""" + PlayerHealthRegenMin * 100 + @"""",
-                @"    PlayerHealthRegenMax=""" + PlayerHealthRegenMax * 100 + @"""",
+                @"    PlayerHealthRegenMin=""" + PlayerHealthRegenMin + @"""",
+                @"    PlayerHealthRegenMax=""" + PlayerHealthRegenMax + @"""",
                 @"    PlayerCPROnlyWhileUnconcious=""" + PlayerCPROnlyWhileUnconcious + @"""",
                 @"    PlayerCPRHealthBaseValue=""" + PlayerCPRHealthBaseValue + @"""",
                 @"    PlayerCPRHealthSkillMultiplier=""" + PlayerCPRHealthSkillMultiplier + @"""",
@@ -1860,8 +1878,8 @@ namespace Barotrauma
                 "  <ServerModAICreatureSettings",
                 @"    CreatureHealthMultiplier=""" + CreatureHealthMultiplier + @"""",
                 @"    CreatureHealthRegen=""" + CreatureHealthRegen + @"""",
-                @"    CreatureHealthRegenMin=""" + CreatureHealthRegenMin * 100 + @"""",
-                @"    CreatureHealthRegenMax=""" + CreatureHealthRegenMax * 100 + @"""",
+                @"    CreatureHealthRegenMin=""" + CreatureHealthRegenMin + @"""",
+                @"    CreatureHealthRegenMax=""" + CreatureHealthRegenMax + @"""",
                 @"    CreatureEatDyingPlayers=""" + CreatureEatDyingPlayers + @"""",
                 @"    CreatureRespawnMonsterEvents=""" + CreatureRespawnMonsterEvents + @"""",
                 @"    CreatureLimitRespawns=""" + CreatureLimitRespawns + @"""",
@@ -1988,6 +2006,7 @@ namespace Barotrauma
                 "  <!--ClearKickStateNameOnRejoin=-->",
                 "  <!--ClearKicksOnRoundStart=-->",
                 "  <!--MaxIdenticalIPConnections=-->",
+                "  <!--MinimumNameLength=-->",
 
                 "  <!--SuppressPacketSizeWarning = Suppresses an error that annoys server hosts but is actually mostly harmless anyways, Default=false-->",
                 "  <!--StartToServer = Setting to use the server default settings when starting NilMod - for now please use actually valid settings XD, Default=false-->",
@@ -2102,6 +2121,7 @@ namespace Barotrauma
             ClearKickStateNameOnRejoin = false;
             ClearKicksOnRoundStart = false;
             MaxIdenticalIPConnections = 5;
+            MinimumNameLength = 2;
             AllowCyrillicText = true;
             AllowEnglishText = true;
 

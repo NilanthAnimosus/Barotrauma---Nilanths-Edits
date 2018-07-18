@@ -65,7 +65,7 @@ namespace Barotrauma
             }
 
             GameMain.NetworkMember.EndVoteCount = 0;
-            GameMain.NetworkMember.EndVoteMax = 0;
+            GameMain.NetworkMember.EndVoteMax = connectedClients.FindAll(c => !c.SpectateOnly).Count;
 
 #if CLIENT
             UpdateVoteTexts(connectedClients, VoteType.Mode);
@@ -111,17 +111,21 @@ namespace Barotrauma
 #endif
                     break;
                 case VoteType.EndRound:
-                    if (sender.Character == null) return;
+                    if (!sender.HasSpawned) return;
                     sender.SetVote(voteType, inc.ReadBoolean());
 
-                    GameMain.NetworkMember.EndVoteCount = GameMain.Server.ConnectedClients.Count(c => c.Character != null && c.GetVote<bool>(VoteType.EndRound));
-                    GameMain.NetworkMember.EndVoteMax = GameMain.Server.ConnectedClients.Count(c => c.Character != null);
+                    //GameMain.NetworkMember.EndVoteCount = GameMain.Server.ConnectedClients.Count(c => c.HasSpawned && c.GetVote<bool>(VoteType.EndRound));
+                    //GameMain.NetworkMember.EndVoteMax = GameMain.Server.ConnectedClients.Count(c => c.HasSpawned);
+
+                    //Voting hotfix
+                    GameMain.NetworkMember.EndVoteCount = GameMain.Server.ConnectedClients.Count(c => c.HasSpawned && c.GetVote<bool>(VoteType.EndRound));
+                    GameMain.NetworkMember.EndVoteMax = GameMain.Server.ConnectedClients.Count(c => c.HasSpawned && !(c.Character == null && !c.GetVote<bool>(VoteType.EndRound)));
 
                     break;
                 case VoteType.Kick:
                     byte kickedClientID = inc.ReadByte();
 
-                    Client kicked = GameMain.Server.ConnectedClients.Find(c => c.ID == kickedClientID);
+                    Client kicked = GameMain.Server.ConnectedClients.Find(c => c.ID == kickedClientID && !c.KickImmunity);
                     if (kicked != null)
                     {
                         kicked.AddKickVote(sender);

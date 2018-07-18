@@ -4,6 +4,7 @@ using System.Text;
 using System.Net;
 using System.Net.Sockets;
 using System.IO;
+using Barotrauma.Networking;
 
 namespace Barotrauma
 {
@@ -95,8 +96,9 @@ namespace Barotrauma
             return false;
         }
 
-        public IEnumerable<object> CheckVPNBan(Lidgren.Network.NetConnection address, string clname)
+        public IEnumerable<object> CheckVPNBan(Client newclient, string clname)
         {
+            Lidgren.Network.NetConnection address = newclient.Connection;
             Boolean IsVPNBanned = false;
             try
             {
@@ -125,12 +127,14 @@ namespace Barotrauma
                         NilMod.NilModPlayerLog.LogPlayer(address.RemoteEndPoint.Address.ToString(), clname);
                         DebugConsole.NewMessage("VPN USER: " + NilMod.NilModPlayerLog.ListPrevious(address.RemoteEndPoint.Address.ToString(), clname, true, true, true) + " - Player not blocked.", Microsoft.Xna.Framework.Color.White);
                         Barotrauma.Networking.GameServer.Log("VPN USER: " + NilMod.NilModPlayerLog.ListPrevious(address.RemoteEndPoint.Address.ToString(), clname, true, true, true) + " - Player not blocked.", Barotrauma.Networking.ServerLog.MessageType.Connection);
+                        GameServer.LogToClientconsole("VPN USER: " + NilMod.NilModPlayerLog.ListPrevious(address.RemoteEndPoint.Address.ToString(), clname, true, true, true) + " - Player not blocked.");
                     }
                     else
                     {
                         DebugConsole.NewMessage(NilMod.NilModPlayerLog.ListPrevious(address.RemoteEndPoint.Address.ToString(), clname, true, true, true), Microsoft.Xna.Framework.Color.White);
                         Barotrauma.Networking.GameServer.Log(NilMod.NilModPlayerLog.ListPrevious(address.RemoteEndPoint.Address.ToString(), clname, true, true, true), Barotrauma.Networking.ServerLog.MessageType.Connection);
                         NilMod.NilModPlayerLog.LogPlayer(address.RemoteEndPoint.Address.ToString(), clname);
+                        GameServer.LogToClientconsole(NilMod.NilModPlayerLog.ListPrevious(address.RemoteEndPoint.Address.ToString(), clname, true, true, true));
                     }
                 }
                 else
@@ -149,9 +153,10 @@ namespace Barotrauma
 
                     if (kickedclient != null)
                     {
-                        GameMain.Server.SendChatMessage("Recently Kicked Player " + clname + " (" + kickedclient.clientname + ") has rejoined the server.", Barotrauma.Networking.ChatMessageType.Server, null);
+                        if (!newclient.HideJoin) GameMain.Server.SendChatMessage("Recently Kicked Player " + clname + " (" + kickedclient.clientname + ") has rejoined the server.", Barotrauma.Networking.ChatMessageType.Server, null);
                         DebugConsole.NewMessage("Recently Kicked Player " + clname + " (" + kickedclient.clientname + ") (" + address.RemoteEndPoint.Address.ToString() + ") has rejoined the server.", Microsoft.Xna.Framework.Color.White);
                         Barotrauma.Networking.GameServer.Log("Recently Kicked Player " + clname + " (" + kickedclient.clientname + ") (" + address.RemoteEndPoint.Address.ToString() + ") has rejoined the server.", Barotrauma.Networking.ServerLog.MessageType.Connection);
+                        GameServer.LogToClientconsole("Recently Kicked Player " + clname + " (" + kickedclient.clientname + ") (" + address.RemoteEndPoint.Address.ToString() + ") has rejoined the server.");
 
                         if (GameMain.NilMod.ClearKickStateNameOnRejoin)
                         {
@@ -165,15 +170,17 @@ namespace Barotrauma
                     }
                     else if (ReconnectedClient == null)
                     {
-                        GameMain.Server.SendChatMessage(clname + " has joined the server.", Barotrauma.Networking.ChatMessageType.Server, null);
+                        if (!newclient.HideJoin) GameMain.Server.SendChatMessage(clname + " has joined the server.", Barotrauma.Networking.ChatMessageType.Server, null);
                         DebugConsole.NewMessage(clname + " (" + address.RemoteEndPoint.Address.ToString() + ") has joined the server.", Microsoft.Xna.Framework.Color.White);
                         Barotrauma.Networking.GameServer.Log(clname + " (" + address.RemoteEndPoint.Address.ToString() + ") has joined the server.", Barotrauma.Networking.ServerLog.MessageType.Connection);
+                        GameServer.LogToClientconsole(clname + " (" + address.RemoteEndPoint.Address.ToString() + ") has joined the server.");
                     }
                     else
                     {
-                        GameMain.Server.SendChatMessage(clname + " has reconnected to the server.", Barotrauma.Networking.ChatMessageType.Server, null);
+                        if(!newclient.HideJoin) GameMain.Server.SendChatMessage(clname + " has reconnected to the server.", Barotrauma.Networking.ChatMessageType.Server, null);
                         DebugConsole.NewMessage(clname + " (" + address.RemoteEndPoint.Address.ToString() + ") has reconnected to the server.", Microsoft.Xna.Framework.Color.White);
                         Barotrauma.Networking.GameServer.Log(clname + " (" + address.RemoteEndPoint.Address.ToString() + ") has reconnected to the server.", Barotrauma.Networking.ServerLog.MessageType.Connection);
+                        GameServer.LogToClientconsole(clname + " (" + address.RemoteEndPoint.Address.ToString() + ") has reconnected to the server.");
                     }
                 }
             }
@@ -227,9 +234,11 @@ namespace Barotrauma
             {
                 if (GameMain.NilMod.EnableVPNBanlist)
                 {
-                    DebugConsole.NewMessage("Could not enable VPN Banlist - File: " + "LoadPath" + " does not exist.", Microsoft.Xna.Framework.Color.Red);
-                    DebugConsole.NewMessage("Please create the file and fill it with: nametorecognizeit,LowerboundIP,UpperBoundIP", Microsoft.Xna.Framework.Color.Red);
-                    DebugConsole.NewMessage("Server must be restarted to reload the VPNBanlist.", Microsoft.Xna.Framework.Color.Red);
+                    DebugConsole.NewMessage("Could not enable VPN Banlist - File: " + LoadPath + " does not exist.", Microsoft.Xna.Framework.Color.Red);
+                    DebugConsole.NewMessage("Please create the file and fill it with: "
+                        + System.Environment.NewLine + "nametorecognizeit,LowerboundIP,UpperBoundIP"
+                        + System.Environment.NewLine + "ASName,150.0.0.1,150.0.255.255", Microsoft.Xna.Framework.Color.Red);
+                    DebugConsole.NewMessage("Restart the server or use nilmodreloadvpn|reloadvpn in console to reload the VPNBanlist.", Microsoft.Xna.Framework.Color.Red);
                 }
             }
         }

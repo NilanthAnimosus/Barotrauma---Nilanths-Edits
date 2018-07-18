@@ -332,6 +332,9 @@ namespace Barotrauma
                                 }
                                 else
                                 {
+                                    SetStun(0f, true, true);
+                                    GameMain.NilMod.DisconnectedCharacters.Remove(disconnectedcharcheck);
+
                                     var chatMsg = ChatMessage.Create(
                                                 "",
                                                 ("You have been reconnected to your character - However while you were gone your character has been killed.\n"),
@@ -355,6 +358,13 @@ namespace Barotrauma
                             newMem.networkUpdateID = (ushort)(networkUpdateID - i);
 
                             memInput.Insert(i, newMem);
+                        }
+                        else if(LastNetworkUpdateID >= (networkUpdateID + 40))
+                        {
+                            while(LastNetworkUpdateID >= (networkUpdateID + 40))
+                            {
+                                LastNetworkUpdateID -= 30;
+                            }
                         }
                         //}
                     }

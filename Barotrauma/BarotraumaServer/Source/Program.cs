@@ -1,5 +1,6 @@
 ﻿#region Using Statements
 
+using GameAnalyticsSDK.Net;
 using System;
 using System.IO;
 using System.Text;
@@ -80,7 +81,6 @@ namespace Barotrauma
             sb.AppendLine("Barotrauma Dedicated Server crash report (generated on " + DateTime.Now + ")");
             sb.AppendLine("\n");
             sb.AppendLine("Barotrauma seems to have crashed. Sorry for the inconvenience! ");
-            sb.AppendLine("If you'd like to help fix the bug that caused the crash, please send this file to the developers on the Undertow Games forums.");
             sb.AppendLine("\n");
             sb.AppendLine("Game version " + GameMain.Version + " NILMOD SERVER MODIFICATION");
             sb.AppendLine("Nilmod version stamp: " + NilMod.NilModVersionDate);
@@ -146,11 +146,25 @@ namespace Barotrauma
                 sb.AppendLine("   " + DebugConsole.Messages[i].Time + " - " + DebugConsole.Messages[i].Text);
             }
 
+            string crashReport = sb.ToString();
             Console.ForegroundColor = ConsoleColor.Red;
             Console.Write(sb.ToString());
 
             sw.WriteLine(sb.ToString());
-            sw.Close();    
+            sw.Close();
+
+            if (GameSettings.SendUserStatistics)
+            {
+                GameAnalytics.AddErrorEvent(EGAErrorSeverity.Error, crashReport);
+                GameAnalytics.OnStop();
+                Console.Write("A crash report (\"crashreport.log\") was saved in the root folder of the game and sent to the developers.");
+            }
+            else
+            {
+                Console.Write("A crash report(\"crashreport.log\") was saved in the root folder of the game. The error was not sent to the developers because user statistics have been disabled, but" +
+                    "If you'd like to help fix this bug, please post the report on Barotrauma's GitHub issue tracker: https://github.com/Regalis11/Barotrauma/issues/" + Environment.NewLine +
+                    "Alternatively, If you believe this to be a mod bug, please post the report on the forum topic or the mods GitHub issue tracker: https://github.com/NilanthAnimosus/Barotrauma---Nilanths-Edits/issues");
+            }
         }
     }
 }

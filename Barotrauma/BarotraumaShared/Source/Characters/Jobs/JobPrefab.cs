@@ -12,6 +12,8 @@ namespace Barotrauma
 
         public List<SkillPrefab> Skills;
 
+        public int Totalskill;
+
         //the number of these characters in the crew the player starts with
         public readonly int InitialCount;
 
@@ -108,7 +110,33 @@ namespace Barotrauma
                         foreach (XElement skillElement in subElement.Elements())
                         {
                             Skills.Add(new SkillPrefab(skillElement));
-                        } 
+                        }
+                        Totalskill = 1;
+                        foreach (SkillPrefab sp in Skills)
+                        {
+                            float weight = 1.0f;
+                            switch (sp.Name)
+                            {
+                                case "Weapons":
+                                    weight = 0.8f;
+                                    break;
+                                case "Construction":
+                                    weight = 1.15f;
+                                    break;
+                                case "Electrical Engineering":
+                                    weight = 1.00f;
+                                    break;
+                                case "Medical":
+                                    weight = 1.25f;
+                                    break;
+                                default:
+                                    weight = 1.0f;
+                                    break;
+                            }
+
+                            //Add the skills average level to total skill after loading
+                            Totalskill += System.Convert.ToInt16(System.Math.Max(System.Math.Round((((sp.LevelRange.X + sp.LevelRange.Y - 30) / 2) * weight),0),0));
+                        }
                         break;
                 }
             }

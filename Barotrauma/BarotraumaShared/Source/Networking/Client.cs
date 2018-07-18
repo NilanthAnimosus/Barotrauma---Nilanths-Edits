@@ -34,15 +34,43 @@ namespace Barotrauma.Networking
 
         public byte TeamID = 0;
 
-        public Character Character;
+        private Character character;
+        public Character Character
+        {
+            get { return character; }
+            set
+            {
+                character = value;
+                if (character != null) HasSpawned = true;
+            }
+        }
+
+        public Character Spied;
+
         public CharacterInfo CharacterInfo;
         public NetConnection Connection { get; set; }
         public bool InGame;
+        public bool HasSpawned; //has the client spawned as a character during the current round
 
         //Client Slots - I know its a lazy implementation
         public Boolean TrustedSlot = false;
         public Boolean AdministratorSlot = false;
         public Boolean OwnerSlot = false;
+
+        //Extras
+        public Boolean GlobalChatSend = false;
+        public Boolean GlobalChatReceive = false;
+        public Boolean PrioritizeJob = false;
+        public Boolean KickImmunity = false;
+        public Boolean BanImmunity = false;
+
+        //Admin Features
+        public Boolean HideJoin = false;
+        public Boolean AccessDeathChatAlive = false;
+        public Boolean AdminChannelSend = true;
+        public Boolean AdminChannelReceive = false;
+        public Boolean SendServerConsoleInfo = false;
+        public Boolean CanBroadcast = false;
 
         public UInt16 LastRecvGeneralUpdate = 0;
 

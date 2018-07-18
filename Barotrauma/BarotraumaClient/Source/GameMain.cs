@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
+using GameAnalyticsSDK.Net;
 
 namespace Barotrauma
 {
@@ -266,6 +267,31 @@ namespace Barotrauma
             loadingCoroutine = CoroutineManager.StartCoroutine(Load());
         }
 
+        private void InitUserStats()
+        {
+            if (GameSettings.ShowUserStatisticsPrompt)
+            {
+                var userStatsPrompt = new GUIMessageBox(
+                    "Do you want to help us make Barotrauma better?",
+                    "Do you allow Barotrauma to send usage statistics and error reports to the developers? The data is anonymous, " +
+                    "does not contain any personal information and is only used to help us diagnose issues and improve Barotrauma.",
+                    new string[] { "Yes", "No" });
+                userStatsPrompt.Buttons[0].OnClicked += (btn, userdata) =>
+                {
+                    GameSettings.SendUserStatistics = true;
+                    GameAnalyticsManager.Init();
+                    return true;
+                };
+                userStatsPrompt.Buttons[0].OnClicked += userStatsPrompt.Close;
+                userStatsPrompt.Buttons[1].OnClicked += (btn, userdata) => { GameSettings.SendUserStatistics = false; return true; };
+                userStatsPrompt.Buttons[1].OnClicked += userStatsPrompt.Close;
+            }
+            else if (GameSettings.SendUserStatistics)
+            {
+                GameAnalyticsManager.Init();
+            }
+        }
+
         private IEnumerable<object> Load()
         {
             if (GameSettings.VerboseLogging)
@@ -274,6 +300,8 @@ namespace Barotrauma
             }
             GUI.GraphicsDevice = base.GraphicsDevice;
             GUI.Init(Content);
+
+            InitUserStats();
 
             GUIComponent.Init(Window);
             DebugConsole.Init(Window);
@@ -718,7 +746,7 @@ namespace Barotrauma
         protected override void OnExiting(object sender, EventArgs args)
         {
             if (NetworkMember != null) NetworkMember.Disconnect();
-           
+            if (GameSettings.SendUserStatistics) GameAnalytics.OnStop();
             base.OnExiting(sender, args);
         }
 
@@ -780,6 +808,44 @@ namespace Barotrauma
                 GameMain.NetLobbyScreen.DefaultServerStartup();
                 waitForKeyHit = false;
             }
+        }
+
+        public void AutoRestartServer()
+        {
+            if (Server == null) return;
+            string Servername = GameMain.Server.Name;
+            int port = GameMain.Server.Port;
+            Boolean publicserver = GameMain.Server.isPublic;
+            string password = GameMain.Server.password;
+            Boolean useupnp = GameMain.Server.config.EnableUPnP;
+            int maxplayers = GameMain.Server.maxPlayers;
+
+
+            GameMain.Server.Disconnect();
+            GameMain.NetworkMember = null;
+
+            waitForKeyHit = false;
+            NilMod.Skippedtoserver = true;
+            GameMain.NetLobbyScreen = new NetLobbyScreen();
+
+            try
+            {
+                GameMain.NetworkMember = new GameServer(Servername,
+                                                        port,
+                                                        publicserver,
+                                                        password,
+                                                        useupnp,
+                                                        maxplayers
+                                                        );
+            }
+            catch (Exception e)
+            {
+                DebugConsole.ThrowError("Failed to start server", e);
+            }
+
+            GameMain.NetLobbyScreen.IsServer = true;
+            GameMain.NetLobbyScreen.DefaultServerStartup();
+            waitForKeyHit = false;
         }
     }
 }

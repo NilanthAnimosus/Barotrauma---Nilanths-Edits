@@ -100,25 +100,28 @@ namespace Barotrauma.Items.Components
 
                     GameServer.Log(picker.LogName + " threw " + item.Name, ServerLog.MessageType.ItemInteraction);
 
-                    //Grief watch throw checks
-                    for (int y = 0; y < NilMod.NilModGriefWatcher.GWListThrown.Count; y++)
+                    if (GameMain.NilMod.EnableGriefWatcher)
                     {
-                        if (NilMod.NilModGriefWatcher.GWListThrown[y] == Item.Name)
+                        //Grief watch throw checks
+                        for (int y = 0; y < NilMod.NilModGriefWatcher.GWListThrown.Count; y++)
                         {
-                            Barotrauma.Networking.Client warnedclient = GameMain.Server.ConnectedClients.Find(c => c.Character == picker);
+                            if (NilMod.NilModGriefWatcher.GWListThrown[y] == Item.Name)
+                            {
+                                Barotrauma.Networking.Client warnedclient = GameMain.Server.ConnectedClients.Find(c => c.Character == picker);
 
-                            if (item.ContainedItems == null || item.ContainedItems.All(it => it == null))
-                            {
-                                NilMod.NilModGriefWatcher.SendWarning(picker.LogName
-                                    + " threw dangerous item " + Item.Name, warnedclient);
-                            }
-                            else
-                            {
-                                NilMod.NilModGriefWatcher.SendWarning(picker.LogName
-                                    + " threw dangerous item "
-                                    + Item.Name
-                                    + " (" + string.Join(", ", System.Array.FindAll(item.ContainedItems, it => it != null).Select(it => it.Name))
-                                    + ")", warnedclient);
+                                if (item.ContainedItems == null || item.ContainedItems.All(it => it == null))
+                                {
+                                    NilMod.NilModGriefWatcher.SendWarning(picker.LogName
+                                        + " threw dangerous item " + Item.Name, warnedclient);
+                                }
+                                else
+                                {
+                                    NilMod.NilModGriefWatcher.SendWarning(picker.LogName
+                                        + " threw dangerous item "
+                                        + Item.Name
+                                        + " (" + string.Join(", ", System.Array.FindAll(item.ContainedItems, it => it != null).Select(it => it.Name))
+                                        + ")", warnedclient);
+                                }
                             }
                         }
                     }

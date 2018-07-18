@@ -505,6 +505,8 @@ namespace Barotrauma
                     }
                 }
 
+                if (GameSettings.SendUserStatistics) GameAnalyticsSDK.Net.GameAnalytics.SetCustomDimension01("multiplayer");
+
                 if (GameModePreset.list.Count > 0 && modeList.Selected == null) modeList.Select(0);
 
                 GameMain.Server.Voting.ResetVotes(GameMain.Server.ConnectedClients);
@@ -600,20 +602,28 @@ namespace Barotrauma
                         preferredHostTeamSelection.Text = "Renegades";
                     }
 
-                    GUIButton togglePreferredTeam = new GUIButton(new Rectangle(100, 80, 15, 20), "<", "", myPlayerFrame);
-                    togglePreferredTeam.UserData = -1;
-                    togglePreferredTeam.OnClicked = TogglePreferredTeam;
-                    togglePreferredTeam = new GUIButton(new Rectangle(215, 80, 15, 20), ">", "", myPlayerFrame);
-                    togglePreferredTeam.UserData = 1;
-                    togglePreferredTeam.OnClicked = TogglePreferredTeam;
+                    GUIButton togglePreferredTeam = new GUIButton(new Rectangle(100, 80, 15, 20), "<", "", myPlayerFrame)
+                    {
+                        UserData = -1,
+                        OnClicked = TogglePreferredTeam
+                    };
+                    togglePreferredTeam = new GUIButton(new Rectangle(215, 80, 15, 20), ">", "", myPlayerFrame)
+                    {
+                        UserData = 1,
+                        OnClicked = TogglePreferredTeam
+                    };
                 }
 
-                GUIButton toggleHead = new GUIButton(new Rectangle(0, 60, 15, 20), "<", "", myPlayerFrame);
-                toggleHead.UserData = -1;
-                toggleHead.OnClicked = ToggleHead;
-                toggleHead = new GUIButton(new Rectangle(60, 60, 15, 20), ">", "", myPlayerFrame);
-                toggleHead.UserData = 1;
-                toggleHead.OnClicked = ToggleHead;
+                GUIButton toggleHead = new GUIButton(new Rectangle(0, 60, 15, 20), "<", "", myPlayerFrame)
+                {
+                    UserData = -1, 
+                    OnClicked = ToggleHead
+                };
+                toggleHead = new GUIButton(new Rectangle(60, 60, 15, 20), ">", "", myPlayerFrame)
+                {
+                    UserData = 1, 
+                    OnClicked = ToggleHead
+                };
 
                 new GUITextBlock(new Rectangle(100, 40, 200, 30), TextManager.Get("Gender"), "", myPlayerFrame);
 
@@ -676,7 +686,10 @@ namespace Barotrauma
         {
             if (tickBox.Selected)
             {
-                GameMain.NetworkMember.CharacterInfo = new CharacterInfo(Character.HumanConfigFile, GameMain.NetworkMember.Name, Gender.None, null);
+                GameMain.NetworkMember.CharacterInfo =
+                    new CharacterInfo(Character.HumanConfigFile, GameMain.NetworkMember.Name, GameMain.Config.CharacterGender, null);
+                GameMain.NetworkMember.CharacterInfo.HeadSpriteId = GameMain.Config.CharacterHeadIndex;
+
                 UpdatePlayerFrame(GameMain.NetworkMember.CharacterInfo);
             }
             else
@@ -1545,12 +1558,11 @@ namespace Barotrauma
 
         private bool ToggleHead(GUIButton button, object userData)
         {
-            int dir = (int)userData;
-
             if (GameMain.NetworkMember.CharacterInfo == null) return true;
 
+            int dir = (int)userData;
             GameMain.NetworkMember.CharacterInfo.HeadSpriteId += dir;
-
+            GameMain.Config.CharacterHeadIndex = GameMain.NetworkMember.CharacterInfo.HeadSpriteId;
             UpdatePlayerHead(GameMain.NetworkMember.CharacterInfo);
 
             return true;
@@ -1647,7 +1659,7 @@ namespace Barotrauma
         {
             Gender gender = (Gender)obj;
             GameMain.NetworkMember.CharacterInfo.Gender = gender;
-
+            GameMain.Config.CharacterGender = GameMain.NetworkMember.CharacterInfo.Gender;
             UpdatePlayerHead(GameMain.NetworkMember.CharacterInfo);
             return true;
         }
