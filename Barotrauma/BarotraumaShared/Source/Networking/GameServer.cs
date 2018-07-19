@@ -1711,6 +1711,16 @@ namespace Barotrauma.Networking
                     spawnedCharacter.GiveJobItems(assignedWayPoints[i]);
                     spawnedCharacter.TeamID = (byte)teamID;
 
+                    //Spawn protection
+                    if (GameMain.NilMod.PlayerSpawnProtectStart)
+                    {
+                        spawnedCharacter.SpawnProtectionHealth = GameMain.NilMod.PlayerSpawnProtectHealth;
+                        spawnedCharacter.SpawnProtectionOxygen = GameMain.NilMod.PlayerSpawnProtectOxygen;
+                        spawnedCharacter.SpawnProtectionPressure = GameMain.NilMod.PlayerSpawnProtectPressure;
+                        spawnedCharacter.SpawnProtectionStun = GameMain.NilMod.PlayerSpawnProtectStun;
+                        spawnedCharacter.SpawnRewireWaitTimer = GameMain.NilMod.PlayerSpawnRewireWaitTimer;
+                    }
+
                     teamClients[i].Character = spawnedCharacter;
 #if CLIENT
                     GameSession.inGameInfo.UpdateClientCharacter(teamClients[i], spawnedCharacter, false);
@@ -1735,6 +1745,16 @@ namespace Barotrauma.Networking
                     myCharacter = Character.Create(characterInfo, assignedWayPoints[assignedWayPoints.Length - 1].WorldPosition, false, false);
                     myCharacter.GiveJobItems(assignedWayPoints.Last());
                     myCharacter.TeamID = (byte)teamID;
+
+                    //Spawn protection
+                    if (GameMain.NilMod.PlayerSpawnProtectStart)
+                    {
+                        myCharacter.SpawnProtectionHealth = GameMain.NilMod.PlayerSpawnProtectHealth;
+                        myCharacter.SpawnProtectionOxygen = GameMain.NilMod.PlayerSpawnProtectOxygen;
+                        myCharacter.SpawnProtectionPressure = GameMain.NilMod.PlayerSpawnProtectPressure;
+                        myCharacter.SpawnProtectionStun = GameMain.NilMod.PlayerSpawnProtectStun;
+                        myCharacter.SpawnRewireWaitTimer = GameMain.NilMod.PlayerSpawnRewireWaitTimer;
+                    }
 
                     Character.Controlled = myCharacter;
                     Character.SpawnCharacter = myCharacter;
@@ -3033,9 +3053,10 @@ namespace Barotrauma.Networking
             }
         }
 
-        public void AssignJobs(List<Client> unassigned, bool assignHost, bool ignoreMinimum = false)
+        public void AssignJobs(List<Client> Unassigned, bool assignHost)
         {
-            unassigned = GameMain.NilMod.RandomizeClientOrder(unassigned);
+            List<Client> unassigned = GameMain.NilMod.RandomizeClientOrder(Unassigned.FindAll(c => !c.PrioritizeJob));
+            List<Client> unassignedpreferred = GameMain.NilMod.RandomizeClientOrder(Unassigned.FindAll(c => c.PrioritizeJob));
             //List<Client> Unassigned
 
             Dictionary<JobPrefab, int> assignedClientCount = new Dictionary<JobPrefab, int>();
@@ -3092,33 +3113,41 @@ namespace Barotrauma.Networking
             }
 
             //go through the jobs whose MinNumber>0 (i.e. at least one crew member has to have the job)
-            if (!ignoreMinimum)
+            bool unassignedJobsFound = true;
+            while (unassignedJobsFound && unassigned.Count > 0)
             {
-                bool unassignedJobsFound = true;
-                while (unassignedJobsFound && unassigned.Count > 0)
+                unassignedJobsFound = false;
+
+                foreach (JobPrefab jobPrefab in JobPrefab.List)
                 {
-                    unassignedJobsFound = false;
+                    if (unassigned.Count == 0) break;
+                    if (jobPrefab.MinNumber < 1 || assignedClientCount[jobPrefab] >= jobPrefab.MinNumber) continue;
+                    Client assignedClient;
 
-                    foreach (JobPrefab jobPrefab in JobPrefab.List)
+                    //find the client that wants the job the most, or force it to random client if none of them want it
+                    assignedClient = FindClientWithJobPreferencePriority(unassignedpreferred, jobPrefab);
+
+                    if(assignedClient == null)
                     {
-                        if (unassigned.Count == 0) break;
-                        if (jobPrefab.MinNumber < 1 || assignedClientCount[jobPrefab] >= jobPrefab.MinNumber) continue;
-
-                        //find the client that wants the job the most, or force it to random client if none of them want it
-                        Client assignedClient = FindClientWithJobPreference(unassigned, jobPrefab, true);
-
+                        assignedClient = FindClientWithJobPreference(unassigned, jobPrefab, true);
                         assignedClient.AssignedJob = jobPrefab;
                         assignedClientCount[jobPrefab]++;
                         unassigned.Remove(assignedClient);
-
-                        //the job still needs more crew members, set unassignedJobsFound to true to keep the while loop running
-                        if (assignedClientCount[jobPrefab] < jobPrefab.MinNumber) unassignedJobsFound = true;
                     }
+                    else
+                    {
+                        assignedClient.AssignedJob = jobPrefab;
+                        assignedClientCount[jobPrefab]++;
+                        unassignedpreferred.Remove(assignedClient);
+                    }
+
+                    //the job still needs more crew members, set unassignedJobsFound to true to keep the while loop running
+                    if (assignedClientCount[jobPrefab] < jobPrefab.MinNumber) unassignedJobsFound = true;
                 }
             }
 
-            //NilMod reqnumber if There is a required player count get all clients who do not need round sync
-            int playercount = connectedClients.FindAll(c => c.NeedsMidRoundSync != true).Count;
+            //NilMod reqnumber if There is a required player count get all clients who do not need round sync, are ingame and not spectators
+            int playercount = connectedClients.FindAll(c => c.NeedsMidRoundSync != true && !c.SpectateOnly && c.InGame).Count;
 
             //Add to the player count if the host is also playing as his own character
             if ((myCharacter?.Info?.Job != null && !myCharacter.IsDead && myCharacter.TeamID == teamID)
@@ -3127,6 +3156,31 @@ namespace Barotrauma.Networking
                 playercount += 1;
             }
 
+            //attempt to give the preferred clients a job they have in their job preferences 
+            for (int i = unassignedpreferred.Count - 1; i >= 0; i--)
+            {
+                if (unassignedpreferred[i].JobPreferences == null || unassignedpreferred[i].JobPreferences.Count == 0)
+                {
+                    DebugConsole.NewMessage("Nilmod Error - Jobpreferences for client: " + unassignedpreferred[i].Name + " is null during character assignment. This should not be possible, force-assigning a random job.", Color.Red);
+                    continue;
+                }
+
+                foreach (JobPrefab preferredJob in unassignedpreferred[i].JobPreferences)
+                {
+                    //the maximum number of players that can have this job hasn't been reached yet
+                    //And add in the required players check too
+                    //For each player who gets the job, deduct from the requirement check
+                    //So there can only be an instance of this job for each 1 at and above requirement.
+                    // -> assign it to the client
+                    if (assignedClientCount[preferredJob] < preferredJob.MaxNumber && playercount - assignedClientCount[preferredJob] >= preferredJob.ReqNumber && unassignedpreferred[i].Karma >= preferredJob.MinKarma)
+                    {
+                        unassignedpreferred[i].AssignedJob = preferredJob;
+                        assignedClientCount[preferredJob]++;
+                        unassignedpreferred.RemoveAt(i);
+                        break;
+                    }
+                }
+            }
             //attempt to give the clients a job they have in their job preferences 
             for (int i = unassigned.Count - 1; i >= 0; i--)
             {
@@ -3152,6 +3206,10 @@ namespace Barotrauma.Networking
                     }
                 }
             }
+
+            unassignedpreferred.AddRange(unassigned);
+            unassigned = unassignedpreferred;
+
             //give random jobs to rest of the clients 
             foreach (Client c in unassigned)
             {
@@ -3205,6 +3263,7 @@ namespace Barotrauma.Networking
                 }
                 if (c.Karma < job.MinKarma) continue;
                 int index = c.JobPreferences.IndexOf(job);
+                if (c.IgnoreJobMinimum && index != 0) continue;
                 if (index == -1) index = 1000;
 
                 if (preferredClient == null || index < bestPreference)
@@ -3218,6 +3277,28 @@ namespace Barotrauma.Networking
             if (forceAssign && preferredClient == null)
             {
                 preferredClient = clients[Rand.Int(clients.Count)];
+            }
+
+            return preferredClient;
+        }
+
+        private Client FindClientWithJobPreferencePriority(List<Client> clients, JobPrefab job)
+        {
+            Client preferredClient = null;
+            foreach (Client c in clients)
+            {
+                if (c.JobPreferences == null || c.JobPreferences.Count == 0)
+                {
+                    DebugConsole.NewMessage("Nilmod Error - Client: " + c.Name + " has null or 0 job preferences (This should not be possible).", Color.Red);
+                    continue;
+                }
+                if (c.Karma < job.MinKarma) continue;
+                int index = c.JobPreferences.IndexOf(job);
+
+                if (index == 0)
+                {
+                    preferredClient = c;
+                }
             }
 
             return preferredClient;

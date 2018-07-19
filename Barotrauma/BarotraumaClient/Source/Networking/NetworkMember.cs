@@ -121,20 +121,6 @@ namespace Barotrauma.Networking
 
             inGameHUD.Draw(spriteBatch);
 
-            if (EndVoteCount >= 0)
-            {
-                if (GameMain.NetworkMember.myCharacter == null)
-                {
-                    GUI.DrawString(spriteBatch, new Vector2(GameMain.GraphicsWidth - 460.0f, 12),
-                        "Votes to end the round (y/n): " + EndVoteCount + "/" + (EndVoteMax - EndVoteCount), Color.White, null, 0, GUI.SmallFont);
-                }
-                else
-                {
-                    GUI.DrawString(spriteBatch, new Vector2(GameMain.GraphicsWidth - 400.0f, 12),
-                        "Votes (y/n): " + EndVoteCount + "/" + (EndVoteMax - EndVoteCount), Color.White, null, 0, GUI.SmallFont);
-                }
-            }
-
             if (respawnManager != null)
             {
                 string respawnInfo = "";

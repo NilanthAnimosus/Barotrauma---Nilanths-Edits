@@ -318,7 +318,7 @@ namespace Barotrauma
                             {
                                 if (!disconnectedcharcheck.character.IsDead)
                                 {
-                                    SetStun(Math.Min(disconnectedcharcheck.DisconnectStun + GameMain.NilMod.ReconnectAddStun, 60f), true, true);
+                                    SetStun(Math.Min(disconnectedcharcheck.DisconnectStun + GameMain.NilMod.ReconnectAddStun, 60f), true, false, true);
                                     GameMain.NilMod.DisconnectedCharacters.Remove(disconnectedcharcheck);
 
                                     var chatMsg = ChatMessage.Create(
@@ -332,7 +332,7 @@ namespace Barotrauma
                                 }
                                 else
                                 {
-                                    SetStun(0f, true, true);
+                                    SetStun(0f, true, true, true);
                                     GameMain.NilMod.DisconnectedCharacters.Remove(disconnectedcharcheck);
 
                                     var chatMsg = ChatMessage.Create(

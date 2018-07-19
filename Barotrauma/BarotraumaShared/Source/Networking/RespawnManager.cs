@@ -624,6 +624,16 @@ namespace Barotrauma.Networking
 
                 character.TeamID = 1;
 
+                //Spawn protection
+                if (GameMain.NilMod.PlayerSpawnProtectMidgame)
+                {
+                    character.SpawnProtectionHealth = GameMain.NilMod.PlayerSpawnProtectHealth;
+                    character.SpawnProtectionOxygen = GameMain.NilMod.PlayerSpawnProtectOxygen;
+                    character.SpawnProtectionPressure = GameMain.NilMod.PlayerSpawnProtectPressure;
+                    character.SpawnProtectionStun = GameMain.NilMod.PlayerSpawnProtectStun;
+                    character.SpawnRewireWaitTimer = GameMain.NilMod.PlayerSpawnRewireWaitTimer;
+                }
+
 #if CLIENT
                 if (myCharacter)
                 {

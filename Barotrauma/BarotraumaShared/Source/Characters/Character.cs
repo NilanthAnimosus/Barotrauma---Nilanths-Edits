@@ -101,7 +101,11 @@ namespace Barotrauma
 
         public bool Shielded = false;
 
-        public float SpawnProtection = 0f;
+        public float SpawnProtectionHealth = 0f;
+        public float SpawnProtectionOxygen = 0f;
+        public float SpawnProtectionPressure = 0f;
+        public float SpawnProtectionStun = 0f;
+        public float SpawnRewireWaitTimer = 0f;
 
         protected Item focusedItem;
         private Character focusedCharacter, selectedCharacter, selectedBy;
@@ -306,7 +310,7 @@ namespace Barotrauma
         {
             get
             {
-                if (Shielded) return 100f;
+                if (Shielded || SpawnProtectionPressure > 0f) return 100f;
 
                 return pressureProtection;
             }
@@ -366,7 +370,7 @@ namespace Barotrauma
 
         public float CheckOxygen(float newoxygen)
         {
-            if(Shielded && newoxygen < oxygen) return oxygen;
+            if((Shielded || SpawnProtectionOxygen > 0f) && newoxygen < oxygen) return oxygen;
             //Nilmod Prevent oxygen gains during progressive implode death
             if (PressureTimer >= 100.0f)
             {
@@ -601,7 +605,7 @@ namespace Barotrauma
             //Take Multipliers of the character into account then Clamp health again in case it went with weird values
             if (GameMain.Client == null)
             {
-                if (Shielded && newHealth < health) return health;
+                if ((Shielded || SpawnProtectionHealth > 0f) && newHealth < health) return health;
                 newHealth = CalculateMultiplierHealth(Health, newHealth - Health);
 
 
@@ -711,7 +715,7 @@ namespace Barotrauma
         {
             if (GameMain.Client == null)
             {
-                if (Shielded && newBleed > bleeding) return bleeding;
+                if ((Shielded || SpawnProtectionHealth > 0f) && newBleed > bleeding) return bleeding;
 
                 //NilMod Progressive Implosion Death Anti Healing (Allow Bleeding gain but not bleed reduction during pressure-death)
                 if (PressureTimer >= 100.0f && GameMain.NilMod.UseProgressiveImplodeDeath && GameMain.NilMod.PreventImplodeClotting && newBleed < Bleeding) return Bleeding;
@@ -791,7 +795,7 @@ namespace Barotrauma
         {
             get
             {
-                if (Shielded) return 0f;
+                if (Shielded || SpawnProtectionPressure > 0f) return 0f;
                 return pressureTimer;
             }
             private set
@@ -1547,7 +1551,7 @@ namespace Barotrauma
             if (wire != null)
             {
                 //locked wires are never interactable
-                if (wire.Locked) return false;
+                if (wire.Locked || SpawnRewireWaitTimer > 0f) return false;
 
                 //wires are interactable if the character has selected either of the items the wire is connected to
                 if (wire.Connections[0]?.Item != null && selectedConstruction == wire.Connections[0].Item) return true;
@@ -1958,14 +1962,18 @@ namespace Barotrauma
             }
 
             DisableImpactDamageTimer -= deltaTime;
-            
+            if(SpawnProtectionHealth > 0f) SpawnProtectionHealth -= deltaTime;
+            if (SpawnProtectionOxygen > 0f) SpawnProtectionOxygen -= deltaTime;
+            if (SpawnProtectionPressure > 0f) SpawnProtectionPressure -= deltaTime;
+            if (SpawnProtectionStun > 0f) SpawnProtectionStun -= deltaTime;
+
             if (needsAir)
             {
                 bool protectedFromPressure = PressureProtection > 0.0f;
                 
                 protectedFromPressure = protectedFromPressure
                     && (WorldPosition.Y > GameMain.NilMod.PlayerCrushDepthOutsideHull
-                    || (WorldPosition.Y > GameMain.NilMod.PlayerCrushDepthInHull && CurrentHull != null) || Shielded);
+                    || (WorldPosition.Y > GameMain.NilMod.PlayerCrushDepthInHull && CurrentHull != null) || (Shielded || SpawnProtectionPressure > 0f));
 
 
                 if (!protectedFromPressure && 
@@ -2142,14 +2150,14 @@ namespace Barotrauma
             {
                 if (controlled != this && GameMain.NilMod.CreatureHealthRegen != 0f && huskInfection == null)
                 {
-                    if (Health >= ((GameMain.NilMod.CreatureHealthRegenMin / 100f) * MaxHealth) && Health <= ((GameMain.NilMod.CreatureHealthRegenMax / 100) * MaxHealth))
+                    if (Health >= (GameMain.NilMod.CreatureHealthRegenMin * MaxHealth) && Health <= (GameMain.NilMod.CreatureHealthRegenMax * MaxHealth))
                     {
                         Health += Math.Max((GameMain.NilMod.CreatureHealthRegen - (Bleeding / 3)) * deltaTime,0f);
                     }
                 }
                 else if (GameMain.NilMod.PlayerHealthRegen != 0f && huskInfection == null)
                 {
-                    if (Health >= ((GameMain.NilMod.PlayerHealthRegenMin / 100f) * MaxHealth) && Health <= ((GameMain.NilMod.PlayerHealthRegenMax / 100) * MaxHealth))
+                    if (Health >= (GameMain.NilMod.PlayerHealthRegenMin * MaxHealth) && Health <= (GameMain.NilMod.PlayerHealthRegenMax * MaxHealth))
                     {
                         Health += Math.Max((GameMain.NilMod.PlayerHealthRegen - (Bleeding / 3)) * deltaTime, 0f);
                     }
@@ -2157,7 +2165,7 @@ namespace Barotrauma
             }
             else if (GameMain.NilMod.PlayerHealthRegen != 0f && huskInfection == null)
             {
-                if (Health >= ((GameMain.NilMod.PlayerHealthRegenMin / 100f) * MaxHealth) && Health <= ((GameMain.NilMod.PlayerHealthRegenMax / 100) * MaxHealth))
+                if (Health >= (GameMain.NilMod.PlayerHealthRegenMin * MaxHealth) && Health <= (GameMain.NilMod.PlayerHealthRegenMax * MaxHealth))
                 {
                     Health += Math.Max((GameMain.NilMod.PlayerHealthRegen - (Bleeding / 3)) * deltaTime, 0f);
                 }
@@ -2510,11 +2518,11 @@ namespace Barotrauma
             return attackResult;
         }
 
-        public void SetStun(float newStun, bool allowStunDecrease = false, bool isNetworkMessage = false)
+        public void SetStun(float newStun, bool allowStunDecrease = false, bool isNetworkMessage = false, bool overrideProtection = false)
         {
             if (GameMain.Client != null && !isNetworkMessage) return;
 
-            if(newStun >= stunTimer)
+            if(newStun >= stunTimer && (SpawnProtectionStun < 0f || overrideProtection))
             {
                 float stunincrease = newStun - stunTimer;
 
@@ -2629,6 +2637,10 @@ namespace Barotrauma
             if (isDead) return;
 
             Shielded = false;
+            SpawnProtectionHealth = 0f;
+            SpawnProtectionOxygen = 0f;
+            SpawnProtectionPressure = 0f;
+            SpawnProtectionStun = 0f;
 
             //clients aren't allowed to kill characters unless they receive a network message
             if (!isNetworkMessage && GameMain.Client != null)
@@ -2718,6 +2730,15 @@ namespace Barotrauma
             oxygen = 100f;
             bleeding = 0f;
             SetStun(0.0f, true, true);
+
+            //Spawn protection
+            if (GameMain.NilMod.ReviveGrantsProtectPercent > 0f)
+            {
+                SpawnProtectionHealth = GameMain.NilMod.PlayerSpawnProtectHealth * GameMain.NilMod.ReviveGrantsProtectPercent;
+                SpawnProtectionOxygen = GameMain.NilMod.PlayerSpawnProtectOxygen * GameMain.NilMod.ReviveGrantsProtectPercent;
+                SpawnProtectionPressure = GameMain.NilMod.PlayerSpawnProtectPressure * GameMain.NilMod.ReviveGrantsProtectPercent;
+                SpawnProtectionStun = GameMain.NilMod.PlayerSpawnProtectStun / GameMain.NilMod.ReviveGrantsProtectPercent;
+            }
 
             foreach (LimbJoint joint in AnimController.LimbJoints)
             {
@@ -2825,11 +2846,93 @@ namespace Barotrauma
             {
                 HuskInfectionState = 0f;
             }
+
+            StripNegativeEffects();
+
+            //Spawn protection
+            if (GameMain.NilMod.HealGrantsProtectPercent > 0f)
+            {
+                SpawnProtectionHealth = GameMain.NilMod.PlayerSpawnProtectHealth * GameMain.NilMod.HealGrantsProtectPercent;
+                SpawnProtectionOxygen = GameMain.NilMod.PlayerSpawnProtectOxygen * GameMain.NilMod.HealGrantsProtectPercent;
+                SpawnProtectionPressure = GameMain.NilMod.PlayerSpawnProtectPressure * GameMain.NilMod.HealGrantsProtectPercent;
+                SpawnProtectionStun = GameMain.NilMod.PlayerSpawnProtectStun / GameMain.NilMod.HealGrantsProtectPercent;
+            }
+
             //Make a heal probably duplicate the event, but absolutely ensure they stand up now
             if (GameMain.Server != null)
             {
                 GameMain.Server.CreateEntityEvent(this, new object[] { NetEntityEvent.Type.Status });
             }
+        }
+
+        public void StripNegativeEffects()
+        {
+            List<DurationListElement> durations = StatusEffect.DurationList.FindAll(d => d.Targets.Contains(this));
+            List<DelayedListElement> delays = DelayedEffect.DelayList.FindAll(d => d.Targets.Contains(this));
+
+            for (int i = durations.Count() - 1; i >= 0; i--)
+            {
+                durations[i].CancelledEffects = new List<int>();
+                StatusEffect effect = durations[i].Parent;
+                for (int y = effect.propertyNames.Count() - 1; y >= 0; y--)
+                {
+                    if (IsNegativeEffect(effect.propertyNames[y].ToLowerInvariant(), effect.propertyEffects[y]))
+                    {
+                        durations[i].CancelledEffects.Add(y);
+                    }
+                }
+                if (effect.propertyNames.Count() == durations[i].CancelledEffects.Count()) durations.RemoveAt(i);
+            }
+
+            for (int i = delays.Count() - 1; i >= 0; i--)
+            {
+                delays[i].CancelledEffects = new List<int>();
+                StatusEffect effect = delays[i].Parent;
+                //if (delays[i].Parent.duration == 0f) continue;
+                for (int y = effect.propertyNames.Count() - 1; y >= 0; y--)
+                {
+                    if (IsNegativeEffect(effect.propertyNames[y].ToLowerInvariant(), effect.propertyEffects[y]))
+                    {
+                        delays[i].CancelledEffects.Add(y);
+                    }
+                }
+                if (effect.propertyNames.Count() == delays[i].CancelledEffects.Count()) delays.RemoveAt(i);
+            }
+        }
+
+        public Boolean IsNegativeEffect(string Name, Object Value)
+        {
+            if (Value is float)
+            {
+                float value = (float)Value;
+                switch (Name)
+                {
+                    case "health":
+                        if (Math.Sign(value) == -1) return true;
+                        break;
+                    case "oxygen":
+                        if (Math.Sign(value) == -1) return true;
+                        break;
+                    case "bleeding":
+                        if (Math.Sign(value) == 1) return true;
+                        break;
+                    case "stun":
+                        if (Math.Sign(value) == 1) return true;
+                        break;
+                    case "husk":
+                        if (Math.Sign(value) == 1) return true;
+                        break;
+                    case "speed":
+                        if (Math.Sign(value) == -1) return true;
+                        break;
+                    case "oxygenavailable":
+                        if (Math.Sign(value) == -1) return true;
+                        break;
+                    default:
+                        break;
+                }
+            }
+            return false;
         }
 
         /*

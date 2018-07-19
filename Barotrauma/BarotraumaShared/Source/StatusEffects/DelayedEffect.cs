@@ -10,6 +10,7 @@ namespace Barotrauma
         public Entity Entity;
         public List<ISerializableEntity> Targets;
         public float StartTimer;
+        public List<int> CancelledEffects = new List<int>();
     }
     class DelayedEffect : StatusEffect
     {
@@ -79,7 +80,7 @@ namespace Barotrauma
 
                 if (element.StartTimer > 0.0f) continue;
 
-                element.Parent.Apply(1.0f, element.Entity, element.Targets);
+                element.Parent.Apply(1.0f, element.Entity, element.Targets, element.CancelledEffects);
                 DelayList.Remove(element);
             }
         }

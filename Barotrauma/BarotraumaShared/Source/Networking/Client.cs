@@ -21,7 +21,7 @@ namespace Barotrauma.Networking
             get
             {
                 if (GameMain.Server == null) return 1.0f;
-                if (!GameMain.Server.KarmaEnabled) return 1.0f;
+                if (!GameMain.Server.KarmaEnabled || KarmaImmunity) return 1.0f;
                 return karma;
             }
             set
@@ -60,7 +60,9 @@ namespace Barotrauma.Networking
         //Extras
         public Boolean GlobalChatSend = false;
         public Boolean GlobalChatReceive = false;
+        public Boolean KarmaImmunity = false;
         public Boolean PrioritizeJob = false;
+        public Boolean IgnoreJobMinimum = false;
         public Boolean KickImmunity = false;
         public Boolean BanImmunity = false;
 

@@ -526,6 +526,16 @@ namespace Barotrauma
                             spawnedCharacter.GiveJobItems(Waypoint);
                             spawnedCharacter.TeamID = (byte)teamID;
 
+                            //Spawn protection
+                            if (GameMain.NilMod.PlayerSpawnProtectMidgame)
+                            {
+                                if (GameMain.NilMod.PlayerSpawnProtectHealth != 0f) spawnedCharacter.SpawnProtectionHealth = GameMain.NilMod.PlayerSpawnProtectHealth / 5f;
+                                if (GameMain.NilMod.PlayerSpawnProtectOxygen != 0f) spawnedCharacter.SpawnProtectionOxygen = GameMain.NilMod.PlayerSpawnProtectOxygen * 1.2f;
+                                if (GameMain.NilMod.PlayerSpawnProtectPressure != 0f) spawnedCharacter.SpawnProtectionPressure = GameMain.NilMod.PlayerSpawnProtectPressure * 1.2f;
+                                if (GameMain.NilMod.PlayerSpawnProtectStun != 0f) spawnedCharacter.SpawnProtectionStun = GameMain.NilMod.PlayerSpawnProtectStun / 5f;
+                                if (GameMain.NilMod.PlayerSpawnRewireWaitTimer != 0f) spawnedCharacter.SpawnRewireWaitTimer = GameMain.NilMod.PlayerSpawnRewireWaitTimer / 5f;
+                            }
+
                             GameMain.Server.Character = thischar.character;
                             Character.SpawnCharacter = spawnedCharacter;
                             Character.Controlled = spawnedCharacter;
@@ -553,6 +563,16 @@ namespace Barotrauma
                         Character spawnedCharacter = Character.Create(thischar.client.CharacterInfo, Waypoint.WorldPosition, true, false);
                         spawnedCharacter.GiveJobItems(Waypoint);
                         spawnedCharacter.TeamID = (byte)teamID;
+
+                        //Spawn protection
+                        if (GameMain.NilMod.PlayerSpawnProtectMidgame)
+                        {
+                            if(GameMain.NilMod.PlayerSpawnProtectHealth != 0f) spawnedCharacter.SpawnProtectionHealth = GameMain.NilMod.PlayerSpawnProtectHealth;
+                            if (GameMain.NilMod.PlayerSpawnProtectHealth != 0f) spawnedCharacter.SpawnProtectionOxygen = GameMain.NilMod.PlayerSpawnProtectOxygen;
+                            if (GameMain.NilMod.PlayerSpawnProtectHealth != 0f) spawnedCharacter.SpawnProtectionPressure = GameMain.NilMod.PlayerSpawnProtectPressure;
+                            if (GameMain.NilMod.PlayerSpawnProtectHealth != 0f) spawnedCharacter.SpawnProtectionStun = GameMain.NilMod.PlayerSpawnProtectStun;
+                            if (GameMain.NilMod.PlayerSpawnProtectHealth != 0f) spawnedCharacter.SpawnRewireWaitTimer = GameMain.NilMod.PlayerSpawnRewireWaitTimer;
+                        }
 
                         GameMain.GameScreen.RunIngameCommand("setclientcharacter", new object[] { thischar.client, spawnedCharacter });
 

@@ -34,7 +34,9 @@ namespace Barotrauma.Networking
             //Extras
             public Boolean GlobalChatSend = false;
             public Boolean GlobalChatReceive = false;
+            public Boolean KarmaImmunity = false;
             public Boolean PrioritizeJob = false;
+            public Boolean IgnoreJobMinimum = false;
             public Boolean KickImmunity = false;
             public Boolean BanImmunity = false;
 
@@ -482,15 +484,11 @@ namespace Barotrauma.Networking
 
                 defaultpermission.GlobalChatSend = Xdefaultperms.GetAttributeBool("GlobalChatSend", false);
                 defaultpermission.GlobalChatReceive = Xdefaultperms.GetAttributeBool("GlobalChatReceive", false);
-                defaultpermission.PrioritizeJob = Xdefaultperms.GetAttributeBool("PrioritizeJob", false);
-                defaultpermission.KickImmunity = Xdefaultperms.GetAttributeBool("KickImmunity", false);
-                defaultpermission.BanImmunity = Xdefaultperms.GetAttributeBool("BanImmunity", false);
+                defaultpermission.IgnoreJobMinimum = Xdefaultperms.GetAttributeBool("IgnoreJobMinimum", false);
 
                 defaultpermission.HideJoin = Xdefaultperms.GetAttributeBool("HideJoin", false);
                 defaultpermission.AccessDeathChatAlive = Xdefaultperms.GetAttributeBool("AccessDeathChatAlive", false);
                 defaultpermission.AdminChannelSend = Xdefaultperms.GetAttributeBool("AdminChannelSend", true);
-                defaultpermission.AdminChannelReceive = Xdefaultperms.GetAttributeBool("AdminChannelReceive", false);
-                defaultpermission.CanBroadcast = Xdefaultperms.GetAttributeBool("CanBroadcast", false);
             }
             else
             {
@@ -548,7 +546,9 @@ namespace Barotrauma.Networking
 
                 newsavedpermission.GlobalChatSend = clientElement.GetAttributeBool("GlobalChatSend", false);
                 newsavedpermission.GlobalChatReceive = clientElement.GetAttributeBool("GlobalChatReceive", false);
+                newsavedpermission.KarmaImmunity = clientElement.GetAttributeBool("KarmaImmunity", false);
                 newsavedpermission.PrioritizeJob = clientElement.GetAttributeBool("PrioritizeJob", false);
+                newsavedpermission.IgnoreJobMinimum = clientElement.GetAttributeBool("IgnoreJobMinimum", false);
                 newsavedpermission.KickImmunity = clientElement.GetAttributeBool("KickImmunity", false);
                 newsavedpermission.BanImmunity = clientElement.GetAttributeBool("BanImmunity", false);
 
@@ -676,8 +676,10 @@ namespace Barotrauma.Networking
             XElement DefaultPermissionElement = new XElement("None",
                 new XAttribute("GlobalChatSend", defaultpermission.GlobalChatSend),
                 new XAttribute("GlobalChatReceive", defaultpermission.GlobalChatReceive),
+                new XAttribute("IgnoreJobMinimum", defaultpermission.IgnoreJobMinimum),
                 //new XText(""),
                 //"\r\n\r\n ",
+                new XAttribute("HideJoin", defaultpermission.HideJoin),
                 new XAttribute("AccessDeathChatAlive", defaultpermission.AccessDeathChatAlive),
                 new XAttribute("AdminChannelSend", defaultpermission.AdminChannelSend),
                 //new XText(""),
@@ -731,7 +733,9 @@ namespace Barotrauma.Networking
                 clientElement.Add(new XAttribute("TrustedSlot", clientPermission.TrustedSlot));
                 clientElement.Add(new XAttribute("GlobalChatSend", clientPermission.GlobalChatSend));
                 clientElement.Add(new XAttribute("GlobalChatReceive", clientPermission.GlobalChatReceive));
+                clientElement.Add(new XAttribute("KarmaImmunity", clientPermission.KarmaImmunity));
                 clientElement.Add(new XAttribute("PrioritizeJob", clientPermission.PrioritizeJob));
+                clientElement.Add(new XAttribute("IgnoreJobMinimum", clientPermission.IgnoreJobMinimum));
                 clientElement.Add(new XAttribute("KickImmunity", clientPermission.KickImmunity));
                 clientElement.Add(new XAttribute("BanImmunity", clientPermission.BanImmunity));
                 clientElement.Add(new XAttribute("HideJoin", clientPermission.HideJoin));

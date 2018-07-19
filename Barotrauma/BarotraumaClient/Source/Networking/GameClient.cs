@@ -51,6 +51,9 @@ namespace Barotrauma.Networking
 
         private FileReceiver fileReceiver;
 
+        //has the client been given a character to control this round 
+        public bool HasSpawned;
+
         public byte ID
         {
             get { return myID; }
@@ -562,7 +565,7 @@ namespace Barotrauma.Networking
                                     
             if (gameStarted && Screen.Selected == GameMain.GameScreen)
             {
-                endVoteTickBox.Visible = Voting.AllowEndVoting && myCharacter != null;
+                endVoteTickBox.Visible = Voting.AllowEndVoting && HasSpawned;
 
                 if (respawnManager != null)
                 {
@@ -758,7 +761,8 @@ namespace Barotrauma.Networking
         private IEnumerable<object> StartGame(NetIncomingMessage inc)
         {
             if (Character != null) Character.Remove();
-            
+            HasSpawned = false;
+
             GameMain.LightManager.LightingEnabled = true;
 
             //enable spectate button in case we fail to start the round now
@@ -916,7 +920,7 @@ namespace Barotrauma.Networking
                 string subName = inc.ReadString();
                 string subHash = inc.ReadString();
 
-                var matchingSub = Submarine.SavedSubmarines.Find(s => s.Name == subName && s.MD5Hash.Hash == subHash);
+                var matchingSub = Submarine.SavedSubmarines.FirstOrDefault(s => s.Name == subName && s.MD5Hash.Hash == subHash);
                 if (matchingSub != null)
                 {
                     submarines.Add(matchingSub);
@@ -1282,8 +1286,12 @@ namespace Barotrauma.Networking
                 case FileTransferType.Submarine:
                     new GUIMessageBox("Download finished", "File \"" + transfer.FileName + "\" was downloaded succesfully.");
                     var newSub = new Submarine(transfer.FilePath);
-                    Submarine.SavedSubmarines.RemoveAll(s => s.Name == newSub.Name && s.MD5Hash.Hash == newSub.MD5Hash.Hash);
-                    Submarine.SavedSubmarines.Add(newSub);
+                    var existingSubs = Submarine.SavedSubmarines.Where(s => s.Name == newSub.Name && s.MD5Hash.Hash == newSub.MD5Hash.Hash).ToList();
+                    foreach (Submarine existingSub in existingSubs)
+                    {
+                        existingSub.Dispose();
+                    }
+                    Submarine.AddToSavedSubs(newSub);
 
                     for (int i = 0; i < 2; i++)
                     {
@@ -1378,6 +1386,23 @@ namespace Barotrauma.Networking
         public override void Draw(Microsoft.Xna.Framework.Graphics.SpriteBatch spriteBatch)
         {
             base.Draw(spriteBatch);
+
+            if (Screen.Selected == GameMain.GameScreen && !GUI.DisableHUD)
+            {
+                if (EndVoteCount > 0)
+                {
+                    if (!HasSpawned)
+                    {
+                        GUI.DrawString(spriteBatch, new Vector2(GameMain.GraphicsWidth - 180.0f, 40),
+                            "Votes to end the round (y/n): " + EndVoteCount + "/" + (EndVoteMax - EndVoteCount), Color.White, null, 0, GUI.SmallFont);
+                    }
+                    else
+                    {
+                        GUI.DrawString(spriteBatch, new Vector2(GameMain.GraphicsWidth - 140.0f, 40),
+                            "Votes (y/n): " + EndVoteCount + "/" + (EndVoteMax - EndVoteCount), Color.White, null, 0, GUI.SmallFont);
+                    }
+                }
+            }
 
             if (fileReceiver != null && fileReceiver.ActiveTransfers.Count > 0)
             {
@@ -1674,14 +1699,13 @@ namespace Barotrauma.Networking
         {
             if (!gameStarted) return false;
 
-            if (!Voting.AllowEndVoting || myCharacter==null)
+            if (!Voting.AllowEndVoting || !HasSpawned)
             {
                 tickBox.Visible = false;
                 return false;
             }
 
             Vote(VoteType.EndRound, tickBox.Selected);
-
             return false;
         }
     }

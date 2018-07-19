@@ -967,6 +967,15 @@ namespace Barotrauma.Networking
                 log.LogFrame.Draw(spriteBatch);
             }
 
+            if (Screen.Selected == GameMain.GameScreen && !GUI.DisableHUD)
+            {
+                if (EndVoteCount >= 0)
+                {
+                    GUI.DrawString(spriteBatch, new Vector2(GameMain.GraphicsWidth - 480.0f, 12),
+                        "Votes to end the round (y/n): " + EndVoteCount + "/" + (EndVoteMax - EndVoteCount), Color.White, null, 0, GUI.SmallFont);
+                }
+            }
+
             if (ShowNetStats)
             {
                 GUI.Font.DrawString(spriteBatch, "Unique Events: " + entityEventManager.UniqueEvents.Count, new Vector2(10, 50), Color.White);

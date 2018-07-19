@@ -93,9 +93,9 @@ namespace Barotrauma
             }
             else
             {
-                DebugConsole.ThrowError("NilModGriefWatcher config file \"" + GriefWatchSavePath + "\" Does not exist, generating default XML");
+                //DebugConsole.ThrowError("NilModGriefWatcher config file \"" + GriefWatchSavePath + "\" Does not exist, generating default XML");
                 //Save();
-                doc = XMLExtensions.TryLoadXml(GriefWatchSavePath);
+                //doc = XMLExtensions.TryLoadXml(GriefWatchSavePath);
             }
 
             if (doc == null)
@@ -407,6 +407,8 @@ namespace Barotrauma
 
         public void GameInitialize()
         {
+            if (!GameMain.NilMod.EnableGriefWatcher) return;
+
             for (int i = GWListDetonators.Count - 1; i >= 0; i--)
             {
                 MapEntityPrefab PrefabCheck = ItemPrefab.Find(GWListDetonators[i]);

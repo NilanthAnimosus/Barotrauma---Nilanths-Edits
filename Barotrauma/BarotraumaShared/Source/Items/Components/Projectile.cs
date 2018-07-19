@@ -223,7 +223,7 @@ namespace Barotrauma.Items.Components
             //the raycast didn't hit anything -> the projectile flew somewhere outside the level and is permanently lost
             if (!hitSomething)
             {
-                Entity.Spawner.AddToRemoveQueue(item);
+                CoroutineManager.StartCoroutine(RemoveOnhitDelayed(), "RemoveProjectileDelayed");
             }
         }
         
@@ -305,7 +305,7 @@ namespace Barotrauma.Items.Components
                     item.Move(-submarine.Position);
                     item.Submarine = submarine;
                     item.body.Submarine = submarine;
-                    return true;
+                    return false;
                 }
 
                 Structure structure;
@@ -372,7 +372,7 @@ namespace Barotrauma.Items.Components
 
             if (RemoveOnHit)
             {
-                Entity.Spawner.AddToRemoveQueue(item);
+                CoroutineManager.StartCoroutine(RemoveOnhitDelayed(),"RemoveProjectileDelayed");
             }
 
             return true;
@@ -418,6 +418,26 @@ namespace Barotrauma.Items.Components
                 stickJoint = null;
             }
 
+        }
+
+        public IEnumerable<Object> RemoveOnhitDelayed()
+        {
+            float Removetime = 0.6f;
+
+            yield return CoroutineStatus.Running;
+
+            Item.Move((Item.Position + new Vector2(-50000, 120000)));
+
+            while(Removetime >= 0f)
+            {
+                Removetime -= CoroutineManager.DeltaTime;
+                yield return CoroutineStatus.Running;
+            }
+
+            //Remove the projectile
+            Entity.Spawner.AddToRemoveQueue(item);
+
+            yield return CoroutineStatus.Success;
         }
     }
 }

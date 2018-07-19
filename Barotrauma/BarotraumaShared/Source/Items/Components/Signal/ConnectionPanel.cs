@@ -76,7 +76,7 @@ namespace Barotrauma.Items.Components
             float degreeOfSuccess = DegreeOfSuccess(character);
             if (Rand.Range(0.0f, 50.0f) < degreeOfSuccess) return false;
 
-            character.SetStun(GameMain.NilMod.ElectricalFailStunTime);
+            character.SetStun(GameMain.NilMod.ElectricalFailStunTime,false,false,true);
 
             item.ApplyStatusEffects(ActionType.OnFailure, 1.0f, character);
 
@@ -209,18 +209,24 @@ namespace Barotrauma.Items.Components
                     Wire existingWire = Connections[i].Wires[j];
                     if (existingWire == null) continue;
                     //NilMod Deny changes to locked wiring
-                    if (existingWire.Locked == true) continue;
+                    //if (existingWire.Locked == true) continue;
 
                     //existing wire not in the list of new wires -> disconnect it
                     if (!wires[i].Contains(existingWire))
                     {
-                        if (existingWire.Locked)
+                        if (existingWire.Locked || c.Character?.SpawnRewireWaitTimer > 0)
                         {
-                            if (!GameMain.NilMod.CanRewireMainSubs)
+                            if (!GameMain.NilMod.CanRewireMainSubs && c.Character?.SpawnRewireWaitTimer <= 0f)
                             {
                                 //this should not be possible unless the client is running a modified version of the game 
                                 GameServer.Log(c.Character.LogName + " attempted to disconnect a locked wire from " +
                                     Connections[i].Item.Name + " (" + Connections[i].Name + ") - Could be a modified client.", ServerLog.MessageType.Rewire);
+                            }
+                            else if(c.Character?.SpawnRewireWaitTimer > 0f)
+                            {
+                                //this is simply the rewire protection from CanRewireMainSubs
+                                GameServer.Log(c.Character.LogName + " attempted to disconnect a locked wire from " +
+                                    Connections[i].Item.Name + " (" + Connections[i].Name + ") - but SpawnRewireWaitTimer Prevented it.", ServerLog.MessageType.Rewire);
                             }
                             else
                             {
@@ -320,7 +326,7 @@ namespace Barotrauma.Items.Components
                     //already connected, no need to do anything
                     if (Connections[i].Wires.Contains(newWire)) continue;
                     //NilMod Deny changes to locked wiring
-                    if (newWire.Locked) continue;
+                    if (newWire.Locked || c.Character?.SpawnRewireWaitTimer > 0f) continue;
 
                     Connections[i].TryAddLink(newWire);
                     newWire.Connect(Connections[i], true, true);

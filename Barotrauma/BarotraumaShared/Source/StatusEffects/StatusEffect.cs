@@ -15,6 +15,8 @@ namespace Barotrauma
         public Entity Entity;
         public List<ISerializableEntity> Targets;
         public float Timer;
+
+        public List<int> CancelledEffects = new List<int>();
     }
 
     partial class StatusEffect
@@ -38,7 +40,7 @@ namespace Barotrauma
 #endif
 
         public string[] propertyNames;
-        private object[] propertyEffects;
+        public object[] propertyEffects;
 
         List<PropertyConditional> propertyConditionals;
 
@@ -49,7 +51,7 @@ namespace Barotrauma
         private HashSet<string> onContainingNames;
         private HashSet<string> tags;
         
-        private readonly float duration;
+        public readonly float duration;
         public static List<DurationListElement> DurationList = new List<DurationListElement>();
 
         public bool CheckConditionalAlways; //Always do the conditional checks for the duration/delay. If false, only check conditional on apply.
@@ -345,7 +347,7 @@ namespace Barotrauma
             Apply(deltaTime, entity, targets);
         }
 
-        protected void Apply(float deltaTime, Entity entity, List<ISerializableEntity> targets)
+        protected void Apply(float deltaTime, Entity entity, List<ISerializableEntity> targets, List<int> cancelledEffects = null)
         {
 #if CLIENT
             if (sound != null)
@@ -391,6 +393,7 @@ namespace Barotrauma
                 element.Timer = duration;
                 element.Entity = entity;
                 element.Targets = targets;
+                if(cancelledEffects != null) element.CancelledEffects = cancelledEffects;
 
 /*                    if (!target.SerializableProperties.TryGetValue(propertyNames[i], out property)) continue;
 
@@ -459,7 +462,7 @@ namespace Barotrauma
                     for (int i = 0; i < propertyNames.Length; i++)
                     {
                         SerializableProperty property;
-
+                        if (cancelledEffects != null && cancelledEffects.Contains(i)) continue;
                         if (target == null || target.SerializableProperties == null || !target.SerializableProperties.TryGetValue(propertyNames[i], out property)) continue;
 
                         ApplyToProperty(property, propertyEffects[i], deltaTime);
@@ -546,6 +549,7 @@ namespace Barotrauma
                 {
                     for (int n = 0; n < element.Parent.propertyNames.Length; n++)
                     {
+                        if (element.CancelledEffects.Contains(n)) continue;
                         SerializableProperty property;
 
                         if (target == null || target.SerializableProperties == null || !target.SerializableProperties.TryGetValue(element.Parent.propertyNames[n], out property)) continue;
