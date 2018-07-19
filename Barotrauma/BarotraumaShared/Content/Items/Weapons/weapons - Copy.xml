@@ -162,14 +162,14 @@
     <ItemComponent characterusable="false">
       <StatusEffect type="OnUse" target="This" Condition="-100.0">
         <sound file="Content/Items/Weapons/stungrenade.ogg"/>
-        <Explosion range="1000" damage="5" empstrength="10" stun="2" force="0.1" smoke="false"/>
+        <Explosion range="500" damage="5" stun="25" force="0.1" smoke="false"/>
       </StatusEffect>
     </ItemComponent>
 
     <Throwable slots="Any,RightHand,LeftHand" holdpos="0,0" handle1="0,0" throwforce="4.0" aimpos="35,-10">
       <StatusEffect type="OnSecondaryUse" target="This" Condition="-100.0" delay="3.0">
         <sound file="Content/Items/Weapons/stungrenade.ogg"/>
-        <Explosion range="1000" damage="5" empstrength="10" stun="2" force="0.1" smoke="false"/>
+        <Explosion range="500" damage="5" stun="25" force="0.1" smoke="false"/>
       </StatusEffect>
     </Throwable>
   </Item>
