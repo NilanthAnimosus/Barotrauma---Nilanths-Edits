@@ -244,7 +244,7 @@ namespace Barotrauma.Networking
             GameMain.NetLobbyScreen.RandomizeSettings();
             started = true;
 
-            if (GameSettings.SendUserStatistics) GameAnalyticsSDK.Net.GameAnalytics.AddDesignEvent("GameServer:Start");
+            GameAnalyticsManager.AddDesignEvent("GameServer:Start");
 
             yield return CoroutineStatus.Success;
         }
@@ -1862,7 +1862,7 @@ namespace Barotrauma.Networking
                 }
             }
 
-            if (GameSettings.SendUserStatistics) GameAnalyticsSDK.Net.GameAnalytics.AddDesignEvent("Traitors:" + (TraitorManager == null ? "Disabled" : "Enabled"));
+            GameAnalyticsManager.AddDesignEvent("Traitors:" + (TraitorManager == null ? "Disabled" : "Enabled"));
 
             SendStartMessage(roundStartSeed, Submarine.MainSub, GameMain.GameSession.GameMode.Preset, connectedClients);
 
@@ -2104,23 +2104,6 @@ namespace Barotrauma.Networking
             }
 
             BanClient(client, reason, range, duration);
-        }
-
-        public void BanClient(NetConnection conn, string reason, bool range = false, TimeSpan? duration = null)
-        {
-            Client client = connectedClients.Find(c => c.Connection == conn);
-            if (client == null)
-            {
-                conn.Disconnect("You have been banned from the server");
-                if (!banList.IsBanned(conn.RemoteEndPoint.Address.ToString()))
-                {
-                    banList.BanPlayer("IP Banned", conn.RemoteEndPoint.Address.ToString(), reason, duration);
-                }
-            }
-            else
-            {
-                BanClient(client, reason, range);
-            }
         }
 
         public void KickBannedClient(NetConnection conn, string reason)
@@ -3342,10 +3325,7 @@ namespace Barotrauma.Networking
                 log.Save();
             }
 
-            if (GameSettings.SendUserStatistics)
-            {
-                GameAnalyticsSDK.Net.GameAnalytics.AddDesignEvent("GameServer:ShutDown");
-            }
+            GameAnalyticsManager.AddDesignEvent("GameServer:ShutDown");
             server.Shutdown("The server has been shut down");
         }
 

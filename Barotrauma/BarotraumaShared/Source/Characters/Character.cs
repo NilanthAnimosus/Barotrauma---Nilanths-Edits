@@ -2661,19 +2661,16 @@ namespace Barotrauma
 
             GameServer.Log(LogName + " has died (Cause of death: " + causeOfDeath + ")", ServerLog.MessageType.Attack);
 
-            if (GameSettings.SendUserStatistics)
-            {
-                string characterType = "Unknown";
-                if (this == controlled)
-                    characterType = "Player";
-                else if (IsRemotePlayer)
-                    characterType = "RemotePlayer";
-                else if (AIController is EnemyAIController)
-                    characterType = "Enemy";
-                else if (AIController is HumanAIController)
-                    characterType = "AICrew";
-                GameAnalyticsSDK.Net.GameAnalytics.AddDesignEvent("Kill:" + characterType + ":" + SpeciesName + ":" + causeOfDeath);
-            }
+            string characterType = "Unknown";
+            if (this == controlled)
+                characterType = "Player";
+            else if (IsRemotePlayer)
+                characterType = "RemotePlayer";
+            else if (AIController is EnemyAIController)
+                characterType = "Enemy";
+            else if (AIController is HumanAIController)
+                characterType = "AICrew";
+            GameAnalyticsManager.AddDesignEvent("Kill:" + characterType + ":" + SpeciesName + ":" + causeOfDeath);
 
             if (OnDeath != null) OnDeath(this, causeOfDeath);
 

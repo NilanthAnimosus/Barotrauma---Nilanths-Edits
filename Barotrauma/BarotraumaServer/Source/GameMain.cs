@@ -151,7 +151,6 @@ namespace Barotrauma
 
         public void CloseServer()
         {
-            if (GameSettings.SendUserStatistics) GameAnalytics.OnStop();
             Server.Disconnect();
             Server = null;
         }

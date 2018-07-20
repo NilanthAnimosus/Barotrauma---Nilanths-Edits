@@ -27,10 +27,7 @@ namespace Barotrauma
         static void Main()
         {
             AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(UnrecoverableCrashHandler);
-            
 
-
-            
             try
             {
                 game = new GameMain();
@@ -38,6 +35,7 @@ namespace Barotrauma
                 inputThread.Start();
                 game.Run();
                 inputThread.Abort(); inputThread.Join();
+                if (GameSettings.SendUserStatistics) GameAnalytics.OnStop();
             }
             catch (Exception e)
             {
@@ -68,6 +66,7 @@ namespace Barotrauma
                     System.Diagnostics.Process.Start(System.Reflection.Assembly.GetEntryAssembly().CodeBase + "\\BarotraumaServer NilEdit.exe");
                     //Kind of flipping the table here after the last one or two didnt work.
                     inputThread.Abort(); inputThread.Join();
+                    if (GameSettings.SendUserStatistics) GameAnalytics.OnStop();
                     Environment.Exit(-1);
                 }
             }
