@@ -801,8 +801,7 @@ namespace Barotrauma
                                                             GameMain.NilMod.PublicServer,
                                                             GameMain.NilMod.UseServerPassword ? "" : GameMain.NilMod.ServerPassword,
                                                             GameMain.NilMod.UPNPForwarding,
-                                                            GameMain.NilMod.MaxPlayers
-                                                            );
+                                                            GameMain.NilMod.MaxPlayers);
                 }
 
                 catch (Exception e)
@@ -816,20 +815,13 @@ namespace Barotrauma
             }
         }
 
-        public void AutoRestartServer()
+        public void AutoRestartServer(string name, int port, bool isPublic, string password, bool attemptUPnP, int maxPlayers, Lidgren.Network.NetServer prevserver = null, Lidgren.Network.NetPeerConfiguration prevconfig = null)
         {
             if (Server == null) return;
             List<Client> PreviousClients = new List<Client>(GameMain.Server.ConnectedClients);
+            ushort LastUpdateID = GameMain.NetLobbyScreen.LastUpdateID += 1;
 
-            string Servername = GameMain.Server.Name;
-            int port = GameMain.Server.Port;
-            Boolean publicserver = GameMain.Server.isPublic;
-            string password = GameMain.Server.password;
-            Boolean useupnp = GameMain.Server.config.EnableUPnP;
-            int maxplayers = GameMain.Server.maxPlayers;
-
-
-            GameMain.Server.Disconnect();
+            GameMain.Server.DisconnectRestart();
             GameMain.NetworkMember = null;
 
             waitForKeyHit = false;
@@ -838,13 +830,14 @@ namespace Barotrauma
 
             try
             {
-                GameMain.NetworkMember = new GameServer(Servername,
+                GameMain.NetworkMember = new GameServer(name,
                                                         port,
-                                                        publicserver,
+                                                        isPublic,
                                                         password,
-                                                        useupnp,
-                                                        maxplayers
-                                                        );
+                                                        attemptUPnP,
+                                                        maxPlayers,
+                                                        prevserver,
+                                                        prevconfig);
             }
             catch (Exception e)
             {
@@ -855,7 +848,7 @@ namespace Barotrauma
             GameMain.NetLobbyScreen.DefaultServerStartup();
             waitForKeyHit = false;
 
-            if (GameMain.Server != null) GameMain.Server.AddRestartClients(PreviousClients);
+            if (GameMain.Server != null) GameMain.Server.AddRestartClients(PreviousClients, LastUpdateID);
         }
     }
 }

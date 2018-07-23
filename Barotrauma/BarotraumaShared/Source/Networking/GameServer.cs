@@ -70,7 +70,7 @@ namespace Barotrauma.Networking
             get { return updateInterval; }
         }
 
-        public GameServer(string name, int port, bool isPublic = false, string password = "", bool attemptUPnP = false, int maxPlayers = 10)
+        public GameServer(string name, int port, bool isPublic = false, string password = "", bool attemptUPnP = false, int maxPlayers = 10, NetServer prevserver = null, NetPeerConfiguration prevconfig = null)
         {
             name = name.Replace(":", "");
             name = name.Replace(";", "");
@@ -89,7 +89,14 @@ namespace Barotrauma.Networking
                 SetPassword(password);
             }
 
-            config = new NetPeerConfiguration("barotrauma");
+            if (prevconfig == null)
+            {
+                config = new NetPeerConfiguration("barotrauma");
+            }
+            else
+            {
+                config = prevconfig;
+            }
 
 #if CLIENT
             netStats = new NetStats();
@@ -121,15 +128,22 @@ namespace Barotrauma.Networking
 
             //NetIdUtils.Test();
 
-            config.Port = port;
-            Port = port;
+            if (prevconfig == null)
+            {
+                config.Port = port;
+                Port = port;
+                
+                config.MaximumConnections = maxPlayers * 2; //double the lidgren connections for unauthenticated players
+            }
+            else
+            {
+                Port = config.Port;
+            }
 
             if (attemptUPnP)
             {
                 config.EnableUPnP = true;
             }
-
-            config.MaximumConnections = maxPlayers * 2; //double the lidgren connections for unauthenticated players            
 
             config.DisableMessageType(NetIncomingMessageType.DebugMessage |
                 NetIncomingMessageType.WarningMessage | NetIncomingMessageType.Receipt |
@@ -153,7 +167,7 @@ namespace Barotrauma.Networking
             PermissionPreset.LoadAll(PermissionPresetFile);
             LoadClientPermissions();
 
-            CoroutineManager.StartCoroutine(StartServer(isPublic));
+            CoroutineManager.StartCoroutine(StartServer(isPublic,prevserver,prevconfig));
         }
 
         public void SetPassword(string password)
@@ -161,20 +175,33 @@ namespace Barotrauma.Networking
             this.password = Encoding.UTF8.GetString(NetUtility.ComputeSHAHash(Encoding.UTF8.GetBytes(password)));
         }
 
-        private IEnumerable<object> StartServer(bool isPublic)
+        private IEnumerable<object> StartServer(bool isPublic, NetServer prevserver = null, NetPeerConfiguration prevconfig = null)
         {
             bool error = false;
             try
             {
-                Log("Starting the server...", ServerLog.MessageType.ServerMessage);
-                server = new NetServer(config);
-                netPeer = server;
+                if(prevserver == null)
+                {
+                    Log("Starting the server...", ServerLog.MessageType.ServerMessage);
+                    server = new NetServer(config);
+                    netPeer = server;
 
-                fileSender = new FileSender(this);
-                fileSender.OnEnded += FileTransferChanged;
-                fileSender.OnStarted += FileTransferChanged;
+                    fileSender = new FileSender(this);
+                    fileSender.OnEnded += FileTransferChanged;
+                    fileSender.OnStarted += FileTransferChanged;
+                    server.Start();
+                }
+                else
+                {
+                    Log("Restarting the server...", ServerLog.MessageType.ServerMessage);
+                    server = prevserver;
+                    netPeer = server;
 
-                server.Start();
+                    fileSender = new FileSender(this);
+                    fileSender.OnEnded += FileTransferChanged;
+                    fileSender.OnStarted += FileTransferChanged;
+                    server.Start();
+                }
             }
             catch (Exception e)
             {
@@ -636,9 +663,12 @@ namespace Barotrauma.Networking
                     }
                 }
 
+                //if (GameMain.NilMod.AutoRestartServer && new TimeSpan(GameMain.NilMod.serverruntime.Elapsed.Hours,
+                //    GameMain.NilMod.serverruntime.Elapsed.Minutes,
+                //    GameMain.NilMod.serverruntime.Elapsed.Seconds) > GameMain.NilMod.ServerRestartInterval)
                 if (GameMain.NilMod.AutoRestartServer && new TimeSpan(GameMain.NilMod.serverruntime.Elapsed.Hours,
-                    GameMain.NilMod.serverruntime.Elapsed.Minutes,
-                    GameMain.NilMod.serverruntime.Elapsed.Seconds) > GameMain.NilMod.ServerRestartInterval)
+                GameMain.NilMod.serverruntime.Elapsed.Minutes,
+                GameMain.NilMod.serverruntime.Elapsed.Seconds) > new TimeSpan(0,0,6))
                 {
                     if (!CoroutineManager.IsCoroutineRunning("serverrestart") && !GameStarted && !initiatedStartGame)
                     {
@@ -3365,6 +3395,32 @@ namespace Barotrauma.Networking
             server.Shutdown("The server has been shut down");
         }
 
+        //Nilmod autorestart
+        public void DisconnectRestart()
+        {
+            banList.Save();
+            SaveSettings();
+
+            if (registeredToMaster && restClient != null)
+            {
+                var request = new RestRequest("masterserver2.php", Method.GET);
+                request.AddParameter("action", "removeserver");
+                request.AddParameter("serverport", Port);
+
+                restClient.Execute(request);
+                restClient = null;
+            }
+
+            if (SaveServerLogs)
+            {
+                Log("Performing scheduled server restart...", ServerLog.MessageType.ServerMessage);
+                log.Save();
+            }
+
+            GameAnalyticsManager.AddDesignEvent("GameServer:ShutDown");
+            //server.Shutdown("The server has been shut down");
+        }
+
         //NilMod
         public void GrantPower(int submarine)
         {
@@ -4218,28 +4274,28 @@ namespace Barotrauma.Networking
 #endif
         private IEnumerable<object> PerformRestart()
         {
-            float RestartTimer = 20f;
+            float RestartTimer = 10f;
             float WarnFrequency = 2f;
             float WarnTimer = 0f;
 
             if (GameMain.Server == null) yield return CoroutineStatus.Success;
             if(GameMain.Server.AutoRestart) GameMain.Server.AutoRestartTimer = RestartTimer + 1f;
 
+            for (int i = 0; i < GameMain.Server.ConnectedClients.Count; i++)
+            {
+                var chatMsg = ChatMessage.Create(
+                null,
+                "Server is now performing its scheduled autorestart, please wait - Clients will attempt to autoreconnect.",
+                (ChatMessageType)ChatMessageType.Server,
+                null);
+
+                GameMain.Server.SendChatMessage(chatMsg, GameMain.Server.ConnectedClients[i]);
+            }
+            GameMain.Server.AddChatMessage("Server is now performing its scheduled autorestart, please wait - Clients should remain connected.", ChatMessageType.Server);
+
             while (RestartTimer >= 0f && (GameMain.Server.ConnectedClients.Count > 0 || GameMain.NetworkMember.CharacterInfo != null))
             {
                 if (GameMain.Server == null) yield return CoroutineStatus.Success;
-
-                for (int i = 0; i < GameMain.Server.ConnectedClients.Count; i++)
-                {
-                    var chatMsg = ChatMessage.Create(
-                    null,
-                    "Server is now performing its scheduled autorestart, please wait - Clients will attempt to autoreconnect.",
-                    (ChatMessageType)ChatMessageType.Server,
-                    null);
-
-                    GameMain.Server.SendChatMessage(chatMsg, GameMain.Server.ConnectedClients[i]);
-                }
-                GameMain.Server.AddChatMessage("Server is now performing its scheduled autorestart, please wait - Clients will attempt to autoreconnect.", ChatMessageType.Server);
 
                 WarnTimer += CoroutineManager.UnscaledDeltaTime;
                 RestartTimer -= CoroutineManager.UnscaledDeltaTime;
@@ -4259,16 +4315,32 @@ namespace Barotrauma.Networking
                     }
                     GameMain.Server.AddChatMessage("Server is restarting in " + Math.Round(RestartTimer) + " seconds.", ChatMessageType.Server);
                     WarnTimer -= WarnFrequency;
+
+                    if(GameStarted || initiatedStartGame)
+                    {
+                        for (int i = 0; i < GameMain.Server.ConnectedClients.Count; i++)
+                        {
+                            var chatMsg = ChatMessage.Create(
+                            null,
+                            "Server restart postponed due to manual round start.",
+                            (ChatMessageType)ChatMessageType.Server,
+                            null);
+
+                            GameMain.Server.SendChatMessage(chatMsg, GameMain.Server.ConnectedClients[i]);
+                        }
+                        GameMain.Server.AddChatMessage("Server restart postponed due to manual round start.", ChatMessageType.Server);
+                        yield return CoroutineStatus.Success;
+                    }
                 }
 
                 yield return CoroutineStatus.Running;
             }
-
-            GameMain.Instance.AutoRestartServer();
+            
+            GameMain.Instance.AutoRestartServer(name, Port, isPublic, password, config.EnableUPnP,maxPlayers, server, config);
             yield return CoroutineStatus.Success;
         }
 
-        public void AddRestartClients(List<Client> previousclients)
+        public void AddRestartClients(List<Client> previousclients,ushort PrevLobbyUpdate = 0)
         {
             for (int i = previousclients.Count() - 1; i >= 0; i--)
             {
@@ -4311,7 +4383,27 @@ namespace Barotrauma.Networking
                 GameSession.inGameInfo.AddClient(newClient);
                 GameMain.NetLobbyScreen.AddPlayer(newClient.Name);
 #endif
+                CoroutineManager.StartCoroutine(SyncPlayerLobbyDelayed(PrevLobbyUpdate), "SyncPlayerLobbyDelayed");
             }
+        }
+
+        private IEnumerable<object> SyncPlayerLobbyDelayed(ushort PrevLobbyUpdate)
+        {
+            float timer = 0f;
+
+            while (timer < 1f)
+            {
+                timer += CoroutineManager.DeltaTime;
+                yield return CoroutineStatus.Running;
+            }
+            GameMain.NetLobbyScreen.LastUpdateID = PrevLobbyUpdate;
+            foreach (Client c in ConnectedClients)
+            {
+                //Resync the lobby
+                c.LastRecvGeneralUpdate = 0;
+                ClientWriteLobby(c);
+            }
+            yield return CoroutineStatus.Success;
         }
     }
 }

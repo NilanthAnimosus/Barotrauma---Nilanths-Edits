@@ -475,10 +475,12 @@ namespace Barotrauma
         }
 
         //Refresh the entire server
-        public void AutoRestartServer()
+        public void AutoRestartServer(string name, int port, bool isPublic, string password, bool attemptUPnP, int maxPlayers, Lidgren.Network.NetServer prevserver = null, Lidgren.Network.NetPeerConfiguration prevconfig = null)
         {
             List<Client> PreviousClients = new List<Client>(GameMain.Server.ConnectedClients);
-            CloseServer();
+            ushort LastUpdateID = GameMain.NetLobbyScreen.LastUpdateID += 1;
+            Server.DisconnectRestart();
+            Server = null;
 
             Config = new GameSettings("config.xml");
             if (Config.WasGameUpdated)
@@ -504,7 +506,16 @@ namespace Barotrauma
 
             NetLobbyScreen = new NetLobbyScreen();
 
-            StartServer();
+            NetLobbyScreen.ServerName = GameMain.NilMod.ServerName;
+
+            Server = new GameServer(name,
+            port,
+            isPublic,
+            password,
+            attemptUPnP,
+            maxPlayers,
+            prevserver,
+            prevconfig);
 
             DefaultServerStartup();
 
@@ -513,7 +524,7 @@ namespace Barotrauma
             stopwatch = Stopwatch.StartNew();
             prevTicks = stopwatch.ElapsedTicks;
 
-            GameMain.Server.AddRestartClients(PreviousClients);
+            GameMain.Server.AddRestartClients(PreviousClients, LastUpdateID);
         }
     }
 }
