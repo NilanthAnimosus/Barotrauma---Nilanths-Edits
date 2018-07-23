@@ -32,6 +32,7 @@ namespace Barotrauma.Networking
             public Boolean OwnerSlot = false;
 
             //Extras
+            public Boolean AllowInGamePM = false;
             public Boolean GlobalChatSend = false;
             public Boolean GlobalChatReceive = false;
             public Boolean KarmaImmunity = false;
@@ -43,6 +44,7 @@ namespace Barotrauma.Networking
             //Admin Features
             public Boolean HideJoin = false;
             public Boolean AccessDeathChatAlive = false;
+            public Boolean AdminPrivateMessage = false;
             public Boolean AdminChannelSend = false;
             public Boolean AdminChannelReceive = false;
             public Boolean SendServerConsoleInfo = false;
@@ -482,6 +484,7 @@ namespace Barotrauma.Networking
 
                 defaultpermission = new SavedClientPermission("", "", permissions, permittedCommands);
 
+                defaultpermission.AllowInGamePM = Xdefaultperms.GetAttributeBool("AllowInGamePM", false);
                 defaultpermission.GlobalChatSend = Xdefaultperms.GetAttributeBool("GlobalChatSend", false);
                 defaultpermission.GlobalChatReceive = Xdefaultperms.GetAttributeBool("GlobalChatReceive", false);
                 defaultpermission.IgnoreJobMinimum = Xdefaultperms.GetAttributeBool("IgnoreJobMinimum", false);
@@ -544,6 +547,7 @@ namespace Barotrauma.Networking
                 newsavedpermission.AdministratorSlot = clientElement.GetAttributeBool("AdministratorSlot", false);
                 newsavedpermission.TrustedSlot = clientElement.GetAttributeBool("TrustedSlot", false);
 
+                newsavedpermission.AllowInGamePM = Xdefaultperms.GetAttributeBool("AllowInGamePM", false);
                 newsavedpermission.GlobalChatSend = clientElement.GetAttributeBool("GlobalChatSend", false);
                 newsavedpermission.GlobalChatReceive = clientElement.GetAttributeBool("GlobalChatReceive", false);
                 newsavedpermission.KarmaImmunity = clientElement.GetAttributeBool("KarmaImmunity", false);
@@ -674,6 +678,7 @@ namespace Barotrauma.Networking
             //save defaultpermission first
 
             XElement DefaultPermissionElement = new XElement("None",
+                new XAttribute("AllowInGamePM", defaultpermission.AllowInGamePM),
                 new XAttribute("GlobalChatSend", defaultpermission.GlobalChatSend),
                 new XAttribute("GlobalChatReceive", defaultpermission.GlobalChatReceive),
                 new XAttribute("IgnoreJobMinimum", defaultpermission.IgnoreJobMinimum),
@@ -731,6 +736,7 @@ namespace Barotrauma.Networking
                 clientElement.Add(new XAttribute("OwnerSlot", clientPermission.OwnerSlot));
                 clientElement.Add(new XAttribute("AdministratorSlot", clientPermission.AdministratorSlot));
                 clientElement.Add(new XAttribute("TrustedSlot", clientPermission.TrustedSlot));
+                clientElement.Add(new XAttribute("AllowInGamePM", clientPermission.AllowInGamePM));
                 clientElement.Add(new XAttribute("GlobalChatSend", clientPermission.GlobalChatSend));
                 clientElement.Add(new XAttribute("GlobalChatReceive", clientPermission.GlobalChatReceive));
                 clientElement.Add(new XAttribute("KarmaImmunity", clientPermission.KarmaImmunity));
@@ -740,6 +746,7 @@ namespace Barotrauma.Networking
                 clientElement.Add(new XAttribute("BanImmunity", clientPermission.BanImmunity));
                 clientElement.Add(new XAttribute("HideJoin", clientPermission.HideJoin));
                 clientElement.Add(new XAttribute("AccessDeathChatAlive", clientPermission.AccessDeathChatAlive));
+                clientElement.Add(new XAttribute("AdminPrivateMessage", clientPermission.AdminPrivateMessage));
                 clientElement.Add(new XAttribute("AdminChannelSend", clientPermission.AdminChannelSend));
                 clientElement.Add(new XAttribute("AdminChannelReceive", clientPermission.AdminChannelReceive));
                 clientElement.Add(new XAttribute("SendServerConsoleInfo", clientPermission.SendServerConsoleInfo));

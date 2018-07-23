@@ -1822,13 +1822,10 @@ namespace Barotrauma.Networking
             {
                 if (sub == null) continue;
 
-                List<ItemPrefab> spawnList = new List<ItemPrefab>();
+                List<PurchasedItem> spawnList = new List<PurchasedItem>();
                 foreach (KeyValuePair<ItemPrefab, int> kvp in extraCargo)
                 {
-                    for (int i = 0; i < kvp.Value; i++)
-                    {
-                        spawnList.Add(kvp.Key);
-                    }
+                    spawnList.Add(new PurchasedItem(kvp.Key, kvp.Value));
                 }
 
                 CargoManager.CreateItems(spawnList);
@@ -2488,36 +2485,68 @@ namespace Barotrauma.Networking
                     senderCharacter = senderClient.Character;
                     senderName = senderCharacter == null ? senderClient.Name : senderCharacter.Name;
 
-                    if (type == ChatMessageType.Private &&
-                        (senderClient.AdministratorSlot
-                    || senderClient.OwnerSlot
-                    || senderClient.HasPermission(ClientPermissions.Ban)
-                    || senderClient.HasPermission(ClientPermissions.Kick)))
+                    //private and adminprivate messages
+                    if (type == ChatMessageType.Private)
                     {
-                        senderName = "[ADMIN]";
-                    }
-                    else if (type == ChatMessageType.Admin)
-                    {
-                        if (!senderClient.AdminChannelSend) return;
-                        senderName = "[A]" + senderName;
-                    }
-                    else if (type == ChatMessageType.Global)
-                    {
-                        if (!senderClient.GlobalChatSend) return;
-                        senderName = "[G]" + senderName;
-                    }
-                    else
-                    {
-                        //sender doesn't have an alive character -> only ChatMessageType.Dead allowed
-                        if (senderCharacter == null || senderCharacter.IsDead)
+                        if (!senderClient.AdminPrivateMessage && !senderClient.AllowInGamePM)
                         {
-                            type = ChatMessageType.Dead;
-                        }
-                        else if (type == ChatMessageType.Private)
-                        {
-                            //sender has an alive character, sending private messages not allowed
+                            SendChatMessage(ChatMessage.Create(
+                                null,
+                                "You do not have permission to send ingame private messages",
+                                ChatMessageType.Server,
+                                null), senderClient);
                             return;
                         }
+                        //senderName = "[ADMIN]";
+                        //sender has an alive character, sending private messages not allowed
+                        return;
+                    }
+                    //Admin channel
+                    else if (type == ChatMessageType.Admin)
+                    {
+                        if (!senderClient.AdminChannelSend)
+                        {
+                            SendChatMessage(ChatMessage.Create(
+                                null,
+                                "You do not have permission to send admin messages",
+                                ChatMessageType.Server,
+                                null), senderClient);
+                            return;
+                        }
+                        senderName = "[A]" + senderName;
+                    }
+                    //Global channel
+                    else if (type == ChatMessageType.Global)
+                    {
+                        if (!senderClient.GlobalChatSend)
+                        {
+                            SendChatMessage(ChatMessage.Create(
+                                null,
+                                "You do not have permission to send global messages",
+                                ChatMessageType.Server,
+                                null), senderClient);
+                            return;
+                        }
+                        senderName = "[G]" + senderName;
+                    }
+                    //Broadcasting
+                    else if (type == ChatMessageType.MessageBox)
+                    {
+                        if (!senderClient.CanBroadcast)
+                        {
+                            SendChatMessage(ChatMessage.Create(
+                                null,
+                                "You do not have permission to send broadcasts",
+                                ChatMessageType.Server,
+                                null), senderClient);
+                            return;
+                        }
+                        senderName = "Admin Broadcast";
+                    }
+                    else if (senderCharacter == null || senderCharacter.IsDead)
+                    {
+                        //sender doesn't have an alive character -> only ChatMessageType.Dead allowed
+                        type = ChatMessageType.Dead;
                     }
                 }
             }
@@ -2634,24 +2663,6 @@ namespace Barotrauma.Networking
                         continue;
                 }
 
-                //Convert the messages to valid types if the receiver is not using a modified client
-                if(!client.IsNilModClient)
-                {
-                    switch (type)
-                    {
-                        case ChatMessageType.Global:
-                            FinalType = ChatMessageType.Server;
-                            senderCharacterFinal = null;
-                            break;
-                        case ChatMessageType.Admin:
-                            FinalType = ChatMessageType.Error;
-                            senderCharacterFinal = null;
-                            break;
-                        default:
-                            break;
-                    }
-                }
-
                 ChatMessage chatMsg;
 
                 if (senderClient == client)
@@ -2660,10 +2671,10 @@ namespace Barotrauma.Networking
                     {
                         FinalType = ChatMessageType.Server;
                         chatMsg = ChatMessage.Create(
-                        "[B]",
-                        modifiedMessage,
+                        null,
+                        "[B]" + modifiedMessage,
                         FinalType,
-                        senderCharacterFinal);
+                        null);
 
                         SendChatMessage(chatMsg, client);
                         continue;
@@ -2680,7 +2691,46 @@ namespace Barotrauma.Networking
                 {
                     if (type == ChatMessageType.Private)
                     {
-                        senderNameFinal = "from " + senderName;
+                        if (senderClient != null)
+                        {
+                            if (gameStarted && senderClient.AdminPrivateMessage && !client.AllowInGamePM)
+                            {
+                                FinalType = ChatMessageType.Admin;
+                                senderNameFinal = "[ADMIN]";
+                            }
+                            else
+                            {
+                                senderNameFinal = "from " + senderName;
+                            }
+                        }
+                    }
+                }
+                else if(type == ChatMessageType.MessageBox)
+                {
+                    if(client.CanBroadcast && senderClient != null)
+                    {
+                        modifiedMessage = "Broadcast from " + senderClient.Name + "\n\n" + modifiedMessage;
+                    }
+                    else if(client.CanBroadcast) modifiedMessage = "Host Broadcast\n\n" + modifiedMessage;
+                    else modifiedMessage = "Admin Broadcast\n\n" + modifiedMessage;
+                }
+
+                //Convert the messages to valid types if the receiver is not using a modified client
+                if (!client.IsNilModClient)
+                {
+                    if (FinalType == ChatMessageType.Admin) FinalType = ChatMessageType.Error;
+                    switch (type)
+                    {
+                        case ChatMessageType.Global:
+                            FinalType = ChatMessageType.Server;
+                            senderCharacterFinal = null;
+                            break;
+                        case ChatMessageType.Admin:
+                            FinalType = ChatMessageType.Error;
+                            senderCharacterFinal = null;
+                            break;
+                        default:
+                            break;
                     }
                 }
 
@@ -2719,7 +2769,7 @@ namespace Barotrauma.Networking
 
 #else
                     if(senderClient != null) AddChatMessage("Broadcast from " + senderClient.Name + ":" + myReceivedMessage, ChatMessageType.Server, null, null);
-                    AddChatMessage("Broadcast:" + myReceivedMessage, ChatMessageType.Server, null, null);
+                    AddChatMessage(senderNameFinal + "\n\n" + myReceivedMessage, ChatMessageType.Server, null, null);
 #endif
                     return;
                 }
@@ -3040,7 +3090,6 @@ namespace Barotrauma.Networking
         {
             List<Client> unassigned = GameMain.NilMod.RandomizeClientOrder(Unassigned.FindAll(c => !c.PrioritizeJob));
             List<Client> unassignedpreferred = GameMain.NilMod.RandomizeClientOrder(Unassigned.FindAll(c => c.PrioritizeJob));
-            //List<Client> Unassigned
 
             Dictionary<JobPrefab, int> assignedClientCount = new Dictionary<JobPrefab, int>();
             foreach (JobPrefab jp in JobPrefab.List)
@@ -3048,7 +3097,8 @@ namespace Barotrauma.Networking
                 assignedClientCount.Add(jp, 0);
             }
 
-            int teamID = 0;
+            int teamID = 1;
+            if (unassignedpreferred.Count > 0) teamID = unassignedpreferred[0].TeamID;
             if (unassigned.Count > 0) teamID = unassigned[0].TeamID;
 
             if (assignHost)
@@ -3070,7 +3120,7 @@ namespace Barotrauma.Networking
             //count the clients who already have characters with an assigned job
             foreach (Client c in connectedClients)
             {
-                if (c.TeamID != teamID || unassigned.Contains(c)) continue;
+                if (c.TeamID != teamID || unassigned.Contains(c) || unassignedpreferred.Contains(c)) continue;
                 if (c.Character?.Info?.Job != null && !c.Character.IsDead)
                 {
                     assignedClientCount[c.Character.Info.Job.Prefab]++;
@@ -3078,18 +3128,16 @@ namespace Barotrauma.Networking
             }
 
             //if any of the players has chosen a job that is Always Allowed, give them that job
+            for (int i = unassignedpreferred.Count - 1; i >= 0; i--)
+            {
+                if (unassignedpreferred[i].JobPreferences.Count == 0) continue;
+                if (!unassignedpreferred[i].JobPreferences[0].AllowAlways) continue;
+                unassignedpreferred[i].AssignedJob = unassignedpreferred[i].JobPreferences[0];
+                unassignedpreferred.RemoveAt(i);
+            }
             for (int i = unassigned.Count - 1; i >= 0; i--)
             {
-                if (i > unassigned.Count - 1)
-                {
-                    DebugConsole.NewMessage("Nilmod Error - unassigned spawning clients was out of bounds (This shouldn't be possible)", Color.Red);
-                    continue;
-                }
-                if (unassigned[i].JobPreferences == null || unassigned[i].JobPreferences.Count == 0)
-                {
-                    DebugConsole.NewMessage("Nilmod Error - Jobpreferences for client: " + unassigned[i].Name + " is null or empty during character assignment (This shouldn't be possible)", Color.Red);
-                    continue;
-                }
+                if (unassigned[i].JobPreferences.Count == 0) continue;
                 if (!unassigned[i].JobPreferences[0].AllowAlways) continue;
                 unassigned[i].AssignedJob = unassigned[i].JobPreferences[0];
                 unassigned.RemoveAt(i);
@@ -3105,9 +3153,9 @@ namespace Barotrauma.Networking
                 {
                     if (unassigned.Count == 0) break;
                     if (jobPrefab.MinNumber < 1 || assignedClientCount[jobPrefab] >= jobPrefab.MinNumber) continue;
-                    Client assignedClient;
 
                     //find the client that wants the job the most, or force it to random client if none of them want it
+                    Client assignedClient;
                     assignedClient = FindClientWithJobPreferencePriority(unassignedpreferred, jobPrefab);
 
                     if(assignedClient == null)
@@ -3129,12 +3177,12 @@ namespace Barotrauma.Networking
                 }
             }
 
-            //NilMod reqnumber if There is a required player count get all clients who do not need round sync, are ingame and not spectators
-            int playercount = connectedClients.FindAll(c => c.NeedsMidRoundSync != true && !c.SpectateOnly && c.InGame).Count;
+            //NilMod reqnumber if There is a required player count get all clients who do not need round sync and are not spectators
+            int playercount = connectedClients.FindAll(c => !c.NeedsMidRoundSync && !c.SpectateOnly).Count;
 
             //Add to the player count if the host is also playing as his own character
             if ((myCharacter?.Info?.Job != null && !myCharacter.IsDead && myCharacter.TeamID == teamID)
-                || assignHost && ((myCharacter?.Info == null && teamID == 1) || (myCharacter?.Info != null && !myCharacter.IsDead && myCharacter.TeamID == teamID)))
+                || (myCharacter?.Info != null && !myCharacter.IsDead && myCharacter.TeamID == teamID))
             {
                 playercount += 1;
             }
@@ -3142,12 +3190,6 @@ namespace Barotrauma.Networking
             //attempt to give the preferred clients a job they have in their job preferences 
             for (int i = unassignedpreferred.Count - 1; i >= 0; i--)
             {
-                if (unassignedpreferred[i].JobPreferences == null || unassignedpreferred[i].JobPreferences.Count == 0)
-                {
-                    DebugConsole.NewMessage("Nilmod Error - Jobpreferences for client: " + unassignedpreferred[i].Name + " is null during character assignment. This should not be possible, force-assigning a random job.", Color.Red);
-                    continue;
-                }
-
                 foreach (JobPrefab preferredJob in unassignedpreferred[i].JobPreferences)
                 {
                     //the maximum number of players that can have this job hasn't been reached yet
@@ -3167,12 +3209,6 @@ namespace Barotrauma.Networking
             //attempt to give the clients a job they have in their job preferences 
             for (int i = unassigned.Count - 1; i >= 0; i--)
             {
-                if (unassigned[i].JobPreferences == null || unassigned[i].JobPreferences.Count == 0)
-                {
-                    DebugConsole.NewMessage("Nilmod Error - Jobpreferences for client: " + unassigned[i].Name + " is null during character assignment. This should not be possible, force-assigning a random job.", Color.Red);
-                    continue;
-                }
-
                 foreach (JobPrefab preferredJob in unassigned[i].JobPreferences)
                 {
                     //the maximum number of players that can have this job hasn't been reached yet
@@ -4193,6 +4229,18 @@ namespace Barotrauma.Networking
             {
                 if (GameMain.Server == null) yield return CoroutineStatus.Success;
 
+                for (int i = 0; i < GameMain.Server.ConnectedClients.Count; i++)
+                {
+                    var chatMsg = ChatMessage.Create(
+                    null,
+                    "Server is now performing its scheduled autorestart, please wait - Clients will attempt to autoreconnect.",
+                    (ChatMessageType)ChatMessageType.Server,
+                    null);
+
+                    GameMain.Server.SendChatMessage(chatMsg, GameMain.Server.ConnectedClients[i]);
+                }
+                GameMain.Server.AddChatMessage("Server is now performing its scheduled autorestart, please wait - Clients will attempt to autoreconnect.", ChatMessageType.Server);
+
                 WarnTimer += CoroutineManager.UnscaledDeltaTime;
                 RestartTimer -= CoroutineManager.UnscaledDeltaTime;
                 if (GameMain.Server.AutoRestart) GameMain.Server.AutoRestartTimer = RestartTimer + 1f;
@@ -4208,7 +4256,6 @@ namespace Barotrauma.Networking
                         null);
 
                         GameMain.Server.SendChatMessage(chatMsg, GameMain.Server.ConnectedClients[i]);
-                        //Send servermessage warnings
                     }
                     GameMain.Server.AddChatMessage("Server is restarting in " + Math.Round(RestartTimer) + " seconds.", ChatMessageType.Server);
                     WarnTimer -= WarnFrequency;
@@ -4219,6 +4266,52 @@ namespace Barotrauma.Networking
 
             GameMain.Instance.AutoRestartServer();
             yield return CoroutineStatus.Success;
+        }
+
+        public void AddRestartClients(List<Client> previousclients)
+        {
+            for (int i = previousclients.Count() - 1; i >= 0; i--)
+            {
+                Client newClient = new Client(previousclients[i].Name, GetNewClientID());
+                newClient.IsNilModClient = previousclients[i].IsNilModClient;
+                newClient.RequiresNilModSync = previousclients[i].IsNilModClient;
+                newClient.NilModSyncResendTimer = 4f;
+                newClient.InitClientSync();
+                newClient.Connection = previousclients[i].Connection;
+
+                SavedClientPermission savedPermissions = clientPermissions.Find(cp => cp.IP == newClient.Connection.RemoteEndPoint.Address.ToString());
+                if (savedPermissions == null) savedPermissions = defaultpermission;
+
+                newClient.OwnerSlot = savedPermissions.OwnerSlot;
+                newClient.AdministratorSlot = savedPermissions.AdministratorSlot;
+                newClient.TrustedSlot = savedPermissions.TrustedSlot;
+
+                newClient.AllowInGamePM = savedPermissions.AllowInGamePM;
+                newClient.GlobalChatSend = savedPermissions.GlobalChatSend;
+                newClient.GlobalChatReceive = savedPermissions.GlobalChatReceive;
+                newClient.KarmaImmunity = savedPermissions.KarmaImmunity;
+                newClient.PrioritizeJob = savedPermissions.PrioritizeJob;
+                newClient.IgnoreJobMinimum = savedPermissions.IgnoreJobMinimum;
+                newClient.KickImmunity = savedPermissions.KickImmunity;
+                newClient.BanImmunity = savedPermissions.BanImmunity;
+
+                newClient.HideJoin = savedPermissions.HideJoin;
+                newClient.AccessDeathChatAlive = savedPermissions.AccessDeathChatAlive;
+                newClient.AdminPrivateMessage = savedPermissions.AdminPrivateMessage;
+                newClient.AdminChannelSend = savedPermissions.AdminChannelSend;
+                newClient.AdminChannelReceive = savedPermissions.AdminChannelReceive;
+                newClient.SendServerConsoleInfo = savedPermissions.SendServerConsoleInfo;
+                newClient.CanBroadcast = savedPermissions.CanBroadcast;
+
+                newClient.SetPermissions(savedPermissions.Permissions, savedPermissions.PermittedCommands);
+
+                ConnectedClients.Add(newClient);
+
+#if CLIENT
+                GameSession.inGameInfo.AddClient(newClient);
+                GameMain.NetLobbyScreen.AddPlayer(newClient.Name);
+#endif
+            }
         }
     }
 }

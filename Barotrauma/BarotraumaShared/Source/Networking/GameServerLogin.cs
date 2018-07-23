@@ -452,23 +452,28 @@ namespace Barotrauma.Networking
             SavedClientPermission savedPermissions = clientPermissions.Find(cp => cp.IP == newClient.Connection.RemoteEndPoint.Address.ToString());
             if (savedPermissions == null) savedPermissions = defaultpermission;
 
-            newClient.SetPermissions(savedPermissions.Permissions, savedPermissions.PermittedCommands);
             newClient.OwnerSlot = savedPermissions.OwnerSlot;
             newClient.AdministratorSlot = savedPermissions.AdministratorSlot;
             newClient.TrustedSlot = savedPermissions.TrustedSlot;
 
+            newClient.AllowInGamePM = savedPermissions.AllowInGamePM;
             newClient.GlobalChatSend = savedPermissions.GlobalChatSend;
             newClient.GlobalChatReceive = savedPermissions.GlobalChatReceive;
+            newClient.KarmaImmunity = savedPermissions.KarmaImmunity;
             newClient.PrioritizeJob = savedPermissions.PrioritizeJob;
+            newClient.IgnoreJobMinimum = savedPermissions.IgnoreJobMinimum;
             newClient.KickImmunity = savedPermissions.KickImmunity;
             newClient.BanImmunity = savedPermissions.BanImmunity;
 
             newClient.HideJoin = savedPermissions.HideJoin;
             newClient.AccessDeathChatAlive = savedPermissions.AccessDeathChatAlive;
+            newClient.AdminPrivateMessage = savedPermissions.AdminPrivateMessage;
             newClient.AdminChannelSend = savedPermissions.AdminChannelSend;
             newClient.AdminChannelReceive = savedPermissions.AdminChannelReceive;
             newClient.SendServerConsoleInfo = savedPermissions.SendServerConsoleInfo;
             newClient.CanBroadcast = savedPermissions.CanBroadcast;
+
+            newClient.SetPermissions(savedPermissions.Permissions, savedPermissions.PermittedCommands);
 
             ConnectedClients.Add(newClient);
 

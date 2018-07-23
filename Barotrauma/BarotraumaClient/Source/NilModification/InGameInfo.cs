@@ -343,7 +343,7 @@ namespace Barotrauma
                             GameSession.inGameInfo.RemoveEntry(thischar);
                         }
                         if (thischar.client != null) GameMain.GameScreen.RunIngameCommand("setclientcharacter", new object[] { thischar.client, thischar.character });
-                        else if (matchedclient != null) GameMain.GameScreen.RunIngameCommand("setclientcharacter", new object[] { matchedclient, thischar.character });
+                        else if (matchedclient != null && (matchedclient.Character == null || matchedclient.Character.IsDead)) GameMain.GameScreen.RunIngameCommand("setclientcharacter", new object[] { matchedclient, thischar.character });
                         else if (thischar.IsHostCharacter && Character.Controlled == null)
                         {
                             GameMain.Server.Character = thischar.character;

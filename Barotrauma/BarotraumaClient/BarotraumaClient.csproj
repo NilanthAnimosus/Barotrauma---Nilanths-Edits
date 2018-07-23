@@ -251,6 +251,9 @@
       <HintPath>..\..\Libraries\NuGet\NLog.4.3.8\lib\net45\NLog.dll</HintPath>
     </Reference>
     <Reference Condition="$(DefineConstants.Contains('WINDOWS'))" Include="PresentationCore" />
+    <Reference Include="RestSharp, Version=105.2.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\Libraries\NuGet\RestSharp.105.2.3\lib\net46\RestSharp.dll</HintPath>
+    </Reference>
     <Reference Condition="$(DefineConstants.Contains('WINDOWS'))" Include="SharpDX">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\Libraries\NuGet\MonoGame.Framework.WindowsDX.3.6.0.1625\lib\net40\SharpDX.dll</HintPath>
@@ -268,12 +271,10 @@
     </Reference>
     <Reference Include="System.Drawing" />
     <Reference Include="System.Net.Http" />
+    <Reference Include="System.Web" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
-    <Reference Include="RestSharp">
-      <HintPath>..\..\Libraries\NuGet\RestSharp.105.2.3\lib\net45\RestSharp.dll</HintPath>
-    </Reference>
     <Reference Condition="$(DefineConstants.Contains('LINUX'))" Include="MonoGame.Framework.DesktopGL">
       <HintPath>..\..\Libraries\NuGet\MonoGame.Framework.DesktopGL.3.6.0.1625\lib\net40\MonoGame.Framework.dll</HintPath>
     </Reference>

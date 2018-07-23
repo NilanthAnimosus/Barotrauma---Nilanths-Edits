@@ -58,6 +58,7 @@ namespace Barotrauma.Networking
         public Boolean OwnerSlot = false;
 
         //Extras
+        public Boolean AllowInGamePM = false;
         public Boolean GlobalChatSend = false;
         public Boolean GlobalChatReceive = false;
         public Boolean KarmaImmunity = false;
@@ -69,6 +70,7 @@ namespace Barotrauma.Networking
         //Admin Features
         public Boolean HideJoin = false;
         public Boolean AccessDeathChatAlive = false;
+        public Boolean AdminPrivateMessage = false;
         public Boolean AdminChannelSend = true;
         public Boolean AdminChannelReceive = false;
         public Boolean SendServerConsoleInfo = false;

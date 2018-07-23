@@ -176,10 +176,11 @@ namespace Barotrauma.Networking
 
             int characterToRespawnCount = GetClientsToRespawn().Count;
             int totalCharacterCount = server.ConnectedClients.Count;
-            if (server.Character != null)
+            if (server.CharacterInfo != null)
             {
                 totalCharacterCount++;
-                if (server.Character.IsDead) characterToRespawnCount++;
+                if (Character.Controlled == null && (server.Character == null
+                    || (server.Character != null && server.Character.IsDead))) characterToRespawnCount++;
             }
             bool startCountdown = (float)characterToRespawnCount >= Math.Max((float)totalCharacterCount * server.MinRespawnRatio, 1.0f);
 
@@ -554,32 +555,25 @@ namespace Barotrauma.Networking
             }
 
             List<CharacterInfo> characterInfos = clients.Select(c => c.CharacterInfo).ToList();
-            if (server.Character != null && server.Character.IsDead)
+            if (server.Character != null && server.Character.IsDead
+                && (Character.Controlled == null || Character.Controlled != null && Character.Controlled.IsDead)
+                && GameMain.Server.CharacterInfo != null)
             {
                 characterInfos.Add(server.CharacterInfo);
             }
 
             //NilMod Jobs fix attempt
-            server.AssignJobs(clients, server.Character != null && server.Character.IsDead);
+            
+            server.AssignJobs(clients, (server.Character != null && server.Character.IsDead
+                && (Character.Controlled == null || Character.Controlled != null && Character.Controlled.IsDead)
+                && GameMain.Server.CharacterInfo != null));
+                
+
             foreach (Client c in clients)
             {
                 if (c.AssignedJob != null)
                 {
                     c.CharacterInfo.Job = new Job(c.AssignedJob);
-                }
-                else
-                {
-                    DebugConsole.NewMessage("Error - Server Attempted to respawn player: " + c.Name + " Without an assigned job.", Color.Red);
-                    DebugConsole.NewMessage("Retrying job assignment. . .", Color.Red);
-                    server.AssignJobs(clients, server.Character != null && server.Character.IsDead);
-                    if (c.AssignedJob != null)
-                    {
-                        c.CharacterInfo.Job = new Job(c.AssignedJob);
-                    }
-                    else
-                    {
-                        DebugConsole.NewMessage("Error - Player: " + c.Name + " Still has no assigned job, skipping job assignment.", Color.Red);
-                    }
                 }
             }
 

@@ -17,6 +17,8 @@ namespace Barotrauma
 
         protected Hull currentHull;
 
+        Boolean RagdollDistFar = false;
+
         private Limb[] limbs;
         public Limb[] Limbs
         {
@@ -888,7 +890,7 @@ namespace Barotrauma
                 wall | Physics.CollisionProjectile | Physics.CollisionStairs
                 : wall | Physics.CollisionProjectile | Physics.CollisionPlatform | Physics.CollisionStairs;
 
-            if (collisionCategory == prevCollisionCategory) return;
+            if (collisionCategory == prevCollisionCategory && !RagdollDistFar) return;
             prevCollisionCategory = collisionCategory;
 
             Collider.CollidesWith = collisionCategory;
@@ -906,6 +908,8 @@ namespace Barotrauma
                     DebugConsole.ThrowError("Failed to update ragdoll limb collisioncategories", e);
                 }
             }
+
+            RagdollDistFar = false;
         }
 
         protected bool levitatingCollider = true;
@@ -1305,7 +1309,7 @@ namespace Barotrauma
                     if (limb.IsSevered) continue;
                     limb.body.CollidesWith = Physics.CollisionNone;
                 }
-
+                RagdollDistFar = true;
                 collisionsDisabled = true;
             }
             else if (collisionsDisabled)

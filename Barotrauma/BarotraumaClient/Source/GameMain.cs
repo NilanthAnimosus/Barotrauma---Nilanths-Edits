@@ -128,7 +128,7 @@ namespace Barotrauma
             GraphicsDeviceManager = new GraphicsDeviceManager(this);
 
             Window.Title = "Barotrauma";
-            
+
             Instance = this;
 
             Config = new GameSettings("config.xml");
@@ -819,6 +819,8 @@ namespace Barotrauma
         public void AutoRestartServer()
         {
             if (Server == null) return;
+            List<Client> PreviousClients = new List<Client>(GameMain.Server.ConnectedClients);
+
             string Servername = GameMain.Server.Name;
             int port = GameMain.Server.Port;
             Boolean publicserver = GameMain.Server.isPublic;
@@ -848,10 +850,12 @@ namespace Barotrauma
             {
                 DebugConsole.ThrowError("Failed to start server", e);
             }
-
+            
             GameMain.NetLobbyScreen.IsServer = true;
             GameMain.NetLobbyScreen.DefaultServerStartup();
             waitForKeyHit = false;
+
+            if (GameMain.Server != null) GameMain.Server.AddRestartClients(PreviousClients);
         }
     }
 }

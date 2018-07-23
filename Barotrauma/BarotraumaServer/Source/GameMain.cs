@@ -477,6 +477,7 @@ namespace Barotrauma
         //Refresh the entire server
         public void AutoRestartServer()
         {
+            List<Client> PreviousClients = new List<Client>(GameMain.Server.ConnectedClients);
             CloseServer();
 
             Config = new GameSettings("config.xml");
@@ -511,6 +512,8 @@ namespace Barotrauma
             stopwatch.Stop();
             stopwatch = Stopwatch.StartNew();
             prevTicks = stopwatch.ElapsedTicks;
+
+            GameMain.Server.AddRestartClients(PreviousClients);
         }
     }
 }

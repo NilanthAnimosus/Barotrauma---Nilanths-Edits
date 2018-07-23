@@ -534,6 +534,20 @@ namespace Barotrauma
 
         public void SetTransform(Vector2 simPosition, float rotation, bool findNewHull = true)
         {
+            if (!MathUtils.IsValid(simPosition))
+            {
+                string errorMsg =
+                    "Attempted to move the item " + Name +
+                    " to an invalid position (" + simPosition + ")\n" + Environment.StackTrace;
+
+                DebugConsole.ThrowError(errorMsg);
+                GameAnalyticsManager.AddErrorEventOnce(
+                    "Item.SetPosition:InvalidPosition" + ID,
+                    GameAnalyticsSDK.Net.EGAErrorSeverity.Error,
+                    errorMsg);
+                return;
+            }
+
             if (body != null)
             {
                 try
@@ -1483,12 +1497,10 @@ namespace Barotrauma
                     msg.Write(((Rectangle)value).Width);
                     msg.Write(((Rectangle)value).Height);
                 }
-                /*
                 else if (value is Enum)
                 {
                     msg.Write((int)value);
                 }
-                */
                 else
                 {
                     throw new System.NotImplementedException("Serializing item properties of the type \"" + value.GetType() + "\" not supported");
@@ -1546,7 +1558,6 @@ namespace Barotrauma
             {
                 property.TrySetValue(new Vector4(msg.ReadInt32(), msg.ReadInt32(), msg.ReadInt32(), msg.ReadInt32()));
             }
-            /*
             else if (typeof(Enum).IsAssignableFrom(type))
             {
                 int intVal = msg.ReadInt32();
@@ -1565,7 +1576,6 @@ namespace Barotrauma
                         "Failed to convert the int value \"" + intVal + "\" to " + type + " (item " + Name + ")");
                 }
             }
-            */
             else
             {
                 return;
