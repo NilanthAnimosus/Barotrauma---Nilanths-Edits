@@ -663,12 +663,9 @@ namespace Barotrauma.Networking
                     }
                 }
 
-                //if (GameMain.NilMod.AutoRestartServer && new TimeSpan(GameMain.NilMod.serverruntime.Elapsed.Hours,
-                //    GameMain.NilMod.serverruntime.Elapsed.Minutes,
-                //    GameMain.NilMod.serverruntime.Elapsed.Seconds) > GameMain.NilMod.ServerRestartInterval)
                 if (GameMain.NilMod.AutoRestartServer && new TimeSpan(GameMain.NilMod.serverruntime.Elapsed.Hours,
-                GameMain.NilMod.serverruntime.Elapsed.Minutes,
-                GameMain.NilMod.serverruntime.Elapsed.Seconds) > new TimeSpan(0,0,6))
+                    GameMain.NilMod.serverruntime.Elapsed.Minutes,
+                    GameMain.NilMod.serverruntime.Elapsed.Seconds) > GameMain.NilMod.ServerRestartInterval)
                 {
                     if (!CoroutineManager.IsCoroutineRunning("serverrestart") && !GameStarted && !initiatedStartGame)
                     {
