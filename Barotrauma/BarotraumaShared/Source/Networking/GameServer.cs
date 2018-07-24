@@ -2515,6 +2515,7 @@ namespace Barotrauma.Networking
                     //private and adminprivate messages
                     if (type == ChatMessageType.Private)
                     {
+                        //sender has an alive character, sending private messages not allowed
                         if (!senderClient.AdminPrivateMessage && !senderClient.AllowInGamePM)
                         {
                             SendChatMessage(ChatMessage.Create(
@@ -2524,9 +2525,6 @@ namespace Barotrauma.Networking
                                 null), senderClient);
                             return;
                         }
-                        //senderName = "[ADMIN]";
-                        //sender has an alive character, sending private messages not allowed
-                        return;
                     }
                     //Admin channel
                     else if (type == ChatMessageType.Admin)

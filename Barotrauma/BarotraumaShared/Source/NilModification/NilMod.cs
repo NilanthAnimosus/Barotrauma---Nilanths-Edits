@@ -46,7 +46,7 @@ namespace Barotrauma
     class NilMod
     {
         const string SettingsSavePath = "Data/NilMod/Settings.xml";
-        public const string NilModVersionDate = "23/07/2018-1";
+        public const string NilModVersionDate = "24/07/2018-1";
         public Version NilModNetworkingVersion = new Version(0,0,0,1);
 
         public Stopwatch serverruntime;

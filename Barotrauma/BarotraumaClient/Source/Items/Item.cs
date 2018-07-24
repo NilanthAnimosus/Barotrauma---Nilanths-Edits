@@ -463,6 +463,19 @@ namespace Barotrauma
                     msg.ReadRangedSingle(-MaxVel, MaxVel, 12));
             }
 
+            if (!MathUtils.IsValid(newPosition) || !MathUtils.IsValid(newRotation) || !MathUtils.IsValid(newVelocity))
+            {
+                string errorMsg = "Received invalid position data for the item \"" + Name
+                    + "\" (position: " + newPosition + ", rotation: " + newRotation + ", velocity: " + newVelocity + ")";
+#if DEBUG
+                DebugConsole.ThrowError(errorMsg); 
+#endif
+                GameAnalyticsManager.AddErrorEventOnce("Item.ClientReadPosition:InvalidData" + ID,
+                    GameAnalyticsSDK.Net.EGAErrorSeverity.Error,
+                    errorMsg);
+                return;
+            }
+
             if (body == null)
             {
                 if(PositionError)
@@ -480,7 +493,7 @@ namespace Barotrauma
             body.FarseerBody.Awake = awake;
             if (body.FarseerBody.Awake)
             {
-                if ((newVelocity - body.LinearVelocity).Length() > 8.0f) body.LinearVelocity = newVelocity;
+                if ((newVelocity - body.LinearVelocity).LengthSquared() > 8.0f * 8.0f) body.LinearVelocity = newVelocity;
             }
             else
             {
@@ -500,11 +513,12 @@ namespace Barotrauma
 
             if ((newPosition - SimPosition).Length() > body.LinearVelocity.Length() * 2.0f)
             {
-                body.SetTransform(newPosition, newRotation);
-
-                Vector2 displayPos = ConvertUnits.ToDisplayUnits(body.SimPosition);
-                rect.X = (int)(displayPos.X - rect.Width / 2.0f);
-                rect.Y = (int)(displayPos.Y + rect.Height / 2.0f);
+                if (body.SetTransform(newPosition, newRotation))
+                {
+                    Vector2 displayPos = ConvertUnits.ToDisplayUnits(body.SimPosition);
+                    rect.X = (int)(displayPos.X - rect.Width / 2.0f);
+                    rect.Y = (int)(displayPos.Y + rect.Height / 2.0f);
+                }
             }
         }
 

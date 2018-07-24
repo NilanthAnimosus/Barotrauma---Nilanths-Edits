@@ -181,7 +181,7 @@ namespace Barotrauma
                 if (levelSeed == value) return;
 
                 levelSeed = value;
-                backgroundSprite = LocationType.Random(levelSeed).Background;
+                backgroundSprite = LocationType.Random(levelSeed)?.Background;
                 seedBox.Text = levelSeed;
             }
         }
@@ -1923,7 +1923,7 @@ namespace Barotrauma
                 requestFileBox.Buttons[0].OnClicked += (GUIButton button, object userdata) =>
                 {
                     string[] fileInfo = (string[])userdata;
-                    GameMain.Client.RequestFile(FileTransferType.Submarine, fileInfo[0], fileInfo[1]);
+                    GameMain.Client?.RequestFile(FileTransferType.Submarine, fileInfo[0], fileInfo[1]);
                     return true;
                 };
                 requestFileBox.Buttons[1].OnClicked += requestFileBox.Close;

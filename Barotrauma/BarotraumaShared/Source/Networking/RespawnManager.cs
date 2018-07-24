@@ -342,17 +342,17 @@ namespace Barotrauma.Networking
                     }
                 }
 
+                var server = networkMember as GameServer;
+                if (server == null) return;
+
                 var shuttleGaps = Gap.GapList.FindAll(g => g.Submarine == respawnShuttle && g.ConnectedWall != null);
-                shuttleGaps.ForEach(g => g.Remove());
+                shuttleGaps.ForEach(g => Spawner.AddToRemoveQueue(g));
 
                 if (GameMain.NilMod.RespawnShuttleLeavingUndock)
                 {
                     var dockingPorts = Item.ItemList.FindAll(i => i.Submarine == respawnShuttle && i.GetComponent<DockingPort>() != null);
                     dockingPorts.ForEach(d => d.GetComponent<DockingPort>().Undock());
                 }
-
-                var server = networkMember as GameServer;
-                if (server == null) return;
                 
                 //shuttle has returned if the path has been traversed or the shuttle is close enough to the exit
 
@@ -487,7 +487,7 @@ namespace Barotrauma.Networking
             }
 
             var shuttleGaps = Gap.GapList.FindAll(g => g.Submarine == respawnShuttle && g.ConnectedWall != null);
-            shuttleGaps.ForEach(g => g.Remove());
+            shuttleGaps.ForEach(g => Spawner.AddToRemoveQueue(g));
 
             foreach (Hull hull in Hull.hullList)
             {
@@ -516,13 +516,13 @@ namespace Barotrauma.Networking
                         foreach (Item item in c.Inventory.Items)
                         {
                             if (item == null) continue;
-                            Entity.Spawner.AddToRemoveQueue(item);
+                            Spawner.AddToRemoveQueue(item);
                         }
                     }
                     
                     c.Kill(CauseOfDeath.Damage, true);
 
-                    Entity.Spawner.AddToRemoveQueue(c);
+                    Spawner.AddToRemoveQueue(c);
                 }
             }
 
