@@ -322,7 +322,7 @@ namespace Barotrauma
             DockedTo = new List<Submarine>();
 
             ID = ushort.MaxValue;
-            base.Remove();
+            FreeID();
         }
 
         public bool HasTag(SubmarineTag tag)
@@ -1231,7 +1231,16 @@ namespace Barotrauma
 
             foreach (MapEntity e in MapEntity.mapEntityList)
             {
-                if (e.MoveWithLevel || e.Submarine != this) continue;
+                if (e.linkedTo == null) continue;
+                for (int i = e.linkedTo.Count - 1; i >= 0; i--)
+                {
+                    if (!e.linkedTo[i].ShouldBeSaved) e.linkedTo.RemoveAt(i);
+                }
+            }
+
+            foreach (MapEntity e in MapEntity.mapEntityList)
+            {
+                if (e.MoveWithLevel || e.Submarine != this || !e.ShouldBeSaved) continue;
                 e.Save(element);
             }
         }

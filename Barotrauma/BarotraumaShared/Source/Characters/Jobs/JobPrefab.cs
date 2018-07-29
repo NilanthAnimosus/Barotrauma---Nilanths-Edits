@@ -117,17 +117,23 @@ namespace Barotrauma
                             float weight = 1.0f;
                             switch (sp.Name)
                             {
-                                case "Weapons":
-                                    weight = 0.8f;
-                                    break;
                                 case "Construction":
-                                    weight = 1.15f;
+                                    weight = 1.35f;
                                     break;
                                 case "Electrical Engineering":
-                                    weight = 1.00f;
+                                    weight = 1.15f;
                                     break;
                                 case "Medical":
-                                    weight = 1.25f;
+                                    weight = 1.15f;
+                                    break;
+                                case "Science":
+                                    weight = 0.9f;
+                                    break;
+                                case "Cooking":
+                                    weight = 0.8f;
+                                    break;
+                                case "Weapons":
+                                    weight = 0.7f;
                                     break;
                                 default:
                                     weight = 1.0f;
@@ -135,7 +141,7 @@ namespace Barotrauma
                             }
 
                             //Add the skills average level to total skill after loading
-                            Totalskill += System.Convert.ToInt16(System.Math.Max(System.Math.Round((((sp.LevelRange.X + sp.LevelRange.Y - 30) / 2) * weight),0),0));
+                            Totalskill += System.Convert.ToInt16(System.Math.Max(System.Math.Round((((sp.LevelRange.X + sp.LevelRange.Y - 35) / 2) * weight),0),0));
                         }
                         break;
                 }

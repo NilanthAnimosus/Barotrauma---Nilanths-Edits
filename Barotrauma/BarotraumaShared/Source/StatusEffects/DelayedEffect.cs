@@ -11,6 +11,8 @@ namespace Barotrauma
         public List<ISerializableEntity> Targets;
         public float StartTimer;
         public List<int> CancelledEffects = new List<int>();
+        public Character causecharacter;
+        public string identifier;
     }
     class DelayedEffect : StatusEffect
     {
@@ -24,25 +26,29 @@ namespace Barotrauma
             delay = element.GetAttributeFloat("delay", 1.0f);
         }
 
-        public override void Apply(ActionType type, float deltaTime, Entity entity, ISerializableEntity target)
+        public override void Apply(ActionType type, float deltaTime, Entity entity, ISerializableEntity target, Character causecharacter = null, string identifier = "")
         {
             if (this.type != type || !HasRequiredItems(entity)) return;
             if (!Stackable && DelayList.Any(d => d.Parent == this && d.Targets.Count == 1 && d.Targets[0] == target)) return;
 
             if (targetNames != null && !targetNames.Contains(target.Name)) return;
 
+            if (identifier == "") identifier = "statuseffect";
+
             DelayedListElement element = new DelayedListElement
             {
                 Parent = this,
                 StartTimer = delay,
                 Entity = entity,
-                Targets = new List<ISerializableEntity>() { target }
+                Targets = new List<ISerializableEntity>() { target },
+                causecharacter = causecharacter,
+                identifier = identifier
             };
 
             DelayList.Add(element);
         }
 
-        public override void Apply(ActionType type, float deltaTime, Entity entity, List<ISerializableEntity> targets)
+        public override void Apply(ActionType type, float deltaTime, Entity entity, List<ISerializableEntity> targets, Character causecharacter = null, string identifier = "")
         {
             if (this.type != type || !HasRequiredItems(entity)) return;
             if (!Stackable && DelayList.Any(d => d.Parent == this && d.Targets.SequenceEqual(targets))) return;
@@ -54,12 +60,16 @@ namespace Barotrauma
                 if (targets.Count == 0) return;
             }
 
+            if (identifier == "") identifier = "statuseffect";
+
             DelayedListElement element = new DelayedListElement
             {
                 Parent = this,
                 StartTimer = delay,
                 Entity = entity,
-                Targets = targets
+                Targets = targets,
+                causecharacter = causecharacter,
+                identifier = identifier
             };
 
             DelayList.Add(element);
@@ -80,7 +90,7 @@ namespace Barotrauma
 
                 if (element.StartTimer > 0.0f) continue;
 
-                element.Parent.Apply(1.0f, element.Entity, element.Targets, element.CancelledEffects);
+                element.Parent.Apply(1.0f, element.Entity, element.Targets, element.CancelledEffects, element.causecharacter, element.identifier);
                 DelayList.Remove(element);
             }
         }

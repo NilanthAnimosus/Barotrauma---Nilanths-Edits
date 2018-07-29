@@ -337,8 +337,12 @@ namespace Barotrauma.Items.Components
                 body = null;
             }
 
-
-            if (linkedGap != null) linkedGap.Remove();
+            //no need to remove the gap if we're unloading the whole submarine 
+            //otherwise the gap will be removed twice and cause console warnings 
+            if (!Submarine.Unloading)
+            {
+                if (linkedGap != null) linkedGap.Remove();
+            }
 
             doorSprite.Remove();
             if (weldedSprite != null) weldedSprite.Remove();
@@ -467,10 +471,75 @@ namespace Barotrauma.Items.Components
             }
 
             bool newState = predictedState == null ? isOpen : predictedState.Value;
-            if (sender != null && wasOpen != newState)
+            if (GameMain.Server != null && sender != null && wasOpen != newState)
             {
-                GameServer.Log(sender.LogName + (newState ? " opened " : " closed ") + item.Name, ServerLog.MessageType.ItemInteraction);
+                if (linkedGap != null && !linkedGap.IsRoomToRoom)
+                {
+                    if (CoroutineManager.IsCoroutineRunning("WarnAirlockLeftOpen_" + item.ID)) CoroutineManager.StopCoroutines("WarnAirlockLeftOpen_" + item.ID);
+
+                    //This is on a respawn shuttle
+                    if (GameMain.Server.RespawnManager != null && GameMain.Server.RespawnManager.Submarine != null
+                        && item.Submarine == GameMain.Server.RespawnManager.Submarine)
+                    {
+                        GameServer.Log(sender.LogName + (newState ? " opened respawn shuttle exterior " : " closed respawn shuttle exterior ") + item.Name, ServerLog.MessageType.ItemInteraction);
+
+                        if (GameMain.NilMod.EnableGriefWatcher && newState)
+                        {
+                            Barotrauma.Networking.Client warnedclient = GameMain.Server.ConnectedClients.Find(c => c.Character == sender);
+
+                            CoroutineManager.StartCoroutine(WarnAirlockLeftOpen(warnedclient, this, true), "WarnAirlockLeftOpen_" + item.ID);
+                        }
+                    }
+                    //This is a regular shuttle or submarine
+                    else if (item.Submarine != null)
+                    {
+                        GameServer.Log(sender.LogName + (newState ? " opened " + item.Submarine.Name + " exterior " : " closed " + item.Submarine.Name + " exterior ") + item.Name, ServerLog.MessageType.ItemInteraction);
+
+                        if (GameMain.NilMod.EnableGriefWatcher && newState)
+                        {
+                            Barotrauma.Networking.Client warnedclient = GameMain.Server.ConnectedClients.Find(c => c.Character == sender);
+
+                            CoroutineManager.StartCoroutine(WarnAirlockLeftOpen(warnedclient, this, false), "WarnAirlockLeftOpen_" + item.ID);
+                        }
+                    }
+                }
+                else
+                {
+                    //This is on a respawn shuttle
+                    if (GameMain.Server.RespawnManager != null && GameMain.Server.RespawnManager.Submarine != null
+                        && item.Submarine == GameMain.Server.RespawnManager.Submarine)
+                    {
+                        GameServer.Log(sender.LogName + (newState ? " opened respawn shuttle interior " : " closed respawn shuttle interior ") + item.Name, ServerLog.MessageType.ItemInteraction);
+                    }
+                    //This is a regular shuttle or submarine
+                    else if(item.Submarine != null)
+                    {
+                        GameServer.Log(sender.LogName + (newState ? " opened " + item.Submarine.Name + " interior " : " closed " + item.Submarine.Name + " interior ") + item.Name, ServerLog.MessageType.ItemInteraction);
+                    }
+                }
             }
+        }
+
+        public static IEnumerable<Object> WarnAirlockLeftOpen(Client c, Door door, Boolean isRespawn)
+        {
+            float timer = NilMod.NilModGriefWatcher.AirlockLeftOpenTimer;
+            if (isRespawn) timer = timer * NilMod.NilModGriefWatcher.AirlockLeftOpenRespawnMult;
+            float basetimer = timer;
+
+            while (timer >= 0f)
+            {
+                timer -= CoroutineManager.DeltaTime;
+                if(!door.isOpen) yield return CoroutineStatus.Success;
+                yield return CoroutineStatus.Running;
+            }
+
+            if(!isRespawn) NilMod.NilModGriefWatcher.SendWarning((c != null ? c.Character.LogName : c.Name)
+                + " left airlock door open named: " + door.item.Name + " for over " + Math.Round(basetimer, 1) + " seconds", c);
+            else NilMod.NilModGriefWatcher.SendWarning((c != null ? c.Character.LogName : c.Name)
+                + " left respawn airlock door open named: " + door.item.Name + " for over " + Math.Round(basetimer, 1) + " seconds", c);
+
+
+            yield return CoroutineStatus.Success;
         }
 
         public void SetState(bool open, bool isNetworkMessage, bool sendNetworkMessage = false)

@@ -19,10 +19,6 @@ namespace Barotrauma
         public float damage;
         public Gap gap;
 
-        public int GapID;
-
-        //public float lastSentDamage;
-
         public WallSection(Rectangle rect)
         {
             System.Diagnostics.Debug.Assert(rect.Width > 0 && rect.Height > 0);
@@ -653,7 +649,7 @@ namespace Barotrauma
             }
         }
 
-        public AttackResult AddDamage(Character attacker, Vector2 worldPosition, Attack attack, float deltaTime, bool playSound = false)
+        public AttackResult AddDamage(Character attacker, Vector2 worldPosition, Attack attack, float deltaTime, bool playSound = false, string identifier = "")
         {
             if (Submarine != null && Submarine.GodMode) return new AttackResult(0.0f, 0.0f);
             if  (!prefab.Body || prefab.Platform) return new AttackResult(0.0f, 0.0f);
@@ -690,7 +686,7 @@ namespace Barotrauma
             return new AttackResult(damageAmount, 0.0f);
         }
 
-        private void SetDamage(int sectionIndex, float damage, Character attacker = null)
+        private void SetDamage(int sectionIndex, float damage, Character attacker = null, bool createNetworkEvent = true)
         {
             if (Submarine != null && Submarine.GodMode) return;
             if (!prefab.Body) return;
@@ -701,7 +697,7 @@ namespace Barotrauma
 
             damage = MathHelper.Clamp(damage, 0.0f, prefab.Health);
 
-            if (GameMain.Server != null && damage != sections[sectionIndex].damage)
+            if (GameMain.Server != null && createNetworkEvent && damage != sections[sectionIndex].damage)
             {
                 GameMain.Server.CreateEntityEvent(this);
             }
@@ -727,6 +723,9 @@ namespace Barotrauma
                     }
 
                     //remove existing gap if damage is below 50%
+                    DebugConsole.Log("Removing gap (ID " + sections[sectionIndex].gap.ID + ", section: " + sectionIndex + ") from wall " + ID);
+                    //remove existing gap if damage is below leak threshold 
+                    sections[sectionIndex].gap.Open = 0.0f;
                     sections[sectionIndex].gap.Remove();
                     sections[sectionIndex].gap = null;
 #if CLIENT
@@ -744,7 +743,13 @@ namespace Barotrauma
                     gapRect.Width += 20;
                     gapRect.Height += 20;
                     sections[sectionIndex].gap = new Gap(gapRect, !isHorizontal, Submarine);
+                    //free the ID, because if we give gaps IDs we have to make sure they always match between the clients and the server and 
+                    //that clients create them in the correct order along with every other entity created/removed during the round 
+                    //which COULD be done via entityspawner, but it's unnecessary because we never access these gaps by ID 
+                    sections[sectionIndex].gap.FreeID();
+                    sections[sectionIndex].gap.ShouldBeSaved = false;
                     sections[sectionIndex].gap.ConnectedWall = this;
+                    DebugConsole.Log("Created gap (ID " + sections[sectionIndex].gap.ID + ", section: " + sectionIndex + ") on wall " + ID);
                     //AdjustKarma(attacker, 300);
 
                     //the structure didn't have any other gaps yet, log the breach
@@ -764,13 +769,13 @@ namespace Barotrauma
 
                             if (GameMain.NilMod.EnableGriefWatcher && warnedclient != null)
                             {
-                                if(sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachInside)
+                                if(sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachInside90)
                                 {
                                     NilMod.NilModGriefWatcher.SendWarning(warnedclient.Character.LogName
                                         + " Breached Inner Wall on the respawn shuttle: "
                                         + integritypercent + "%", warnedclient);
                                 }
-                                else if(!sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachOutside)
+                                else if(!sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachOutside90)
                                 {
                                     NilMod.NilModGriefWatcher.SendWarning(warnedclient.Character.LogName
                                         + " Breached Outer Wall on the respawn shuttle: "
@@ -786,13 +791,13 @@ namespace Barotrauma
 
                             if (GameMain.NilMod.EnableGriefWatcher && warnedclient != null && Submarine != null && Submarine.TeamID == warnedclient.Character.TeamID)
                             {
-                                if (sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachInside)
+                                if (sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachInside90)
                                 {
                                     NilMod.NilModGriefWatcher.SendWarning(warnedclient.Character.LogName
                                         + " Breached Inner Wall on Coalition sub: "
                                         + integritypercent + "%", warnedclient);
                                 }
-                                else if (!sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachOutside)
+                                else if (!sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachOutside90)
                                 {
                                     NilMod.NilModGriefWatcher.SendWarning(warnedclient.Character.LogName
                                         + " Breached Outer Wall on the Coalition sub: "
@@ -808,13 +813,13 @@ namespace Barotrauma
 
                             if (GameMain.NilMod.EnableGriefWatcher && warnedclient != null && Submarine != null && Submarine.TeamID == warnedclient.Character.TeamID)
                             {
-                                if (sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachInside)
+                                if (sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachInside90)
                                 {
                                     NilMod.NilModGriefWatcher.SendWarning(warnedclient.Character.LogName
                                         + " Breached Inner Wall on Renegade sub: "
                                         + integritypercent + "%", warnedclient);
                                 }
-                                else if (!sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachOutside)
+                                else if (!sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachOutside90)
                                 {
                                     NilMod.NilModGriefWatcher.SendWarning(warnedclient.Character.LogName
                                         + " Breached Outer Wall on the Renegade sub: "
@@ -829,13 +834,13 @@ namespace Barotrauma
 
                             if (GameMain.NilMod.EnableGriefWatcher && warnedclient != null && Submarine != null && Submarine.TeamID == warnedclient.Character.TeamID)
                             {
-                                if (sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachInside)
+                                if (sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachInside90)
                                 {
                                     NilMod.NilModGriefWatcher.SendWarning(warnedclient.Character.LogName
                                         + " Breached Inner Wall on shuttle: "
                                         + integritypercent + "%", warnedclient);
                                 }
-                                else if (!sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachOutside)
+                                else if (!sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachOutside90)
                                 {
                                     NilMod.NilModGriefWatcher.SendWarning(warnedclient.Character.LogName
                                         + " Breached Outer Wall on shuttle: "
@@ -853,7 +858,7 @@ namespace Barotrauma
                     //If its a decrease matching a certain level of damage, log it.
                     if (attacker != null && GameMain.Server != null)
                     {
-                        if (noGaps && (damage >= (prefab.Health * 0.25f) && sections[sectionIndex].damage <= (prefab.Health * 0.25f))
+                        if ((damage >= (prefab.Health * 0.25f) && sections[sectionIndex].damage <= (prefab.Health * 0.25f))
                             || (damage >= (prefab.Health * 0.50f) && sections[sectionIndex].damage <= (prefab.Health * 0.50f))
                             || (damage >= (prefab.Health * 0.75f) && sections[sectionIndex].damage <= (prefab.Health * 0.75f))
                             || (damage >= (prefab.Health) && sections[sectionIndex].damage <= (prefab.Health) && sections[sectionIndex].damage != prefab.Health))
@@ -867,16 +872,59 @@ namespace Barotrauma
                             {
                                 GameServer.Log(attacker.LogName + " breached " + (sections[sectionIndex].gap.IsRoomToRoom ? "Inner" : "Outer")
                                     + " Wall on Respawn Shuttle: " + integritypercent + " Integrity.", Networking.ServerLog.MessageType.Attack);
+                            }
+                            //Coalition submarine
+                            else if (Submarine == Submarine.MainSubs[0])
+                            {
+                                GameServer.Log(attacker.LogName + " breached " + (sections[sectionIndex].gap.IsRoomToRoom ? "Inner" : "Outer")
+                                    + " wall on Coalition Submarine: " + integritypercent + " Integrity.", Networking.ServerLog.MessageType.Attack);
+                            }
+                            //Renegade Submarine
+                            else if (Submarine.MainSubs.Count() > 1 && Submarine == Submarine.MainSubs[1])
+                            {
+                                GameServer.Log(attacker.LogName + " breached " + (sections[sectionIndex].gap.IsRoomToRoom ? "Inner" : "Outer")
+                                    + " wall on Renegade Submarine: " + integritypercent + " Integrity.", Networking.ServerLog.MessageType.Attack);
+                            }
+                            else
+                            {
+                                GameServer.Log(attacker.LogName + " breached " + (sections[sectionIndex].gap.IsRoomToRoom ? "Inner" : "Outer")
+                                    + @" wall on Shuttle """ + Submarine.Name + @""": " + integritypercent + " Integrity.", Networking.ServerLog.MessageType.Attack);
+                            }
+                        }
 
-                                if (GameMain.NilMod.EnableGriefWatcher && warnedclient != null)
+                        if (GameMain.NilMod.EnableGriefWatcher
+                            && ((((NilMod.NilModGriefWatcher.WallBreachInside75 && sections[sectionIndex].gap.IsRoomToRoom)
+                            || (NilMod.NilModGriefWatcher.WallBreachOutside75 && !sections[sectionIndex].gap.IsRoomToRoom))
+                            && damage >= (prefab.Health * 0.25f) && sections[sectionIndex].damage <= (prefab.Health * 0.25f))
+
+                            || (((NilMod.NilModGriefWatcher.WallBreachInside50 && sections[sectionIndex].gap.IsRoomToRoom)
+                            || (NilMod.NilModGriefWatcher.WallBreachOutside50 && !sections[sectionIndex].gap.IsRoomToRoom))
+                            && damage >= (prefab.Health * 0.50f) && sections[sectionIndex].damage <= (prefab.Health * 0.50f))
+
+                            || (((NilMod.NilModGriefWatcher.WallBreachInside25 && sections[sectionIndex].gap.IsRoomToRoom)
+                            || (NilMod.NilModGriefWatcher.WallBreachOutside25 && !sections[sectionIndex].gap.IsRoomToRoom))
+                            && damage >= (prefab.Health * 0.75f) && sections[sectionIndex].damage <= (prefab.Health * 0.75f))
+
+                            || (((NilMod.NilModGriefWatcher.WallBreachInside0 && sections[sectionIndex].gap.IsRoomToRoom)
+                            || (NilMod.NilModGriefWatcher.WallBreachOutside0 && !sections[sectionIndex].gap.IsRoomToRoom))
+                            && damage >= (prefab.Health) && sections[sectionIndex].damage <= (prefab.Health) && sections[sectionIndex].damage != prefab.Health)))
+                        {
+                            float integritypercent = MathHelper.Clamp(Convert.ToSingle(Math.Round(Convert.ToDouble(
+                            ((prefab.Health - sections[sectionIndex].damage) / prefab.Health) * 100f))), 0f, 100f);
+
+                            Barotrauma.Networking.Client warnedclient = GameMain.Server.ConnectedClients.Find(c => c.Character == attacker);
+
+                            if (Submarine == GameMain.Server?.respawnManager?.respawnShuttle)
+                            {
+                                if (warnedclient != null)
                                 {
-                                    if (sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachInside)
+                                    if (sections[sectionIndex].gap.IsRoomToRoom)
                                     {
                                         NilMod.NilModGriefWatcher.SendWarning(warnedclient.Character.LogName
                                             + " Breached Inner Wall on the respawn shuttle: "
                                             + integritypercent + "%", warnedclient);
                                     }
-                                    else if (!sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachOutside)
+                                    else if (!sections[sectionIndex].gap.IsRoomToRoom)
                                     {
                                         NilMod.NilModGriefWatcher.SendWarning(warnedclient.Character.LogName
                                             + " Breached Outer Wall on the respawn shuttle: "
@@ -887,18 +935,15 @@ namespace Barotrauma
                             //Coalition submarine
                             else if (Submarine == Submarine.MainSubs[0])
                             {
-                                GameServer.Log(attacker.LogName + " breached " + (sections[sectionIndex].gap.IsRoomToRoom ? "Inner" : "Outer")
-                                    + " wall on Coalition Submarine: " + integritypercent + " Integrity.", Networking.ServerLog.MessageType.Attack);
-
-                                if (GameMain.NilMod.EnableGriefWatcher && warnedclient != null && Submarine != null && Submarine.TeamID == warnedclient.Character.TeamID)
+                                if (warnedclient != null && Submarine != null && Submarine.TeamID == warnedclient.Character.TeamID)
                                 {
-                                    if (sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachInside)
+                                    if (sections[sectionIndex].gap.IsRoomToRoom)
                                     {
                                         NilMod.NilModGriefWatcher.SendWarning(warnedclient.Character.LogName
                                             + " Breached Inner Wall on Coalition sub: "
                                             + integritypercent + "%", warnedclient);
                                     }
-                                    else if (!sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachOutside)
+                                    else if (!sections[sectionIndex].gap.IsRoomToRoom)
                                     {
                                         NilMod.NilModGriefWatcher.SendWarning(warnedclient.Character.LogName
                                             + " Breached Outer Wall on the Coalition sub: "
@@ -909,18 +954,15 @@ namespace Barotrauma
                             //Renegade Submarine
                             else if (Submarine.MainSubs.Count() > 1 && Submarine == Submarine.MainSubs[1])
                             {
-                                GameServer.Log(attacker.LogName + " breached " + (sections[sectionIndex].gap.IsRoomToRoom ? "Inner" : "Outer")
-                                    + " wall on Renegade Submarine: " + integritypercent + " Integrity.", Networking.ServerLog.MessageType.Attack);
-
-                                if (GameMain.NilMod.EnableGriefWatcher && warnedclient != null && Submarine != null && Submarine.TeamID == warnedclient.Character.TeamID)
+                                if (warnedclient != null && Submarine != null && Submarine.TeamID == warnedclient.Character.TeamID)
                                 {
-                                    if (sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachInside)
+                                    if (sections[sectionIndex].gap.IsRoomToRoom)
                                     {
                                         NilMod.NilModGriefWatcher.SendWarning(warnedclient.Character.LogName
                                             + " Breached Inner Wall on Renegade sub: "
                                             + integritypercent + "%", warnedclient);
                                     }
-                                    else if (!sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachOutside)
+                                    else if (!sections[sectionIndex].gap.IsRoomToRoom)
                                     {
                                         NilMod.NilModGriefWatcher.SendWarning(warnedclient.Character.LogName
                                             + " Breached Outer Wall on the Renegade sub: "
@@ -930,18 +972,15 @@ namespace Barotrauma
                             }
                             else
                             {
-                                GameServer.Log(attacker.LogName + " breached " + (sections[sectionIndex].gap.IsRoomToRoom ? "Inner" : "Outer")
-                                    + @" wall on Shuttle """ + Submarine.Name + @""": " + integritypercent + " Integrity.", Networking.ServerLog.MessageType.Attack);
-
-                                if (GameMain.NilMod.EnableGriefWatcher && warnedclient != null && Submarine != null && Submarine.TeamID == warnedclient.Character.TeamID)
+                                if (warnedclient != null && Submarine != null && Submarine.TeamID == warnedclient.Character.TeamID)
                                 {
-                                    if (sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachInside)
+                                    if (sections[sectionIndex].gap.IsRoomToRoom)
                                     {
                                         NilMod.NilModGriefWatcher.SendWarning(warnedclient.Character.LogName
                                             + " Breached Inner Wall on shuttle: "
                                             + integritypercent + "%", warnedclient);
                                     }
-                                    else if (!sections[sectionIndex].gap.IsRoomToRoom && NilMod.NilModGriefWatcher.WallBreachOutside)
+                                    else if (!sections[sectionIndex].gap.IsRoomToRoom)
                                     {
                                         NilMod.NilModGriefWatcher.SendWarning(warnedclient.Character.LogName
                                             + " Breached Outer Wall on shuttle: "
@@ -1057,7 +1096,6 @@ namespace Barotrauma
             for (int i = 0; i < sections.Length; i++)
             {
                 float damage = msg.ReadRangedSingle(0.0f, 1.0f, 8) * Health;
-
                 SetDamage(i, damage);
             }
         }
@@ -1100,10 +1138,12 @@ namespace Barotrauma
             }
 
             Rectangle rect = element.GetAttributeRect("rect", Rectangle.Empty);
-            Structure s = new Structure(rect, prefab, submarine);
-            s.Submarine = submarine;
-            s.ID = (ushort)int.Parse(element.Attribute("ID").Value);
-            
+            Structure s = new Structure(rect, prefab, submarine)
+            {
+                Submarine = submarine,
+                ID = (ushort)int.Parse(element.Attribute("ID").Value)
+            };
+
             foreach (XElement subElement in element.Elements())
             {
                 switch (subElement.Name.ToString())
@@ -1111,12 +1151,7 @@ namespace Barotrauma
                     case "section":
                         int index = subElement.GetAttributeInt("i", -1);
                         if (index == -1) continue;
-
-                        s.sections[index].damage = 
-                            subElement.GetAttributeFloat("damage", 0.0f);
-
-                        s.sections[index].GapID = subElement.GetAttributeInt("gap", -1);
-
+                        s.sections[index].damage = subElement.GetAttributeFloat("damage", 0.0f);
                         break;
                 }
             }
@@ -1138,17 +1173,10 @@ namespace Barotrauma
             for (int i = 0; i < sections.Length; i++)
             {
                 if (sections[i].damage == 0.0f) continue;
-
                 var sectionElement =
                     new XElement("section",
                         new XAttribute("i", i),
                         new XAttribute("damage", sections[i].damage));
-
-                if (sections[i].gap != null)
-                {
-                    sectionElement.Add(new XAttribute("gap", sections[i].gap.ID));
-                }
-
                 element.Add(sectionElement);
             }
 
@@ -1161,14 +1189,10 @@ namespace Barotrauma
 
         public override void OnMapLoaded()
         {
-            foreach (WallSection s in sections)
+            for (int i = 0; i < sections.Length; i++)
             {
-                if (s.GapID == -1) continue;
-
-                s.gap = FindEntityByID((ushort)s.GapID) as Gap;
-                if (s.gap != null) s.gap.ConnectedWall = this;
+                SetDamage(i, sections[i].damage, createNetworkEvent: false);
             }
         }
-        
     }
 }

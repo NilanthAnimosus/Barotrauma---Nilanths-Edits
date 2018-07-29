@@ -411,7 +411,7 @@ namespace Barotrauma
 
                             if (IsUnconscious)
                             {
-                                Kill(lastAttackCauseOfDeath);
+                                Kill(lastAttackCauseOfDeath, false, true);
                             }
                             break;
                         case 3:

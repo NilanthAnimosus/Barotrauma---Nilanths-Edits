@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Xml.Linq;
 
@@ -150,7 +151,7 @@ namespace Barotrauma.Items.Components
             Wires[index] = wire;
         }
         
-        public void SendSignal(int stepsTaken, string signal, Item source, Character sender, float power)
+        public void SendSignal(int stepsTaken, string signal, Item source, Character sender, float power, string identifier = "")
         {
             for (int i = 0; i < MaxLinked; i++)
             {
@@ -165,9 +166,19 @@ namespace Barotrauma.Items.Components
                     ic.ReceiveSignal(stepsTaken, signal, recipient, item, sender, power);
                 }
 
+                //Set the identifier on every step
+                if (recipient.item.ContainedItems != null && recipient.item.ContainedItems.Length > 0)
+                {
+                    identifier = recipient.item.Name + " (" + string.Join(", ", Array.FindAll(recipient.item.ContainedItems, it => it != null).Select(it => it.Name)) + ")";
+                }
+                else
+                {
+                    identifier = recipient.item.Name;
+                }
+
                 foreach (StatusEffect effect in recipient.effects)
                 {
-                    recipient.item.ApplyStatusEffect(effect, ActionType.OnUse, 1.0f);
+                    recipient.item.ApplyStatusEffect(effect, ActionType.OnUse, 1.0f, null, false, sender, identifier);
                 }
             }
         }

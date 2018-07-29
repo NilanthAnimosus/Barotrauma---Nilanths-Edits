@@ -79,7 +79,7 @@ namespace Barotrauma.Items.Components
 
             character.SetStun(GameMain.NilMod.ElectricalFailStunTime,false,false,true);
 
-            item.ApplyStatusEffects(ActionType.OnFailure, 1.0f, character);
+            item.ApplyStatusEffects(ActionType.OnFailure, 1.0f, character, false, character, "Failiure");
 
             return true;
         }

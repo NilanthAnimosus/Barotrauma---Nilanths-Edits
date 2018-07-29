@@ -75,7 +75,7 @@ namespace Barotrauma
 
             IncubationTimer += deltaTime / IncubationDuration;
 
-            character.AddDamage(CauseOfDeath.Husk, GameMain.NilMod.PlayerHuskInfectedDrain * deltaTime, null);
+            character.AddDamage(CauseOfDeath.Husk, GameMain.NilMod.PlayerHuskInfectedDrain * deltaTime, null, "Husk Infection");
         }
 
         private void UpdateTransitionState(float deltaTime, Character character)
@@ -87,7 +87,7 @@ namespace Barotrauma
 
             IncubationTimer += deltaTime / IncubationDuration;
 
-            character.AddDamage(CauseOfDeath.Husk, GameMain.NilMod.PlayerHuskInfectedDrain * deltaTime, null);
+            character.AddDamage(CauseOfDeath.Husk, GameMain.NilMod.PlayerHuskInfectedDrain * deltaTime, null, "Husk Infection");
 
             state = InfectionState.Transition;
         }
@@ -100,7 +100,7 @@ namespace Barotrauma
                 state = InfectionState.Active;
             }
 
-            character.AddDamage(CauseOfDeath.Husk, GameMain.NilMod.PlayerHuskIncurableDrain * deltaTime, null);
+            character.AddDamage(CauseOfDeath.Husk, GameMain.NilMod.PlayerHuskIncurableDrain * deltaTime, null, "Husk Infection");
             //character.AddDamage(CauseOfDeath.Husk, 0.5f * deltaTime, null);
         }
 

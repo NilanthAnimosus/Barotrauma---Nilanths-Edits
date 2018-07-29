@@ -356,7 +356,8 @@ namespace Barotrauma.Items.Components
                     {
                         NilMod.NilModGriefWatcher.SendWarning("A reactor has been destroyed by meltdown, Last to blame was possibly: " + BlameOnBroken.Character.LogName, BlameOnBroken);
                     }
-                    else
+                    else if (Item.Submarine != null
+                        && Item.Submarine.TeamID != BlameOnBroken.TeamID)
                     {
                         NilMod.NilModGriefWatcher.SendWarning("A reactor has been destroyed by meltdown, Last to blame was possibly: " + BlameOnBroken.Name, BlameOnBroken);
                     }
@@ -559,11 +560,9 @@ namespace Barotrauma.Items.Components
             while (timer < NilMod.NilModGriefWatcher.ReactorLastFuelRemovedTimer)
             {
                 timer += CoroutineManager.DeltaTime;
+                if (container.ContainedItems.Count() > 0) yield return CoroutineStatus.Success;
                 yield return CoroutineStatus.Running;
             }
-
-            if (container.ContainedItems.Count() > 0) yield return CoroutineStatus.Success;
-
 
             NilMod.NilModGriefWatcher.SendWarning(c.Character.LogName
                             + " has removed the last item (" + item.Name

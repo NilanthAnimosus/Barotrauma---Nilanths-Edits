@@ -243,11 +243,11 @@ namespace Barotrauma
                         if (closestdistance > Math.Abs(limb.Position.X - (position.X + size.X)) / range) closestdistance = Math.Abs((limb.Position.X - (position.X + size.X)) / range);
                         if (limb.Position.X > position.X && limb.Position.X < (position.X + size.X)) closestdistance = 0f;
 
-                        c.AddDamage(limb.SimPosition, DamageType.Burn, (dmg * Math.Min(Math.Max(((GameMain.NilMod.FireRangedDamageStrength) - (closestdistance * (GameMain.NilMod.FireRangedDamageStrength))), GameMain.NilMod.FireRangedDamageMinMultiplier), GameMain.NilMod.FireRangedDamageMaxMultiplier)), 0, 0, false);
+                        c.AddDamage(limb.SimPosition, DamageType.Burn, (dmg * Math.Min(Math.Max(((GameMain.NilMod.FireRangedDamageStrength) - (closestdistance * (GameMain.NilMod.FireRangedDamageStrength))), GameMain.NilMod.FireRangedDamageMinMultiplier), GameMain.NilMod.FireRangedDamageMaxMultiplier)), 0, 0, false, 0f, null, "Fire");
                     }
                     else
                     {
-                        c.AddDamage(limb.SimPosition, DamageType.Burn, dmg, 0, 0, false);
+                        c.AddDamage(limb.SimPosition, DamageType.Burn, dmg, 0, 0, false, 0f, null, "Fire");
                     }
                 }
             }

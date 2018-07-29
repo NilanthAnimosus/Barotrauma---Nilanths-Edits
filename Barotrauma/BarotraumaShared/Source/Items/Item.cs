@@ -695,20 +695,32 @@ namespace Barotrauma
         }
 
 
-        public void ApplyStatusEffects(ActionType type, float deltaTime, Character character = null, bool isNetworkEvent = false)
+        public void ApplyStatusEffects(ActionType type, float deltaTime, Character character = null, bool isNetworkEvent = false, Character causecharacter = null, string identifier = "")
         {
             if (statusEffectLists == null) return;
 
             List<StatusEffect> statusEffects;
             if (!statusEffectLists.TryGetValue(type, out statusEffects)) return;
 
+            if(identifier == "")
+            {
+                if (ContainedItems != null && ContainedItems.Length > 0)
+                {
+                    identifier = Name + " (" + string.Join(", ", Array.FindAll(ContainedItems, i => i != null).Select(i => i.Name)) + ")";
+                }
+                else
+                {
+                    identifier = Name;
+                }
+            }
+
             foreach (StatusEffect effect in statusEffects)
             {
-                ApplyStatusEffect(effect, type, deltaTime, character, isNetworkEvent);
+                ApplyStatusEffect(effect, type, deltaTime, character, isNetworkEvent, causecharacter, identifier);
             }
         }
         
-        public void ApplyStatusEffect(StatusEffect effect, ActionType type, float deltaTime, Character character = null, bool isNetworkEvent = false)
+        public void ApplyStatusEffect(StatusEffect effect, ActionType type, float deltaTime, Character character = null, bool isNetworkEvent = false, Character causecharacter = null, string identifier = "")
         {
             if (!isNetworkEvent)
             {
@@ -774,11 +786,11 @@ namespace Barotrauma
 
             if (Container != null && effect.Targets.HasFlag(StatusEffect.TargetType.Parent)) targets.Add(Container);
             
-            effect.Apply(type, deltaTime, this, targets);            
+            effect.Apply(type, deltaTime, this, targets, causecharacter, identifier);            
         }
 
 
-        public AttackResult AddDamage(Character attacker, Vector2 worldPosition, Attack attack, float deltaTime, bool playSound = true)
+        public AttackResult AddDamage(Character attacker, Vector2 worldPosition, Attack attack, float deltaTime, bool playSound = true, string identifier = "")
         {
             if (prefab.Indestructible) return new AttackResult();
 
@@ -1021,7 +1033,7 @@ namespace Barotrauma
             }
         }
 
-        public void SendSignal(int stepsTaken, string signal, string connectionName, Character sender, float power = 0.0f)
+        public void SendSignal(int stepsTaken, string signal, string connectionName, Character sender, float power = 0.0f, string identifier = "")
         {
             if (connections == null) return;
 
@@ -1034,20 +1046,20 @@ namespace Barotrauma
             {
                 //use a coroutine to prevent infinite loops by creating a one 
                 //frame delay if the "signal chain" gets too long
-                CoroutineManager.StartCoroutine(SendSignal(signal, c, sender, power));
+                CoroutineManager.StartCoroutine(SendSignal(signal, c, sender, power, identifier));
             }
             else
             {
-                c.SendSignal(stepsTaken, signal, this, sender, power);
+                c.SendSignal(stepsTaken, signal, this, sender, power, identifier);
             }            
         }
 
-        private IEnumerable<object> SendSignal(string signal, Connection connection, Character sender, float power = 0.0f)
+        private IEnumerable<object> SendSignal(string signal, Connection connection, Character sender, float power = 0.0f, string identifier = "")
         {
             //wait one frame
             yield return CoroutineStatus.Running;
 
-            connection.SendSignal(0, signal, this, sender, power);
+            connection.SendSignal(0, signal, this, sender, power, identifier);
 
             yield return CoroutineStatus.Success;
         }
@@ -1149,7 +1161,7 @@ namespace Barotrauma
         }
 
 
-        public void Use(float deltaTime, Character character = null)
+        public void Use(float deltaTime, Character character = null, Character causecharacter = null, string identifier = "")
         {
             if (condition == 0.0f) return;
 
@@ -1166,7 +1178,7 @@ namespace Barotrauma
                     ic.PlaySound(ActionType.OnUse, WorldPosition);
 #endif
     
-                    ic.ApplyStatusEffects(ActionType.OnUse, deltaTime, character);
+                    ic.ApplyStatusEffects(ActionType.OnUse, deltaTime, character, causecharacter, identifier);
 
                     if (ic.DeleteOnUse) remove = true;
                 }

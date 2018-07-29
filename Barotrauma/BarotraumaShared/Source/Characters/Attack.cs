@@ -159,7 +159,7 @@ namespace Barotrauma
         }
         partial void InitProjSpecific(XElement element);
         
-        public AttackResult DoDamage(Character attacker, IDamageable target, Vector2 worldPosition, float deltaTime, bool playSound = true)
+        public AttackResult DoDamage(Character attacker, IDamageable target, Vector2 worldPosition, float deltaTime, bool playSound = true, string identifier = "")
         {
             if (OnlyHumans)
             {
@@ -169,7 +169,7 @@ namespace Barotrauma
 
             DamageParticles(deltaTime, worldPosition);
 
-            var attackResult = target.AddDamage(attacker, worldPosition, this, deltaTime, playSound);
+            var attackResult = target.AddDamage(attacker, worldPosition, this, deltaTime, playSound, identifier);
             var effectType = attackResult.Damage > 0.0f ? ActionType.OnUse : ActionType.OnFailure;
             if (statusEffects == null) return attackResult;
 
@@ -177,18 +177,18 @@ namespace Barotrauma
             {
                 if (effect.Targets.HasFlag(StatusEffect.TargetType.This))
                 {
-                    effect.Apply(effectType, deltaTime, attacker, attacker);
+                    effect.Apply(effectType, deltaTime, attacker, attacker, attacker, identifier);
                 }
                 if (effect.Targets.HasFlag(StatusEffect.TargetType.Character) && target is Character)
                 {
-                    effect.Apply(effectType, deltaTime, (Character)target, (Character)target);
+                    effect.Apply(effectType, deltaTime, (Character)target, (Character)target, attacker, identifier);
                 }
             }
 
             return attackResult;
         }
 
-        public AttackResult DoDamageToLimb(Character attacker, Limb targetLimb, Vector2 worldPosition, float deltaTime, bool playSound = true)
+        public AttackResult DoDamageToLimb(Character attacker, Limb targetLimb, Vector2 worldPosition, float deltaTime, bool playSound = true, string identifier = "")
         {
             if (targetLimb == null) return new AttackResult();
 
@@ -199,7 +199,7 @@ namespace Barotrauma
 
             DamageParticles(deltaTime, worldPosition);
 
-            var attackResult = targetLimb.character.ApplyAttack(attacker, worldPosition, this, deltaTime, playSound, targetLimb);
+            var attackResult = targetLimb.character.ApplyAttack(attacker, worldPosition, this, deltaTime, playSound, targetLimb, identifier);
             var effectType = attackResult.Damage > 0.0f ? ActionType.OnUse : ActionType.OnFailure;
             if (statusEffects == null) return attackResult;            
 
@@ -207,11 +207,11 @@ namespace Barotrauma
             {
                 if (effect.Targets.HasFlag(StatusEffect.TargetType.This))
                 {
-                    effect.Apply(effectType, deltaTime, attacker, attacker);
+                    effect.Apply(effectType, deltaTime, attacker, attacker, attacker, identifier);
                 }
                 if (effect.Targets.HasFlag(StatusEffect.TargetType.Character))
                 {
-                    effect.Apply(effectType, deltaTime, targetLimb.character, targetLimb.character);
+                    effect.Apply(effectType, deltaTime, targetLimb.character, targetLimb.character, attacker, identifier);
                 }
             }
 

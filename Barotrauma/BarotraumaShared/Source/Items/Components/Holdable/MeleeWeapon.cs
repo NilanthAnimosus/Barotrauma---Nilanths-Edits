@@ -252,6 +252,17 @@ namespace Barotrauma.Items.Components
 
             if (targetCharacter == picker) return false;
 
+            string effectidentifier = "";
+
+            if (item.ContainedItems != null && item.ContainedItems.Length > 0)
+            {
+                effectidentifier = item.Name + " (" + string.Join(", ", Array.FindAll(item.ContainedItems, i => i != null).Select(i => i.Name)) + ")";
+            }
+            else
+            {
+                effectidentifier = item.Name;
+            }
+
             if (attack != null)
             {
                 if (targetLimb != null)
@@ -260,7 +271,7 @@ namespace Barotrauma.Items.Components
                 }
                 else if (targetCharacter != null)
                 {
-                    attack.DoDamage(user, targetCharacter, item.WorldPosition, 1.0f);
+                    attack.DoDamage(user, targetCharacter, item.WorldPosition, 1.0f, true, effectidentifier);
                 }
                 else if (targetStructure != null)
                 {
@@ -365,9 +376,9 @@ namespace Barotrauma.Items.Components
                     }
                 }
             }
-            
+
             if (targetCharacter != null) //TODO: Allow OnUse to happen on structures too maybe??
-                ApplyStatusEffects(ActionType.OnUse, 1.0f, targetCharacter != null ? targetCharacter : null);
+                ApplyStatusEffects(ActionType.OnUse, 1.0f, targetCharacter != null ? targetCharacter : null, user, effectidentifier);
 
             if (DeleteOnUse)
             {

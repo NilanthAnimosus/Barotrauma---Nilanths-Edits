@@ -4269,7 +4269,7 @@ namespace Barotrauma.Networking
 #endif
         private IEnumerable<object> PerformRestart()
         {
-            float RestartTimer = 10f;
+            float RestartTimer = 20f;
             float WarnFrequency = 2f;
             float WarnTimer = 0f;
 

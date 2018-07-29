@@ -15,6 +15,8 @@ namespace Barotrauma
         public Entity Entity;
         public List<ISerializableEntity> Targets;
         public float Timer;
+        public Character causecharacter;
+        public string identifier;
 
         public List<int> CancelledEffects = new List<int>();
     }
@@ -280,7 +282,7 @@ namespace Barotrauma
             return false;
         }
 
-        public virtual void Apply(ActionType type, float deltaTime, Entity entity, ISerializableEntity target)
+        public virtual void Apply(ActionType type, float deltaTime, Entity entity, ISerializableEntity target, Character causecharacter = null, string identifier = "")
         {
             if (this.type != type || !HasRequiredItems(entity)) return;
 
@@ -295,6 +297,7 @@ namespace Barotrauma
                 if (existingEffect != null)
                 {
                     existingEffect.Timer = Math.Max(existingEffect.Timer, duration);
+                    existingEffect.causecharacter = causecharacter;
                     return;
                 }
             }
@@ -304,10 +307,10 @@ namespace Barotrauma
 
             if (!HasRequiredConditions(targets)) return;
 
-            Apply(deltaTime, entity, targets);
+            Apply(deltaTime, entity, targets,null, causecharacter, identifier);
         }
 
-        public virtual void Apply(ActionType type, float deltaTime, Entity entity, List<ISerializableEntity> targets)
+        public virtual void Apply(ActionType type, float deltaTime, Entity entity, List<ISerializableEntity> targets, Character causecharacter = null, string identifier = "")
         {
             if (this.type != type) return;
 
@@ -340,14 +343,15 @@ namespace Barotrauma
                 if (existingEffect != null)
                 {
                     existingEffect.Timer = Math.Max(existingEffect.Timer, duration);
+                    existingEffect.causecharacter = causecharacter;
                     return;
                 }
             }
 
-            Apply(deltaTime, entity, targets);
+            Apply(deltaTime, entity, targets,null, causecharacter, identifier);
         }
 
-        protected void Apply(float deltaTime, Entity entity, List<ISerializableEntity> targets, List<int> cancelledEffects = null)
+        protected void Apply(float deltaTime, Entity entity, List<ISerializableEntity> targets, List<int> cancelledEffects = null, Character causecharacter = null, string identifier = "")
         {
 #if CLIENT
             if (sound != null)
@@ -369,12 +373,14 @@ namespace Barotrauma
                 }
             }
 #endif
+
+            if (identifier == "") identifier = "statuseffect";
             
             for (int i = 0; i < useItemCount; i++)
             {
                 foreach (Item item in targets.FindAll(t => t is Item).Cast<Item>())
                 {
-                    item.Use(deltaTime, targets.FirstOrDefault(t => t is Character) as Character);
+                    item.Use(deltaTime, targets.FirstOrDefault(t => t is Character) as Character, causecharacter, identifier);
                 }
             }
 
@@ -394,6 +400,8 @@ namespace Barotrauma
                 element.Entity = entity;
                 element.Targets = targets;
                 if(cancelledEffects != null) element.CancelledEffects = cancelledEffects;
+                element.causecharacter = causecharacter;
+                element.identifier = identifier;
 
 /*                    if (!target.SerializableProperties.TryGetValue(propertyNames[i], out property)) continue;
 
@@ -459,18 +467,63 @@ namespace Barotrauma
 
                 foreach (ISerializableEntity target in targets)
                 {
-                    for (int i = 0; i < propertyNames.Length; i++)
+                    if(target is Character)
                     {
-                        SerializableProperty property;
-                        if (cancelledEffects != null && cancelledEffects.Contains(i)) continue;
-                        if (target == null || target.SerializableProperties == null || !target.SerializableProperties.TryGetValue(propertyNames[i], out property)) continue;
+                        for (int i = 0; i < propertyNames.Length; i++)
+                        {
+                            SerializableProperty property;
+                            if (cancelledEffects != null && cancelledEffects.Contains(i)) continue;
+                            if (target == null || target.SerializableProperties == null || !target.SerializableProperties.TryGetValue(propertyNames[i], out property)) continue;
 
-                        ApplyToProperty(property, propertyEffects[i], deltaTime);
+                            if (propertyEffects[i].GetType() == typeof(float))
+                            {
+                                Character targetcharacter = target as Character;
+                                float propertyfloat = Convert.ToSingle(propertyEffects[i]);
+
+                                switch (property.Name.ToLowerInvariant())
+                                {
+                                    case "health":
+                                        if (propertyfloat < 0f) targetcharacter.charRecord.DamageStat("health", -(propertyfloat * CoroutineManager.UnscaledDeltaTime), causecharacter, identifier);
+                                        break;
+                                    case "bleeding":
+                                        if (propertyfloat > 0f) targetcharacter.charRecord.DamageStat("bleeding", (propertyfloat * CoroutineManager.UnscaledDeltaTime), causecharacter, identifier);
+                                        break;
+                                    case "oxygen":
+                                        if (propertyfloat < 0f) targetcharacter.charRecord.DamageStat("oxygen", -(propertyfloat * CoroutineManager.UnscaledDeltaTime), causecharacter, identifier);
+                                        break;
+                                    case "stun":
+                                        if (propertyfloat > 0f) targetcharacter.charRecord.DamageStat("stun", (propertyfloat * CoroutineManager.UnscaledDeltaTime), causecharacter, identifier);
+                                        break;
+                                    case "huskinfectionstate":
+                                        if (propertyfloat > 0f) targetcharacter.charRecord.DamageStat("huskinfectionstate", (propertyfloat * CoroutineManager.UnscaledDeltaTime), causecharacter, identifier);
+                                        break;
+                                    default:
+                                        break;
+                                }
+                            }
+
+                            ApplyToProperty(property, propertyEffects[i], deltaTime);
+                        }
+                    }
+                    else
+                    {
+                        for (int i = 0; i < propertyNames.Length; i++)
+                        {
+                            SerializableProperty property;
+                            if (cancelledEffects != null && cancelledEffects.Contains(i)) continue;
+                            if (target == null || target.SerializableProperties == null || !target.SerializableProperties.TryGetValue(propertyNames[i], out property)) continue;
+
+                            ApplyToProperty(property, propertyEffects[i], deltaTime);
+                        }
                     }
                 }                
             }
 
-            if (explosion != null) explosion.Explode(entity.WorldPosition);
+            if (explosion != null)
+            {
+                if(identifier == "statuseffect") explosion.Explode(entity.WorldPosition, causecharacter, "");
+                else explosion.Explode(entity.WorldPosition, causecharacter, identifier);
+            }
 
             
             Hull hull = null;
@@ -547,14 +600,50 @@ namespace Barotrauma
 
                 foreach (ISerializableEntity target in element.Targets)
                 {
-                    for (int n = 0; n < element.Parent.propertyNames.Length; n++)
+                    if (target is Character)
                     {
-                        if (element.CancelledEffects.Contains(n)) continue;
-                        SerializableProperty property;
+                        for (int n = 0; n < element.Parent.propertyNames.Length; n++)
+                        {
+                            if (element.CancelledEffects.Contains(n)) continue;
+                            SerializableProperty property;
 
-                        if (target == null || target.SerializableProperties == null || !target.SerializableProperties.TryGetValue(element.Parent.propertyNames[n], out property)) continue;
+                            if (target == null || target.SerializableProperties == null || !target.SerializableProperties.TryGetValue(element.Parent.propertyNames[n], out property)) continue;
 
-                        element.Parent.ApplyToProperty(property, element.Parent.propertyEffects[n], CoroutineManager.UnscaledDeltaTime);
+                            if (element.Parent.propertyEffects[n].GetType() == typeof(float))
+                            {
+                                Character targetcharacter = target as Character;
+                                float propertyfloat = Convert.ToSingle(element.Parent.propertyEffects[n]);
+
+                                switch (property.Name.ToLowerInvariant())
+                                {
+                                    case "health":
+                                        if (propertyfloat < 0f) targetcharacter.charRecord.DamageStat("health", -(propertyfloat * CoroutineManager.UnscaledDeltaTime), element.causecharacter, element.identifier);
+                                        break;
+                                    case "bleeding":
+                                        if (propertyfloat > 0f) targetcharacter.charRecord.DamageStat("bleeding", (propertyfloat * CoroutineManager.UnscaledDeltaTime), element.causecharacter, element.identifier);
+                                        break;
+                                    case "oxygen":
+                                        if (propertyfloat < 0f) targetcharacter.charRecord.DamageStat("oxygen", -(propertyfloat * CoroutineManager.UnscaledDeltaTime), element.causecharacter, element.identifier);
+                                        break;
+                                    default:
+                                        break;
+                                }
+                            }
+
+                            element.Parent.ApplyToProperty(property, element.Parent.propertyEffects[n], CoroutineManager.UnscaledDeltaTime);
+                        }
+                    }
+                    else
+                    {
+                        for (int n = 0; n < element.Parent.propertyNames.Length; n++)
+                        {
+                            if (element.CancelledEffects.Contains(n)) continue;
+                            SerializableProperty property;
+
+                            if (target == null || target.SerializableProperties == null || !target.SerializableProperties.TryGetValue(element.Parent.propertyNames[n], out property)) continue;
+
+                            element.Parent.ApplyToProperty(property, element.Parent.propertyEffects[n], CoroutineManager.UnscaledDeltaTime);
+                        }
                     }
                 }
 

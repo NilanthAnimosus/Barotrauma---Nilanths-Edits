@@ -558,6 +558,7 @@ namespace Barotrauma.Networking
 
                 newsavedpermission.HideJoin = clientElement.GetAttributeBool("HideJoin", false);
                 newsavedpermission.AccessDeathChatAlive = clientElement.GetAttributeBool("AccessDeathChatAlive", false);
+                newsavedpermission.AdminPrivateMessage = clientElement.GetAttributeBool("AdminPrivateMessage", false);
                 newsavedpermission.AdminChannelSend = clientElement.GetAttributeBool("AdminChannelSend", true);
                 newsavedpermission.AdminChannelReceive = clientElement.GetAttributeBool("AdminChannelReceive", false);
                 newsavedpermission.SendServerConsoleInfo = clientElement.GetAttributeBool("SendServerConsoleInfo", false);

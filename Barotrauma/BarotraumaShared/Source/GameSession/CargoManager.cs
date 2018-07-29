@@ -109,24 +109,25 @@ namespace Barotrauma
             }
 
             Dictionary<ItemContainer, int> availableContainers = new Dictionary<ItemContainer, int>();
-            foreach (PurchasedItem Pi in itemsToSpawn)
+            ItemPrefab containerPrefab = null;
+            foreach (PurchasedItem pi in itemsToSpawn)
             {
                 Vector2 position = new Vector2(
                     Rand.Range(cargoRoom.Rect.X + 20, cargoRoom.Rect.Right - 20),
-                    cargoRoom.Rect.Y - cargoRoom.Rect.Height + Pi.itemPrefab.Size.Y / 2);
+                    cargoRoom.Rect.Y - cargoRoom.Rect.Height + pi.itemPrefab.Size.Y / 2);
 
                 ItemContainer itemContainer = null;
-                if (!string.IsNullOrEmpty(Pi.itemPrefab.CargoContainerName))
+                if (!string.IsNullOrEmpty(pi.itemPrefab.CargoContainerName))
                 {
                     itemContainer = availableContainers.Keys.ToList().Find(ac =>
-                        ac.Item.Prefab.NameMatches(Pi.itemPrefab.CargoContainerName) ||
-                        ac.Item.Prefab.Tags.Contains(Pi.itemPrefab.CargoContainerName.ToLowerInvariant()));
+                        ac.Item.Prefab.NameMatches(pi.itemPrefab.CargoContainerName) ||
+                        ac.Item.Prefab.Tags.Contains(pi.itemPrefab.CargoContainerName.ToLowerInvariant()));
 
                     if (itemContainer == null)
                     {
-                        var containerPrefab = MapEntityPrefab.List.Find(ep =>
-                            ep.NameMatches(Pi.itemPrefab.CargoContainerName) ||
-                            (ep.Tags != null && ep.Tags.Contains(Pi.itemPrefab.CargoContainerName.ToLowerInvariant()))) as ItemPrefab;
+                        containerPrefab = MapEntityPrefab.List.Find(ep =>
+                            ep.NameMatches(pi.itemPrefab.CargoContainerName) ||
+                            (ep.Tags != null && ep.Tags.Contains(pi.itemPrefab.CargoContainerName.ToLowerInvariant()))) as ItemPrefab;
 
                         if (containerPrefab == null)
                         {
@@ -149,39 +150,53 @@ namespace Barotrauma
                     }                    
                 }
 
-                for (int i = 0; i < Pi.quantity; i++)
+                for (int i = 0; i < pi.quantity; i++)
                 {
                     if (itemContainer == null)
                     {
                         //no container, place at the waypoint
                         if (GameMain.Server != null)
                         {
-                            Entity.Spawner.AddToSpawnQueue(Pi.itemPrefab, position, wp.Submarine);
+                            Entity.Spawner.AddToSpawnQueue(pi.itemPrefab, position, wp.Submarine);
                         }
                         else
                         {
-                            new Item(Pi.itemPrefab, position, wp.Submarine);
+                            new Item(pi.itemPrefab, position, wp.Submarine);
                         }
+                        continue;
+                    }
+                    //if the intial container has been removed due to it running out of space, add a new container
+                    //of the same type and begin filling it
+                    if (!availableContainers.ContainsKey(itemContainer))
+                    {
+                        Item containerItemOverFlow = new Item(containerPrefab, position, wp.Submarine);
+                        itemContainer = containerItemOverFlow.GetComponent<ItemContainer>();
+                        availableContainers.Add(itemContainer, itemContainer.Capacity);
+                        if (GameMain.Server != null)
+                        {
+                            Entity.Spawner.CreateNetworkEvent(itemContainer.Item, false);
+                        }
+                    }
+                    //place in the container
+                    if (GameMain.Server != null)
+                    {
+                        Entity.Spawner.AddToSpawnQueue(pi.itemPrefab, itemContainer.Inventory);
                     }
                     else
                     {
-                        //place in the container
-                        if (GameMain.Server != null)
-                        {
-                            Entity.Spawner.AddToSpawnQueue(Pi.itemPrefab, itemContainer.Inventory);
-                        }
-                        else
-                        {
-                            var item = new Item(Pi.itemPrefab, position, wp.Submarine);
-                            itemContainer.Inventory.TryPutItem(item, null);
-                        }
+                        var item = new Item(pi.itemPrefab, position, wp.Submarine);
+                        itemContainer.Inventory.TryPutItem(item, null);
+                    }
 
-                        //reduce the number of available slots in the container
+                    //reduce the number of available slots in the container
+                    //if there is a container
+                    if (availableContainers.ContainsKey(itemContainer))
+                    {
                         availableContainers[itemContainer]--;
-                        if (availableContainers[itemContainer] <= 0)
-                        {
-                            availableContainers.Remove(itemContainer);
-                        }
+                    }
+                    if (availableContainers.ContainsKey(itemContainer) && availableContainers[itemContainer] <= 0)
+                    {
+                        availableContainers.Remove(itemContainer);
                     }
                 }
             }

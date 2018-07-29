@@ -296,6 +296,8 @@ namespace Barotrauma.Items.Components
                 return false;
             }
 
+            string effectidentifier = "";
+
             AttackResult attackResult = new AttackResult();
             Character character = null;
             if (attack != null)
@@ -311,7 +313,16 @@ namespace Barotrauma.Items.Components
                 Structure structure;
                 if (target.Body.UserData is Limb limb)
                 {
-                    attackResult = attack.DoDamageToLimb(User, limb, item.WorldPosition, 1.0f);
+                    if (item.ContainedItems != null && item.ContainedItems.Length > 0)
+                    {
+                        effectidentifier = item.Name + " (" + string.Join(", ", Array.FindAll(item.ContainedItems, i => i != null).Select(i => i.Name)) + ")";
+                    }
+                    else
+                    {
+                        effectidentifier = item.Name;
+                    }
+
+                    attackResult = attack.DoDamageToLimb(User, limb, item.WorldPosition, 1.0f, true, effectidentifier);
                     if (limb.character != null)
                         character = limb.character;
                 }
@@ -321,8 +332,8 @@ namespace Barotrauma.Items.Components
                 }
             }
 
-            ApplyStatusEffects(ActionType.OnUse, 1.0f, character);
-            ApplyStatusEffects(ActionType.OnImpact, 1.0f, character);
+            ApplyStatusEffects(ActionType.OnUse, 1.0f, character, User, effectidentifier);
+            ApplyStatusEffects(ActionType.OnImpact, 1.0f, character, User, effectidentifier);
             
             item.body.FarseerBody.OnCollision -= OnProjectileCollision;
 

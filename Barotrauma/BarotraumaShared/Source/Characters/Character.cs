@@ -11,6 +11,447 @@ using FarseerPhysics.Dynamics;
 
 namespace Barotrauma
 {
+    class CharacterRecord
+    {
+        public class RecordItem
+        {
+            public Character inflicter;
+            public string charactername = "";
+            public string identifier;
+            public float damage;
+        }
+
+        Character MyCharacter;
+
+        List<RecordItem> HealthRecord;
+        List<RecordItem> BleedRecord;
+        List<RecordItem> OxygenRecord;
+        List<RecordItem> StunRecord;
+        List<RecordItem> HuskRecord;
+
+        public CharacterRecord(Character character)
+        {
+            MyCharacter = character;
+            HealthRecord = new List<RecordItem>();
+            BleedRecord = new List<RecordItem>();
+            OxygenRecord = new List<RecordItem>();
+            StunRecord = new List<RecordItem>();
+            HuskRecord = new List<RecordItem>();
+        }
+
+        public void DamageStat(string stat, float amount, Character inflicter, string identifier)
+        {
+            if (GameMain.Server == null || MyCharacter.IsDead) return;
+            if ((MyCharacter != GameMain.Server.Character && !MyCharacter.IsRemotePlayer)) return;
+            RecordItem record;
+            switch (stat)
+            {
+                case "health":
+                    if (MyCharacter.Health == MyCharacter.MinHealth) return;
+                    record = HealthRecord.Find(ri => ri.identifier == identifier && ri.inflicter == inflicter);
+                    if (record != null)
+                    {
+                        record.damage += amount;
+                    }
+                    else
+                    {
+                        record = new RecordItem();
+                        record.inflicter = inflicter;
+                        if(inflicter != null) record.charactername = inflicter.Name;
+                        record.identifier = identifier;
+                        record.damage = amount;
+                        HealthRecord.Add(record);
+                    }
+                    break;
+                case "bleeding":
+                case "bleed":
+                    if (MyCharacter.Bleeding == 5f) return;
+                    record = BleedRecord.Find(ri => ri.identifier == identifier && ri.inflicter == inflicter);
+                    if (record != null)
+                    {
+                        record.damage += amount;
+                    }
+                    else
+                    {
+                        record = new RecordItem();
+                        record.inflicter = inflicter;
+                        if (inflicter != null) record.charactername = inflicter.Name;
+                        record.identifier = identifier;
+                        record.damage = amount;
+                        BleedRecord.Add(record);
+                    }
+                    break;
+                case "oxygen":
+                    if (MyCharacter.Oxygen == -100f) return;
+                    record = OxygenRecord.Find(ri => ri.identifier == identifier && ri.inflicter == inflicter);
+                    if (record != null)
+                    {
+                        record.damage += amount;
+                    }
+                    else
+                    {
+                        record = new RecordItem();
+                        record.inflicter = inflicter;
+                        if (inflicter != null) record.charactername = inflicter.Name;
+                        record.identifier = identifier;
+                        record.damage = amount;
+                        OxygenRecord.Add(record);
+                    }
+                    break;
+                case "stun":
+                    if (MyCharacter.Stun == 60f) return;
+                    record = StunRecord.Find(ri => ri.identifier == identifier && ri.inflicter == inflicter);
+                    if (record != null)
+                    {
+                        record.damage += amount;
+                    }
+                    else
+                    {
+                        record = new RecordItem();
+                        record.inflicter = inflicter;
+                        if (inflicter != null) record.charactername = inflicter.Name;
+                        record.identifier = identifier;
+                        record.damage = amount;
+                        StunRecord.Add(record);
+                    }
+                    break;
+                case "husk":
+                case "huskinfectionstate":
+                    if (MyCharacter.HuskInfectionState == 1f) return;
+                    record = HuskRecord.Find(ri => ri.identifier == identifier && ri.inflicter == inflicter);
+                    if (record != null)
+                    {
+                        record.damage += amount;
+                    }
+                    else
+                    {
+                        record = new RecordItem();
+                        record.inflicter = inflicter;
+                        if (inflicter != null) record.charactername = inflicter.Name;
+                        record.identifier = identifier;
+                        record.damage = amount;
+                        HuskRecord.Add(record);
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        //Logic for stat recovery
+        public void RecoverStat(string stat, float amount)
+        {
+            if (GameMain.Server == null || MyCharacter.IsDead) return;
+            if ((MyCharacter != GameMain.Server.Character && !MyCharacter.IsRemotePlayer)) return;
+
+            List<RecordItem> record;
+            RecordItem ri;
+
+            //Behaviour on order to remove, In most cases remove the unconcious cause first, otherwise the first type afflicted, etc
+            switch (stat)
+            {
+                case "health":
+                    if (HealthRecord.Count == 0) return;
+                    record = HealthRecord;
+                    ri = record.Find(r => r.identifier == "Unconcious");
+                    if(ri == null) record.Find(r => r.identifier == "Bleeding");
+                    else if(ri == null) ri = record.FirstOrDefault();
+                    break;
+                case "bleeding":
+                case "bleed":
+                    if (BleedRecord.Count == 0) return;
+                    record = BleedRecord;
+                    ri = record.Find(r => r.identifier == "Unconcious");
+                    if (ri == null) ri = record.FirstOrDefault();
+                    break;
+                case "oxygen":
+                    if (OxygenRecord.Count == 0) return;
+                    record = OxygenRecord;
+                    ri = record.Find(r => r.identifier == "Unconcious");
+                    if (ri == null) ri = record.Find(r => r.identifier == "Suffocation");
+                    else if (ri == null) ri = record.FirstOrDefault();
+                    break;
+                case "stun":
+                    if (StunRecord.Count == 0) return;
+                    record = StunRecord;
+                    ri = record.LastOrDefault();
+                    break;
+                case "husk":
+                case "huskinfection":
+                    if (HuskRecord.Count == 0) return;
+                    record = HuskRecord;
+                    ri = record.Find(r => r.identifier == "Husk Infection");
+                    if (ri == null) ri = record.LastOrDefault();
+                    break;
+                default:
+                    return;
+            }
+
+            if (ri != null)
+            {
+                if (ri.damage >= amount) ri.damage -= amount;
+                else
+                {
+                    amount = amount - ri.damage;
+                    record.Remove(ri);
+                    switch (stat)
+                    {
+                        case "health":
+                            if (MyCharacter.Health == MyCharacter.MaxHealth)
+                            {
+                                HealthRecord = new List<RecordItem>();
+                                return;
+                            }
+                            break;
+                        case "bleeding":
+                        case "bleed":
+                            if (MyCharacter.Bleeding <= 0f)
+                            {
+                                BleedRecord = new List<RecordItem>();
+                                return;
+                            }
+                            break;
+                        case "oxygen":
+                            if (MyCharacter.Oxygen == 100f)
+                            {
+                                OxygenRecord = new List<RecordItem>();
+                                return;
+                            }
+                            break;
+                        case "stun":
+                            if (MyCharacter.Stun == 0f)
+                            {
+                                StunRecord = new List<RecordItem>();
+                                return;
+                            }
+                            break;
+                        case "husk":
+                        case "huskinfection":
+                            if (MyCharacter.HuskInfectionState <= 0f)
+                            {
+                                HuskRecord = new List<RecordItem>();
+                                return;
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                    RecoverStat(stat, amount);
+                }
+            }
+        }
+
+        public void ReportRecord()
+        {
+            if (GameMain.Server == null || MyCharacter.IsDead) return;
+            if ((MyCharacter != GameMain.Server.Character && !MyCharacter.IsRemotePlayer)) return;
+
+            string message = "";
+            //GameServer.Log("Character died of the following:", ServerLog.MessageType.Spawns);
+
+            Dictionary<Client, float> HealthAttackers = new Dictionary<Client, float>();
+            Dictionary<Client, float> BleedAttackers = new Dictionary<Client, float>();
+            Dictionary<Client, float> OxygenAttackers = new Dictionary<Client, float>();
+            Dictionary<Client, float> StunAttackers = new Dictionary<Client, float>();
+            Dictionary<Client, float> HuskAttackers = new Dictionary<Client, float>();
+
+            foreach (RecordItem ri in HealthRecord)
+            {
+                if (ri.damage <= 1f) continue;
+
+                string Identifier = "";
+                string source = "";
+
+                Barotrauma.Networking.Client attackingclient = GameMain.Server.ConnectedClients.Find(c => (c.Character != null && c.Character == ri.inflicter) || (c.Name == ri.charactername && ((ri.inflicter != null && ri.inflicter.IsRemotePlayer) || ri.inflicter == null)));
+                if (attackingclient != null) source = " from " + attackingclient.Name + " ";
+                else if (ri.inflicter != null) source = " from " + ri.inflicter.LogName + " ";
+                else if (ri.charactername != "") source = " from " + ri.charactername + " ";
+                else source = " ";
+
+                if (ri.identifier == "") Identifier = "Other";
+                else Identifier = ri.identifier;
+
+                //Record the damages for griefwatcher per-client tallied up
+                if (GameMain.NilMod.EnableGriefWatcher && attackingclient != null)
+                {
+                    if (!HealthAttackers.ContainsKey(attackingclient))
+                    {
+                        HealthAttackers.Add(attackingclient, ri.damage);
+                    }
+                    else
+                    {
+                        HealthAttackers[attackingclient] += ri.damage;
+                    }
+                }
+
+                if (MyCharacter.Health <= (MyCharacter.MinHealth + (MyCharacter.MaxHealth / 5)))
+                {
+                    message = "Health -" + Math.Round(ri.damage, 1)
+                        + source
+                        + "via " + Identifier;
+                    GameServer.Log(message, ServerLog.MessageType.Spawns);
+                }
+            }
+
+            foreach (RecordItem ri in BleedRecord)
+            {
+                if (ri.damage <= 1f) continue;
+
+                string Identifier = "";
+                string source = "";
+
+                Barotrauma.Networking.Client attackingclient = GameMain.Server.ConnectedClients.Find(c => (c.Character != null && c.Character == ri.inflicter) || (c.Name == ri.charactername && ((ri.inflicter != null && ri.inflicter.IsRemotePlayer) || ri.inflicter == null)));
+                if (attackingclient != null) source = " from " + attackingclient.Name + " ";
+                else if (ri.inflicter != null) source = " from " + ri.inflicter.Info?.Name + " ";
+                else if (ri.charactername != "") source = " from " + ri.charactername + " ";
+                else source = " ";
+
+                if (ri.identifier == "") Identifier = "Other";
+                else Identifier = ri.identifier;
+
+                //Record the damages for griefwatcher per-client tallied up
+                if (GameMain.NilMod.EnableGriefWatcher && attackingclient != null)
+                {
+                    if (!BleedAttackers.ContainsKey(attackingclient))
+                    {
+                        BleedAttackers.Add(attackingclient, ri.damage);
+                    }
+                    else
+                    {
+                        BleedAttackers[attackingclient] += ri.damage;
+                    }
+                }
+
+                if (MyCharacter.Bleeding >= 0.25f)
+                {
+                    message = "Bleed +" + Math.Round(ri.damage, 1)
+                        + source
+                        + "via " + Identifier;
+                    GameServer.Log(message, ServerLog.MessageType.Spawns);
+                }
+            }
+
+            foreach (RecordItem ri in OxygenRecord)
+            {
+                if (ri.damage <= 1f) continue;
+
+                string Identifier = "";
+                string source = "";
+
+                Barotrauma.Networking.Client attackingclient = GameMain.Server.ConnectedClients.Find(c => (c.Character != null && c.Character == ri.inflicter) || (c.Name == ri.charactername && ((ri.inflicter != null && ri.inflicter.IsRemotePlayer) || ri.inflicter == null)));
+                if (attackingclient != null) source = " from " + attackingclient.Name + " ";
+                else if (ri.inflicter != null) source = " from " + ri.inflicter.Info?.Name + " ";
+                else if (ri.charactername != "") source = " from " + ri.charactername + " ";
+                else source = " ";
+
+                if (ri.identifier == "") Identifier = "Other";
+                else Identifier = ri.identifier;
+
+                //Record the damages for griefwatcher per-client tallied up
+                if (GameMain.NilMod.EnableGriefWatcher && attackingclient != null)
+                {
+                    if (!OxygenAttackers.ContainsKey(attackingclient))
+                    {
+                        OxygenAttackers.Add(attackingclient, ri.damage);
+                    }
+                    else
+                    {
+                        OxygenAttackers[attackingclient] += ri.damage;
+                    }
+                }
+
+                if (MyCharacter.Oxygen <= -80f)
+                {
+                    message = "Oxygen -" + Math.Round(ri.damage, 1)
+                        + source
+                        + "via " + Identifier;
+                    GameServer.Log(message, ServerLog.MessageType.Spawns);
+                }
+            }
+
+            foreach (RecordItem ri in StunRecord)
+            {
+                if (ri.damage <= 1f) continue;
+
+                string Identifier = "";
+                string source = "";
+
+                Barotrauma.Networking.Client attackingclient = GameMain.Server.ConnectedClients.Find(c => (c.Character != null && c.Character == ri.inflicter) || (c.Name == ri.charactername && ((ri.inflicter != null && ri.inflicter.IsRemotePlayer) || ri.inflicter == null)));
+                if (attackingclient != null) source = " from " + attackingclient.Name + " ";
+                else if (ri.inflicter != null) source = " from " + ri.inflicter.Info?.Name + " ";
+                else if (ri.charactername != "") source = " from " + ri.charactername + " ";
+                else source = " ";
+
+                if (ri.identifier == "") Identifier = "Other";
+                else Identifier = ri.identifier;
+
+                //Record the damages for griefwatcher per-client tallied up
+                if (GameMain.NilMod.EnableGriefWatcher && attackingclient != null)
+                {
+                    if (!StunAttackers.ContainsKey(attackingclient))
+                    {
+                        StunAttackers.Add(attackingclient, ri.damage);
+                    }
+                    else
+                    {
+                        StunAttackers[attackingclient] += ri.damage;
+                    }
+                }
+
+                if (MyCharacter.Stun > 5f)
+                {
+                    message = "Stun -" + Math.Round(ri.damage, 1)
+                        + source
+                        + "via " + Identifier;
+                    GameServer.Log(message, ServerLog.MessageType.Spawns);
+                }
+            }
+
+            foreach (RecordItem ri in HuskRecord)
+            {
+                string Identifier = "";
+                string source = "";
+
+                Barotrauma.Networking.Client attackingclient = GameMain.Server.ConnectedClients.Find(c => (c.Character != null && c.Character == ri.inflicter) || (c.Name == ri.charactername && ((ri.inflicter != null && ri.inflicter.IsRemotePlayer) || ri.inflicter == null)));
+                if (attackingclient != null) source = " from " + attackingclient.Name + " ";
+                else if (ri.inflicter != null) source = " from " + ri.inflicter.Info?.Name + " ";
+                else if (ri.charactername != "") source = " from " + ri.charactername + " ";
+                else source = " ";
+
+                if (ri.identifier == "") Identifier = "Other";
+                else Identifier = ri.identifier;
+
+                //Record the damages for griefwatcher per-client tallied up
+                if (GameMain.NilMod.EnableGriefWatcher && attackingclient != null)
+                {
+                    if (!HuskAttackers.ContainsKey(attackingclient))
+                    {
+                        HuskAttackers.Add(attackingclient, ri.damage);
+                    }
+                    else
+                    {
+                        HuskAttackers[attackingclient] += ri.damage;
+                    }
+                }
+
+                if (MyCharacter.HuskInfectionState > 0f)
+                {
+                    message = "Husk -" + Math.Round(ri.damage, 1)
+                        + source
+                        + "via " + Identifier;
+                    GameServer.Log(message, ServerLog.MessageType.Spawns);
+                }
+            }
+
+            if (GameMain.NilMod.EnableGriefWatcher)
+            {
+                //NilMod.NilModGriefWatcher.SendWarning(c.Character.LogName
+                //                            + " turned off " + item.Name
+                //                            + " (" + (int)(FlowPercentage) + " % Speed)", c);
+            }
+        }
+    }
+
 
     partial class Character : Entity, IDamageable, ISerializableEntity, IClientSerializable, IServerSerializable
     {
@@ -19,6 +460,8 @@ namespace Barotrauma
         public static bool DisableControls;
 
         public bool FinishedCreation = false;
+
+        public CharacterRecord charRecord;
 
         private bool enabled = true;
         public bool Enabled
@@ -479,43 +922,48 @@ namespace Barotrauma
                 if (controlled != this)
                 {
                     healthcalculation = ((healthcurrent * GameMain.NilMod.CreatureHealthMultiplier) + healthdifference) / GameMain.NilMod.CreatureHealthMultiplier;
+                    if (healthdifference > 0f) charRecord.RecoverStat("health", healthdifference);
                 }
                 //This creature/player is the host controlled, give them the Player Health Mult
                 else
                 {
-                    //Base Player Health Calculation
-                    healthcalculation = ((healthcurrent * GameMain.NilMod.PlayerHealthMultiplier) + healthdifference) / GameMain.NilMod.PlayerHealthMultiplier;
-
                     //Give them the Husk health multipliers instead if infected
-                    if (huskInfection != null)
+                    if (huskInfection == null)
                     {
-
+                        //Base Player Health Calculation
+                        healthcalculation = ((healthcurrent * GameMain.NilMod.PlayerHealthMultiplier) + healthdifference) / GameMain.NilMod.PlayerHealthMultiplier;
+                        if (healthdifference > 0f) charRecord.RecoverStat("health", healthdifference);
+                    }
+                    else
+                    {
                         //Husk infection is maxed out, use husk multipliers
                         if (huskInfection.State == HuskInfection.InfectionState.Active)
                         {
                             //Is trying to heal
-                            if (healthdifference > 0)
+                            if (healthdifference > 0f)
                             {
-                                healthcalculation = healthcurrent + (healthdifference / (GameMain.NilMod.PlayerHuskHealthMultiplier / GameMain.NilMod.HuskHealingMultiplierincurable));
+                                healthcalculation = ((healthcurrent * GameMain.NilMod.PlayerHuskHealthMultiplier) + (healthdifference * GameMain.NilMod.HuskHealingMultiplierincurable)) / GameMain.NilMod.PlayerHuskHealthMultiplier;
+                                if (healthdifference * GameMain.NilMod.HuskHealingMultiplierincurable > 0f) charRecord.RecoverStat("health", healthdifference * GameMain.NilMod.HuskHealingMultiplierincurable);
                             }
                             //Is taking damage
                             else
                             {
-                                healthcalculation = healthcurrent + (healthdifference / GameMain.NilMod.PlayerHuskHealthMultiplier);
+                                healthcalculation = ((healthcurrent * GameMain.NilMod.PlayerHuskHealthMultiplier) + healthdifference) / GameMain.NilMod.PlayerHuskHealthMultiplier;
                             }
                         }
                         //Is only infected with husk atm, use player values
                         else
                         {
                             //Is trying to heal
-                            if (healthdifference > 0)
+                            if (healthdifference > 0f)
                             {
-                                healthcalculation = healthcurrent + (healthdifference / (GameMain.NilMod.PlayerHealthMultiplier * GameMain.NilMod.HuskHealingMultiplierinfected));
+                                healthcalculation = ((healthcurrent * GameMain.NilMod.PlayerHealthMultiplier) + (healthdifference * GameMain.NilMod.HuskHealingMultiplierinfected)) / GameMain.NilMod.PlayerHealthMultiplier;
+                                if (healthdifference * GameMain.NilMod.HuskHealingMultiplierinfected > 0f) charRecord.RecoverStat("health", healthdifference * GameMain.NilMod.HuskHealingMultiplierinfected);
                             }
                             //Is taking damage
                             else
                             {
-                                healthcalculation = healthcurrent + (healthdifference / GameMain.NilMod.PlayerHealthMultiplier);
+                                healthcalculation = ((healthcurrent * GameMain.NilMod.PlayerHealthMultiplier) + healthdifference) / GameMain.NilMod.PlayerHealthMultiplier;
                             }
                         }
                     }
@@ -524,40 +972,43 @@ namespace Barotrauma
             //This is a remote player, give them the Player Health Mult
             else
             {
-                //Base Player Health Calculation
-                healthcalculation = ((healthcurrent * GameMain.NilMod.PlayerHealthMultiplier) + healthdifference) / GameMain.NilMod.PlayerHealthMultiplier;
-
                 //Give them the Husk health multipliers instead if infected
-                if (huskInfection != null)
+                if (huskInfection == null)
                 {
-
+                    //Base Player Health Calculation
+                    healthcalculation = ((healthcurrent * GameMain.NilMod.PlayerHealthMultiplier) + healthdifference) / GameMain.NilMod.PlayerHealthMultiplier;
+                    if (healthdifference > 0f) charRecord.RecoverStat("health", healthdifference);
+                }
+                else
+                {
                     //Husk infection is maxed out, use husk multipliers
                     if (huskInfection.State == HuskInfection.InfectionState.Active)
                     {
                         //Is trying to heal
-                        if (healthdifference > 0)
+                        if (healthdifference > 0f)
                         {
-                            // 80 + (20 / (5 / 0.2)) 
-                            healthcalculation = healthcurrent + (healthdifference / (GameMain.NilMod.PlayerHuskHealthMultiplier / GameMain.NilMod.HuskHealingMultiplierincurable));
+                            healthcalculation = ((healthcurrent * GameMain.NilMod.PlayerHuskHealthMultiplier) + (healthdifference * GameMain.NilMod.HuskHealingMultiplierincurable)) / GameMain.NilMod.PlayerHuskHealthMultiplier;
+                            if (healthdifference * GameMain.NilMod.HuskHealingMultiplierincurable > 0f) charRecord.RecoverStat("health", healthdifference * GameMain.NilMod.HuskHealingMultiplierincurable);
                         }
                         //Is taking damage
                         else
                         {
-                            healthcalculation = healthcurrent + (healthdifference / GameMain.NilMod.PlayerHuskHealthMultiplier);
+                            healthcalculation = ((healthcurrent * GameMain.NilMod.PlayerHuskHealthMultiplier) + healthdifference) / GameMain.NilMod.PlayerHuskHealthMultiplier;
                         }
                     }
                     //Is only infected with husk atm, use player values
                     else
                     {
                         //Is trying to heal
-                        if (healthdifference > 0)
+                        if (healthdifference > 0f)
                         {
                             healthcalculation = healthcurrent + (healthdifference / (GameMain.NilMod.PlayerHealthMultiplier * GameMain.NilMod.HuskHealingMultiplierinfected));
+                            if(healthdifference * GameMain.NilMod.HuskHealingMultiplierinfected > 0f) charRecord.RecoverStat("health", healthdifference * GameMain.NilMod.HuskHealingMultiplierinfected);
                         }
                         //Is taking damage
                         else
                         {
-                            healthcalculation = healthcurrent + (healthdifference / GameMain.NilMod.PlayerHealthMultiplier);
+                            healthcalculation = ((healthcurrent * GameMain.NilMod.PlayerHealthMultiplier) + healthdifference) / GameMain.NilMod.PlayerHealthMultiplier;
                         }
                     }
                 }
@@ -583,7 +1034,10 @@ namespace Barotrauma
                 newHealth = CheckHealth(newHealth);
 
                 if (health == newHealth) return;
+
                 health = MathHelper.Clamp(newHealth, minHealth, maxHealth);
+
+
 
                 /*
                 if (GameMain.Server != null)
@@ -660,6 +1114,7 @@ namespace Barotrauma
                 }
             }
 
+            /*
             //Nilmod Deny healing of the infected
             if (huskInfection != null && GameMain.Client == null)
             {
@@ -671,6 +1126,7 @@ namespace Barotrauma
                     }
                 }
             }
+            */
 
             return newHealth;
         }
@@ -704,6 +1160,8 @@ namespace Barotrauma
                 newBleeding = CheckBleeding(newBleeding);
 
                 if (newBleeding == bleeding) return;
+                if(newBleeding < bleeding) charRecord.RecoverStat("bleeding", (bleeding - newBleeding) * GameMain.NilMod.CreatureBleedMultiplier);
+
                 bleeding = newBleeding;
                 
                 /*if (GameMain.Server != null)
@@ -960,6 +1418,8 @@ namespace Barotrauma
             selectedItems = new Item[2];
 
             IsRemotePlayer = isRemotePlayer;
+
+            charRecord = new CharacterRecord(this);
 
             oxygen = 100.0f;
             oxygenAvailable = 100.0f;
@@ -2057,8 +2517,38 @@ namespace Barotrauma
             //Health effects
             if (needsAir) UpdateOxygen(deltaTime);
 
-            Health -= bleeding * deltaTime;
-            Bleeding -= BleedingDecreaseSpeed * deltaTime;
+            //NilMod Health Regen Code
+            if (!IsRemotePlayer)
+            {
+                if (controlled != this && GameMain.NilMod.CreatureHealthRegen != 0f && huskInfection == null)
+                {
+                    if (Health >= (GameMain.NilMod.CreatureHealthRegenMin * MaxHealth) && Health <= (GameMain.NilMod.CreatureHealthRegenMax * MaxHealth))
+                    {
+                        Health += Math.Max((GameMain.NilMod.CreatureHealthRegen - (Bleeding / 3)) * deltaTime, 0f);
+                    }
+                }
+                else if (GameMain.NilMod.PlayerHealthRegen != 0f && huskInfection == null)
+                {
+                    if (Health >= (GameMain.NilMod.PlayerHealthRegenMin * MaxHealth) && Health <= (GameMain.NilMod.PlayerHealthRegenMax * MaxHealth))
+                    {
+                        Health += Math.Max((GameMain.NilMod.PlayerHealthRegen - (Bleeding / 3)) * deltaTime, 0f);
+                    }
+                }
+            }
+            else if (GameMain.NilMod.PlayerHealthRegen != 0f && huskInfection == null)
+            {
+                if (Health >= (GameMain.NilMod.PlayerHealthRegenMin * MaxHealth) && Health <= (GameMain.NilMod.PlayerHealthRegenMax * MaxHealth))
+                {
+                    Health += Math.Max((GameMain.NilMod.PlayerHealthRegen - (Bleeding / 3)) * deltaTime, 0f);
+                }
+            }
+
+            if (DoesBleed && Bleeding > 0f)
+            {
+                charRecord.DamageStat("health", -(bleeding * deltaTime), null, "Bleeding");
+                Health -= (Bleeding * GameMain.NilMod.CreatureBleedMultiplier) * deltaTime;
+                Bleeding -= (BleedingDecreaseSpeed * GameMain.NilMod.ConciousPassiveBleedRecoveryMult) * deltaTime;
+            }
 
             if (health <= minHealth) Kill(CauseOfDeath.Bloodloss);
 
@@ -2093,12 +2583,6 @@ namespace Barotrauma
             if (aiTarget != null) aiTarget.SoundRange = 0.0f;
 
             lowPassMultiplier = MathHelper.Lerp(lowPassMultiplier, 1.0f, 0.1f);
-
-            if (DoesBleed && Bleeding > 0f)
-            {
-                Health -= (Bleeding * GameMain.NilMod.CreatureBleedMultiplier) * deltaTime;
-                Bleeding -= BleedingDecreaseSpeed * deltaTime;
-            }
 
             //NilMod Anti death code
             if (Health <= minHealth)
@@ -2145,32 +2629,6 @@ namespace Barotrauma
                 }
             }
 
-            //NilMod Health Regen Code
-            if (!IsRemotePlayer)
-            {
-                if (controlled != this && GameMain.NilMod.CreatureHealthRegen != 0f && huskInfection == null)
-                {
-                    if (Health >= (GameMain.NilMod.CreatureHealthRegenMin * MaxHealth) && Health <= (GameMain.NilMod.CreatureHealthRegenMax * MaxHealth))
-                    {
-                        Health += Math.Max((GameMain.NilMod.CreatureHealthRegen - (Bleeding / 3)) * deltaTime,0f);
-                    }
-                }
-                else if (GameMain.NilMod.PlayerHealthRegen != 0f && huskInfection == null)
-                {
-                    if (Health >= (GameMain.NilMod.PlayerHealthRegenMin * MaxHealth) && Health <= (GameMain.NilMod.PlayerHealthRegenMax * MaxHealth))
-                    {
-                        Health += Math.Max((GameMain.NilMod.PlayerHealthRegen - (Bleeding / 3)) * deltaTime, 0f);
-                    }
-                }
-            }
-            else if (GameMain.NilMod.PlayerHealthRegen != 0f && huskInfection == null)
-            {
-                if (Health >= (GameMain.NilMod.PlayerHealthRegenMin * MaxHealth) && Health <= (GameMain.NilMod.PlayerHealthRegenMax * MaxHealth))
-                {
-                    Health += Math.Max((GameMain.NilMod.PlayerHealthRegen - (Bleeding / 3)) * deltaTime, 0f);
-                }
-            }
-
             if (!IsDead) LockHands = false;
             //CPR stuff is handled in the UpdateCPR function in HumanoidAnimController
         }
@@ -2182,7 +2640,10 @@ namespace Barotrauma
         private void UpdateOxygen(float deltaTime)
         {
             float prevOxygen = Oxygen;
-            Oxygen += deltaTime * (oxygenAvailable < GameMain.NilMod.HullUnbreathablePercent ? GameMain.NilMod.PlayerOxygenUsageAmount : GameMain.NilMod.PlayerOxygenGainSpeed);
+            float oxygenchange = deltaTime * (oxygenAvailable < GameMain.NilMod.HullUnbreathablePercent ? GameMain.NilMod.PlayerOxygenUsageAmount : GameMain.NilMod.PlayerOxygenGainSpeed);
+
+            if (oxygenchange < 0f) charRecord.DamageStat("oxygen", -oxygenchange, null, "Suffocation");
+            Oxygen += oxygenchange;
 
             UpdateOxygenProjSpecific(prevOxygen);
 
@@ -2256,20 +2717,23 @@ namespace Barotrauma
                 }
             }
 
-            if(GameMain.NilMod.AverageDecayIfBothNegative && Health <= 0.0f && Oxygen <= 0.0f)
+            if(Health <= 0.0f && Oxygen <= 0.0f)
             {
-                HealthDamage = HealthDamage / 2;
-                BleedDamage = BleedDamage / 2;
-                OxygenDamage = OxygenDamage / 2;
+                if (HealthDamage > 0f && GameMain.NilMod.UnconciousDecayAverageHealth) HealthDamage = HealthDamage / 2;
+                if (BleedDamage > 0f && GameMain.NilMod.UnconciousDecayAverageBleed) BleedDamage = BleedDamage / 2;
+                if (OxygenDamage > 0f && GameMain.NilMod.UnconciousDecayAverageOxygen) OxygenDamage = OxygenDamage / 2;
             }
 
             float pressureFactor = (AnimController.CurrentHull == null) ?
                     100.0f : Math.Min(AnimController.CurrentHull.LethalPressure, 100.0f);
             if (PressureProtection > 0.0f && (WorldPosition.Y > GameMain.NilMod.PlayerCrushDepthOutsideHull || (WorldPosition.Y > GameMain.NilMod.PlayerCrushDepthInHull && CurrentHull != null))) pressureFactor = 0.0f;
 
+            AddDamage(pressureFactor == 100f ? CauseOfDeath.Pressure : (Bleeding > 0.5f ? CauseOfDeath.Bloodloss : CauseOfDeath.Damage), (Math.Max(Bleeding * GameMain.NilMod.CreatureBleedMultiplier, HealthDamage)) * deltaTime, null, "Unconcious");
             Bleeding += BleedDamage * deltaTime;
-            AddDamage(pressureFactor == 100f ? CauseOfDeath.Pressure : (Bleeding > 0.5f ? CauseOfDeath.Bloodloss : CauseOfDeath.Damage), (Math.Max(Bleeding * GameMain.NilMod.CreatureBleedMultiplier, HealthDamage)) * deltaTime, null);
+            Bleeding -= (BleedingDecreaseSpeed * GameMain.NilMod.UnconciousPassiveBleedRecoveryMult) * deltaTime;
+            charRecord.DamageStat("bleed", BleedDamage * deltaTime, null, "Unconcious");
             Oxygen -= OxygenDamage * deltaTime;
+            charRecord.DamageStat("oxygen", OxygenDamage * deltaTime, null, "Unconcious");
 
             //if (health <= 0.0f) //Critical health - use current state for crit time
             //{
@@ -2322,11 +2786,13 @@ namespace Barotrauma
         /// <summary>
         /// Directly reduce the health of the character without any additional effects (particles, sounds, status effects...)
         /// </summary>
-        public virtual void AddDamage(CauseOfDeath causeOfDeath, float amount, Character attacker)
+        public virtual void AddDamage(CauseOfDeath causeOfDeath, float amount, Character attacker, string identifier = "")
         {
             Health = Health - amount;
             if (amount > 0.0f)
             {
+                charRecord.DamageStat("health", amount, attacker, identifier);
+
                 lastAttackCauseOfDeath = causeOfDeath;
 
                 DamageHUD(amount);
@@ -2362,7 +2828,7 @@ namespace Barotrauma
         }
         partial void DamageHUD(float amount);
 
-        public AttackResult AddDamage(Character attacker, Vector2 worldPosition, Attack attack, float deltaTime, bool playSound = false)
+        public AttackResult AddDamage(Character attacker, Vector2 worldPosition, Attack attack, float deltaTime, bool playSound = false, string identifier = "")
         {
             return ApplyAttack(attacker, worldPosition, attack, deltaTime, playSound, null);
         }
@@ -2370,12 +2836,12 @@ namespace Barotrauma
         /// <summary>
         /// Apply the specified attack to this character. If the targetLimb is not specified, the limb closest to worldPosition will receive the damage.
         /// </summary>
-        public virtual AttackResult ApplyAttack(Character attacker, Vector2 worldPosition, Attack attack, float deltaTime, bool playSound = false, Limb targetLimb = null)
+        public virtual AttackResult ApplyAttack(Character attacker, Vector2 worldPosition, Attack attack, float deltaTime, bool playSound = false, Limb targetLimb = null, string identifier = "")
         {
             Limb limbHit = targetLimb;
             var attackResult = targetLimb == null ?
-                AddDamage(worldPosition, attack.DamageType, attack.GetDamage(deltaTime), attack.GetBleedingDamage(deltaTime), attack.Stun, playSound, attack.TargetForce, out limbHit, attacker) :
-                DamageLimb(worldPosition, targetLimb, attack.DamageType, attack.GetDamage(deltaTime), attack.GetBleedingDamage(deltaTime), attack.Stun, playSound, attack.TargetForce, attacker);
+                AddDamage(worldPosition, attack.DamageType, attack.GetDamage(deltaTime), attack.GetBleedingDamage(deltaTime), attack.Stun, playSound, attack.TargetForce, out limbHit, attacker, identifier) :
+                DamageLimb(worldPosition, targetLimb, attack.DamageType, attack.GetDamage(deltaTime), attack.GetBleedingDamage(deltaTime), attack.Stun, playSound, attack.TargetForce, attacker, identifier);
 
             if (limbHit == null) return new AttackResult();
 
@@ -2467,13 +2933,13 @@ namespace Barotrauma
             return attackResult;
         }
 
-        public AttackResult AddDamage(Vector2 worldPosition, DamageType damageType, float amount, float bleedingAmount, float stun, bool playSound, float attackForce = 0.0f)
+        public AttackResult AddDamage(Vector2 worldPosition, DamageType damageType, float amount, float bleedingAmount, float stun, bool playSound, float attackForce = 0.0f, Character attacker = null, string identifier = "")
         {
             Limb temp = null;
-            return AddDamage(worldPosition, damageType, amount, bleedingAmount, stun, playSound, attackForce, out temp);
+            return AddDamage(worldPosition, damageType, amount, bleedingAmount, stun, playSound, attackForce, out temp, attacker, identifier);
         }
 
-        public AttackResult AddDamage(Vector2 worldPosition, DamageType damageType, float amount, float bleedingAmount, float stun, bool playSound, float attackForce, out Limb hitLimb, Character attacker = null)
+        public AttackResult AddDamage(Vector2 worldPosition, DamageType damageType, float amount, float bleedingAmount, float stun, bool playSound, float attackForce, out Limb hitLimb, Character attacker = null, string identifier = "")
         {
             hitLimb = null;
 
@@ -2490,10 +2956,10 @@ namespace Barotrauma
                 }
             }
 
-            return DamageLimb(worldPosition, hitLimb, damageType, amount, bleedingAmount, stun, playSound, attackForce, attacker);
+            return DamageLimb(worldPosition, hitLimb, damageType, amount, bleedingAmount, stun, playSound, attackForce, attacker, identifier);
         }
 
-        public AttackResult DamageLimb(Vector2 worldPosition, Limb hitLimb, DamageType damageType, float amount, float bleedingAmount, float stun, bool playSound, float attackForce, Character attacker = null)
+        public AttackResult DamageLimb(Vector2 worldPosition, Limb hitLimb, DamageType damageType, float amount, float bleedingAmount, float stun, bool playSound, float attackForce, Character attacker = null, string identifier = "")
         {
             if (Removed) return new AttackResult();
 
@@ -2508,11 +2974,12 @@ namespace Barotrauma
 
             AttackResult attackResult = hitLimb.AddDamage(worldPosition, damageType, amount, bleedingAmount, playSound);
 
-            AddDamage(damageType == DamageType.Burn ? CauseOfDeath.Burn : causeOfDeath, attackResult.Damage, attacker);
+            AddDamage(damageType == DamageType.Burn ? CauseOfDeath.Burn : causeOfDeath, attackResult.Damage, attacker, identifier);
 
             if (DoesBleed)
             {
                 Bleeding += attackResult.Bleeding;
+                charRecord.DamageStat("bleed", attackResult.Bleeding, attacker, identifier);
             }
             
             return attackResult;
@@ -2632,7 +3099,7 @@ namespace Barotrauma
 
         partial void ImplodeFX();
 
-        public void Kill(CauseOfDeath causeOfDeath, bool isNetworkMessage = false)
+        public void Kill(CauseOfDeath causeOfDeath, bool isNetworkMessage = false, bool gaveIn = false)
         {
             if (isDead) return;
 
@@ -2659,7 +3126,10 @@ namespace Barotrauma
 
             AnimController.Frozen = false;
 
-            GameServer.Log(LogName + " has died (Cause of death: " + causeOfDeath + ")", ServerLog.MessageType.Attack);
+            if(!gaveIn) GameServer.Log(LogName + " has died (Cause of death: " + causeOfDeath + ")", ServerLog.MessageType.Attack);
+            else GameServer.Log(LogName + " has given in and died (Cause of death: " + causeOfDeath + ")", ServerLog.MessageType.Attack);
+
+            charRecord.ReportRecord();
 
             string characterType = "Unknown";
             if (this == controlled)
@@ -2728,6 +3198,11 @@ namespace Barotrauma
             bleeding = 0f;
             SetStun(0.0f, true, true);
 
+            StripNegativeEffects();
+
+            charRecord = new CharacterRecord(this);
+            charRecord.DamageStat("health", maxHealth - health, null, "Revived");
+
             //Spawn protection
             if (GameMain.NilMod.ReviveGrantsProtectPercent > 0f)
             {
@@ -2771,6 +3246,8 @@ namespace Barotrauma
             DebugConsole.Log("Removing character " + Name + " (ID: " + ID + ")");
 
             base.Remove();
+
+            charRecord = null;
 
 #if CLIENT
             if (LastControlled == this) LastControlled = null;
@@ -2843,6 +3320,9 @@ namespace Barotrauma
             {
                 HuskInfectionState = 0f;
             }
+
+            //Healing resets tracked damage sources
+            charRecord = new CharacterRecord(this);
 
             StripNegativeEffects();
 

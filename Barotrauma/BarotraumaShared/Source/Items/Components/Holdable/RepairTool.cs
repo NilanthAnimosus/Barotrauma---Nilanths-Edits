@@ -2,6 +2,7 @@
 using FarseerPhysics.Dynamics;
 using Microsoft.Xna.Framework;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Xml.Linq;
 
@@ -127,7 +128,7 @@ namespace Barotrauma.Items.Components
 
             if (Rand.Range(0.0f, 0.5f) > degreeOfSuccess)
             {
-                ApplyStatusEffects(ActionType.OnFailure, deltaTime, character);
+                ApplyStatusEffects(ActionType.OnFailure, deltaTime, character, character, "OnFailiure");
                 return false;
             }
 
@@ -216,6 +217,7 @@ namespace Barotrauma.Items.Components
             Character targetCharacter;
             Limb targetLimb;
             Item targetItem;
+            string effectidentifier = "";
             if ((targetStructure = (targetBody.UserData as Structure)) != null)
             {
                 if (!fixableEntities.Contains("structure") && !fixableEntities.Contains(targetStructure.Name)) return;
@@ -318,7 +320,29 @@ namespace Barotrauma.Items.Components
             }
             else if ((targetLimb = (targetBody.UserData as Limb)) != null)
             {
-                targetLimb.character.AddDamage(CauseOfDeath.Damage, -LimbFixAmount * degreeOfSuccess, user);
+                if (item.ContainedItems != null && item.ContainedItems.Length > 0)
+                {
+                    effectidentifier = item.Name + " (" + string.Join(", ", Array.FindAll(item.ContainedItems, i => i != null).Select(i => i.Name)) + ")";
+                }
+                else
+                {
+                    effectidentifier = item.Name;
+                }
+
+                float previoushealth = targetLimb.character.Health;
+                targetLimb.character.AddDamage(CauseOfDeath.Damage, -LimbFixAmount * degreeOfSuccess, user, effectidentifier);
+                if(GameMain.NilMod.EnableGriefWatcher && NilMod.NilModGriefWatcher.PlayerIncapaciteDamage && 
+                    previoushealth > 0f && targetLimb.character.Health <= 0f)
+                {
+                    Barotrauma.Networking.Client attackingclient = GameMain.Server.ConnectedClients.Find(c => c.Character != null && c.Character == user);
+                    Barotrauma.Networking.Client targetclient = GameMain.Server.ConnectedClients.Find(c => c.Character != null && !c.Character.IsDead && c.Character == targetLimb.character);
+                    if (attackingclient != null && targetclient != null)
+                    {
+                        NilMod.NilModGriefWatcher.SendWarning(attackingclient.Character.LogName
+                                                    + " Incapacitated player " + targetclient.Character.LogName
+                                                    + " with " + effectidentifier, attackingclient);
+                    }
+                }
 
 #if CLIENT
                 Vector2 particlePos = ConvertUnits.ToDisplayUnits(pickedPosition);
@@ -332,7 +356,29 @@ namespace Barotrauma.Items.Components
             }
             else if ((targetCharacter = (targetBody.UserData as Character)) != null)
             {
-                targetCharacter.AddDamage(CauseOfDeath.Damage, -LimbFixAmount * degreeOfSuccess, user);
+                if (item.ContainedItems != null && item.ContainedItems.Length > 0)
+                {
+                    effectidentifier = item.Name + " (" + string.Join(", ", Array.FindAll(item.ContainedItems, i => i != null).Select(i => i.Name)) + ")";
+                }
+                else
+                {
+                    effectidentifier = item.Name;
+                }
+
+                float previoushealth = targetCharacter.Health;
+                targetCharacter.AddDamage(CauseOfDeath.Damage, -LimbFixAmount * degreeOfSuccess, user, effectidentifier);
+                if (GameMain.NilMod.EnableGriefWatcher && NilMod.NilModGriefWatcher.PlayerIncapaciteDamage &&
+                    previoushealth > 0f && targetLimb.character.Health <= 0f)
+                {
+                    Barotrauma.Networking.Client attackingclient = GameMain.Server.ConnectedClients.Find(c => c.Character != null && c.Character == user);
+                    Barotrauma.Networking.Client targetclient = GameMain.Server.ConnectedClients.Find(c => c.Character != null && !c.Character.IsDead && c.Character == targetLimb.character);
+                    if (attackingclient != null && targetclient != null)
+                    {
+                        NilMod.NilModGriefWatcher.SendWarning(attackingclient.Character.LogName
+                                                    + " Incapacitated player " + targetclient.Character.LogName
+                                                    + " with " + effectidentifier, attackingclient);
+                    }
+                }
 #if CLIENT
                 Vector2 particlePos = ConvertUnits.ToDisplayUnits(pickedPosition);
                 if (targetCharacter.Submarine != null) particlePos += targetCharacter.Submarine.DrawPosition;
@@ -411,7 +457,7 @@ namespace Barotrauma.Items.Components
             return leak.Open <= 0.0f;
         }
 
-        private void ApplyStatusEffectsOnTarget(float deltaTime, ActionType actionType, List<ISerializableEntity> targets)
+        private void ApplyStatusEffectsOnTarget(float deltaTime, ActionType actionType, List<ISerializableEntity> targets, Character causecharacter = null, string identifier = "")
         {
             if (statusEffectLists == null) return;
 
@@ -422,7 +468,7 @@ namespace Barotrauma.Items.Components
             {
                 if (effect.Targets.HasFlag(StatusEffect.TargetType.UseTarget))
                 {
-                    effect.Apply(actionType, deltaTime, item, targets);
+                    effect.Apply(actionType, deltaTime, item, targets, causecharacter, identifier);
                 }
             }
         }

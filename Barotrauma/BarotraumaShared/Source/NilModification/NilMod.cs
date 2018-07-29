@@ -46,7 +46,7 @@ namespace Barotrauma
     class NilMod
     {
         const string SettingsSavePath = "Data/NilMod/Settings.xml";
-        public const string NilModVersionDate = "24/07/2018-1";
+        public const string NilModVersionDate = "29/07/2018-1";
         public Version NilModNetworkingVersion = new Version(0,0,0,1);
 
         public Stopwatch serverruntime;
@@ -289,6 +289,7 @@ namespace Barotrauma
         public Boolean AllowReconnect;
         public float ReconnectAddStun;
         public float ReconnectTimeAllowed;
+        public float WaitForResponseTimer;
 
         //Campaign Settings
         public string CampaignDefaultSaveName;
@@ -338,13 +339,17 @@ namespace Barotrauma
         public float HuskHealingMultiplierincurable;
         public float PlayerHuskInfectedDrain;
         public float PlayerHuskIncurableDrain;
-        public Boolean AverageDecayIfBothNegative;
+        public Boolean UnconciousDecayAverageHealth;
+        public Boolean UnconciousDecayAverageBleed;
+        public Boolean UnconciousDecayAverageOxygen;
         public float HealthUnconciousDecayHealth;
         public float HealthUnconciousDecayBleed;
         public float HealthUnconciousDecayOxygen;
         public float OxygenUnconciousDecayHealth;
         public float OxygenUnconciousDecayBleed;
         public float OxygenUnconciousDecayOxygen;
+        public float UnconciousPassiveBleedRecoveryMult;
+        public float ConciousPassiveBleedRecoveryMult;
         public float MinHealthBleedCap;
         public float CreatureBleedMultiplier;
         //This needs to be changed into a percent instead : >
@@ -912,12 +917,17 @@ namespace Barotrauma
             GameMain.Server.ServerLog.WriteLine("HuskHealingMultiplierincurable = " + HuskHealingMultiplierincurable.ToString(), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("PlayerHuskInfectedDrain = " + PlayerHuskInfectedDrain.ToString(), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("PlayerHuskIncurableDrain = " + PlayerHuskIncurableDrain.ToString(), ServerLog.MessageType.NilMod);
+            GameMain.Server.ServerLog.WriteLine("UnconciousDecayAverageHealth = " + UnconciousDecayAverageHealth.ToString(), ServerLog.MessageType.NilMod);
+            GameMain.Server.ServerLog.WriteLine("UnconciousDecayAverageBleed = " + UnconciousDecayAverageBleed.ToString(), ServerLog.MessageType.NilMod);
+            GameMain.Server.ServerLog.WriteLine("UnconciousDecayAverageOxygen = " + UnconciousDecayAverageOxygen.ToString(), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("HealthUnconciousDecayHealth = " + HealthUnconciousDecayHealth.ToString(), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("HealthUnconciousDecayBleed = " + HealthUnconciousDecayBleed.ToString(), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("HealthUnconciousDecayOxygen = " + HealthUnconciousDecayOxygen.ToString(), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("OxygenUnconciousDecayHealth = " + OxygenUnconciousDecayHealth.ToString(), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("OxygenUnconciousDecayBleed = " + OxygenUnconciousDecayBleed.ToString(), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("OxygenUnconciousDecayOxygen = " + OxygenUnconciousDecayOxygen.ToString(), ServerLog.MessageType.NilMod);
+            GameMain.Server.ServerLog.WriteLine("ConciousPassiveBleedRecoveryMult = " + ConciousPassiveBleedRecoveryMult.ToString(), ServerLog.MessageType.NilMod);
+            GameMain.Server.ServerLog.WriteLine("UnconciousPassiveBleedRecoveryMult = " + UnconciousPassiveBleedRecoveryMult.ToString(), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("MinHealthBleedCap = " + MinHealthBleedCap.ToString(), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("CreatureBleedMultiplier = " + CreatureBleedMultiplier.ToString(), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("ArmourBleedBypassNoDamage = " + (ArmourBleedBypassNoDamage ? "Enabled" : "Disabled"), ServerLog.MessageType.NilMod);
@@ -1191,6 +1201,7 @@ namespace Barotrauma
                         DefaultRespawnShuttle = ServerModDefaultServerSettings.GetAttributeString("DefaultRespawnShuttle", "");
                         DefaultSubmarine = ServerModDefaultServerSettings.GetAttributeString("DefaultSubmarine", "");
                         DefaultLevelSeed = ServerModDefaultServerSettings.GetAttributeString("DefaultLevelSeed", "");
+                        if (DefaultLevelSeed != "" && DefaultLevelSeed.Length > 18) DefaultLevelSeed = DefaultLevelSeed.Substring(0, 18);
                         SetDefaultsAlways = ServerModDefaultServerSettings.GetAttributeBool("SetDefaultsAlways", false);
                         UseAlternativeNetworking = ServerModDefaultServerSettings.GetAttributeBool("UseAlternativeNetworking", false);
                         CharacterDisabledistance = MathHelper.Clamp(ServerModDefaultServerSettings.GetAttributeFloat("CharacterDisabledistance", 20000.0f), 10000.00f, 100000.00f);
@@ -1205,6 +1216,7 @@ namespace Barotrauma
                         AllowReconnect = ServerModDefaultServerSettings.GetAttributeBool("AllowReconnect", false);
                         ReconnectAddStun = MathHelper.Clamp(ServerModDefaultServerSettings.GetAttributeFloat("ReconnectAddStun", 5.00f), 0.00f, 60.00f);
                         ReconnectTimeAllowed = MathHelper.Clamp(ServerModDefaultServerSettings.GetAttributeFloat("ReconnectTimeAllowed", 10.00f), 10.00f, 600.00f);
+                        WaitForResponseTimer = MathHelper.Clamp(ServerModDefaultServerSettings.GetAttributeFloat("WaitForResponseTimer", 5.00f), 3.00f, 20.00f);
 
                         UseDesyncPrevention = ServerModDefaultServerSettings.GetAttributeBool("UseDesyncPrevention", true);
                         DesyncPreventionItemPassTimer = MathHelper.Clamp(ServerModDefaultServerSettings.GetAttributeFloat("DesyncPreventionItemPassTimer", 0.05f), 0.00f, 10.00f);
@@ -1412,12 +1424,17 @@ namespace Barotrauma
                         HuskHealingMultiplierincurable = MathHelper.Clamp(ServerModAllCharacterSettings.GetAttributeFloat("HuskHealingMultiplierincurable", 1.0f), -1000f, 1000f);
                         PlayerHuskInfectedDrain = MathHelper.Clamp(ServerModAllCharacterSettings.GetAttributeFloat("PlayerHuskInfectedDrain", 0.00f), -1000f, 1000f);
                         PlayerHuskIncurableDrain = MathHelper.Clamp(ServerModAllCharacterSettings.GetAttributeFloat("PlayerHuskIncurableDrain", 0.50f), -1000f, 1000f);
+                        UnconciousDecayAverageHealth = ServerModAllCharacterSettings.GetAttributeBool("UnconciousDecayAverageHealth", false);
+                        UnconciousDecayAverageBleed = ServerModAllCharacterSettings.GetAttributeBool("UnconciousDecayAverageBleed", false);
+                        UnconciousDecayAverageOxygen = ServerModAllCharacterSettings.GetAttributeBool("UnconciousDecayAverageOxygen", true);
                         HealthUnconciousDecayHealth = MathHelper.Clamp(ServerModAllCharacterSettings.GetAttributeFloat("HealthUnconciousDecayHealth", 0.5f), -500f, 200f); //Implemented
                         HealthUnconciousDecayBleed = MathHelper.Clamp(ServerModAllCharacterSettings.GetAttributeFloat("HealthUnconciousDecayBleed", 0.0f), -500f, 200f); //Implemented
-                        HealthUnconciousDecayOxygen = MathHelper.Clamp(ServerModAllCharacterSettings.GetAttributeFloat("HealthUnconciousDecayOxygen", 0.0f), -100f, 200f); //Implemented
+                        HealthUnconciousDecayOxygen = MathHelper.Clamp(ServerModAllCharacterSettings.GetAttributeFloat("HealthUnconciousDecayOxygen", 0.5f), -100f, 200f); //Implemented
                         OxygenUnconciousDecayHealth = MathHelper.Clamp(ServerModAllCharacterSettings.GetAttributeFloat("OxygenUnconciousDecayHealth", 0.0f), -500f, 200f); //Implemented
                         OxygenUnconciousDecayBleed = MathHelper.Clamp(ServerModAllCharacterSettings.GetAttributeFloat("OxygenUnconciousDecayBleed", 0.0f), -500f, 200f); //Implemented
-                        OxygenUnconciousDecayOxygen = MathHelper.Clamp(ServerModAllCharacterSettings.GetAttributeFloat("OxygenUnconciousDecayOxygen", 0.0f), -100f, 200f); //Implemented
+                        OxygenUnconciousDecayOxygen = MathHelper.Clamp(ServerModAllCharacterSettings.GetAttributeFloat("OxygenUnconciousDecayOxygen", 0.5f), -100f, 200f); //Implemented
+                        ConciousPassiveBleedRecoveryMult = MathHelper.Clamp(ServerModAllCharacterSettings.GetAttributeFloat("ConciousPassiveBleedRecoveryMult", 1f), 0f, 100f);
+                        UnconciousPassiveBleedRecoveryMult = MathHelper.Clamp(ServerModAllCharacterSettings.GetAttributeFloat("UnconciousPassiveBleedRecoveryMult", 0f), 0f, 100f);
                         MinHealthBleedCap = MathHelper.Clamp(ServerModAllCharacterSettings.GetAttributeFloat("MinHealthBleedCap", 5f), 0f, 5f); //Implemented
                         CreatureBleedMultiplier = MathHelper.Clamp(ServerModAllCharacterSettings.GetAttributeFloat("CreatureBleedMultiplier", 1.00f), 0f, 20f);
                         ArmourBleedBypassNoDamage = ServerModAllCharacterSettings.GetAttributeBool("ArmourBleedBypassNoDamage", false);
@@ -1719,6 +1736,7 @@ namespace Barotrauma
                 @"    AllowReconnect=""" + AllowReconnect + @"""",
                 @"    ReconnectAddStun=""" + ReconnectAddStun + @"""",
                 @"    ReconnectTimeAllowed=""" + ReconnectTimeAllowed + @"""",
+                @"    WaitForResponseTimer=""" + WaitForResponseTimer + @"""",
                 @"    UseDesyncPrevention=""" + UseDesyncPrevention + @"""",
                 @"    DesyncPreventionItemPassTimer=""" + DesyncPreventionItemPassTimer + @"""",
                 @"    DesyncPreventionPassItemCount=""" + DesyncPreventionPassItemCount + @"""",
@@ -1887,12 +1905,17 @@ namespace Barotrauma
                 @"    HuskHealingMultiplierincurable=""" + HuskHealingMultiplierincurable + @"""",
                 @"    PlayerHuskInfectedDrain=""" + PlayerHuskInfectedDrain + @"""",
                 @"    PlayerHuskIncurableDrain=""" + PlayerHuskIncurableDrain + @"""",
+                @"    UnconciousDecayAverageHealth=""" + UnconciousDecayAverageHealth + @"""",
+                @"    UnconciousDecayAverageBleed=""" + UnconciousDecayAverageBleed + @"""",
+                @"    UnconciousDecayAverageOxygen=""" + UnconciousDecayAverageOxygen + @"""",
                 @"    HealthUnconciousDecayHealth=""" + HealthUnconciousDecayHealth + @"""",
                 @"    HealthUnconciousDecayBleed=""" + HealthUnconciousDecayBleed + @"""",
                 @"    HealthUnconciousDecayOxygen=""" + HealthUnconciousDecayOxygen + @"""",
                 @"    OxygenUnconciousDecayHealth=""" + OxygenUnconciousDecayHealth + @"""",
                 @"    OxygenUnconciousDecayBleed=""" + OxygenUnconciousDecayBleed + @"""",
                 @"    OxygenUnconciousDecayOxygen=""" + OxygenUnconciousDecayOxygen + @"""",
+                @"    ConciousPassiveBleedRecoveryMult=""" + ConciousPassiveBleedRecoveryMult + @"""",
+                @"    UnconciousPassiveBleedRecoveryMult=""" + UnconciousPassiveBleedRecoveryMult + @"""",
                 @"    MinHealthBleedCap=""" + MinHealthBleedCap + @"""",
                 @"    CreatureBleedMultiplier=""" + CreatureBleedMultiplier + @"""",
                 @"    ArmourBleedBypassNoDamage=""" + ArmourBleedBypassNoDamage + @"""",
@@ -2281,6 +2304,7 @@ namespace Barotrauma
             AllowReconnect = false;
             ReconnectAddStun = 5f;
             ReconnectTimeAllowed = 30f;
+            WaitForResponseTimer = 5f;
 
             //Debug Settings
             DebugReportSettingsOnLoad = false;
@@ -2433,12 +2457,18 @@ namespace Barotrauma
             HuskHealingMultiplierincurable = 1.0f;
             PlayerHuskInfectedDrain = 0.0f;
             PlayerHuskIncurableDrain = 0.50f;
+            UnconciousDecayAverageHealth = false;
+            UnconciousDecayAverageBleed = false;
+            UnconciousDecayAverageOxygen = true;
             HealthUnconciousDecayHealth = 0.5f;
             HealthUnconciousDecayBleed = 0.0f;
-            HealthUnconciousDecayOxygen = 0.0f;
+            HealthUnconciousDecayOxygen = 0.5f;
             OxygenUnconciousDecayHealth = 0.0f;
             OxygenUnconciousDecayBleed = 0.0f;
-            OxygenUnconciousDecayOxygen = 0.0f;
+            OxygenUnconciousDecayOxygen = 0.5f;
+            UnconciousPassiveBleedRecoveryMult = 0f;
+            ConciousPassiveBleedRecoveryMult = 1f;
+            UnconciousPassiveBleedRecoveryMult = 0f;
             MinHealthBleedCap = 5f;
             CreatureBleedMultiplier = 1.00f;
             ArmourBleedBypassNoDamage = false;

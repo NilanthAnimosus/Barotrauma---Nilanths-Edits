@@ -390,7 +390,7 @@ namespace Barotrauma
                         break;
                     //Random if no valid mission type
                     default:
-                        GameMain.NetLobbyScreen.MissionTypeIndex = 5;
+                        GameMain.NetLobbyScreen.MissionTypeIndex = 0;
                         break;
                 }
             }
@@ -402,6 +402,38 @@ namespace Barotrauma
             else
             {
                 GameMain.NetLobbyScreen.SelectedModeIndex = 0;
+            }
+
+            if (GameMain.NilMod.DefaultLevelSeed != "") GameMain.NetLobbyScreen.LevelSeed = GameMain.NilMod.DefaultLevelSeed;
+
+            if (GameMain.NilMod.DefaultSubmarine != "")
+            {
+                Submarine sub = GameMain.NetLobbyScreen.GetSubList().Find(s => s.Name.ToLower() == GameMain.NilMod.DefaultSubmarine.ToLower());
+
+                if (sub != null)
+                {
+                    GameMain.NetLobbyScreen.SelectedSub = sub;
+                }
+                else
+                {
+                    sub = GameMain.NetLobbyScreen.SelectedSub;
+                    DebugConsole.NewMessage("Default submarine: " + GameMain.NilMod.DefaultSubmarine + " not found, using " + sub.Name + " instead", Color.Red);
+                }
+            }
+
+            if (GameMain.NilMod.DefaultRespawnShuttle != "")
+            {
+                Submarine shuttle = GameMain.NetLobbyScreen.GetSubList().Find(s => s.Name.ToLower() == GameMain.NilMod.DefaultRespawnShuttle.ToLower());
+
+                if (shuttle != null)
+                {
+                    GameMain.NetLobbyScreen.SelectedShuttle = shuttle;
+                }
+                else
+                {
+                    shuttle = GameMain.NetLobbyScreen.SelectedShuttle;
+                    DebugConsole.NewMessage("Default shuttle: " + GameMain.NilMod.DefaultRespawnShuttle + " not found, using " + shuttle.Name + " instead", Color.Red);
+                }
             }
 
             DebugConsole.NewMessage(

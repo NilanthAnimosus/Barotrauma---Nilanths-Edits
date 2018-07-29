@@ -332,12 +332,21 @@ namespace Barotrauma.Items.Components
         
         public virtual void ReceiveSignal(int stepsTaken, string signal, Connection connection, Item source, Character sender, float power = 0.0f) 
         {
-        
+            string identifier = "";
+            if (item.ContainedItems != null && item.ContainedItems.Length > 0)
+            {
+                identifier = item.Name + " (" + string.Join(", ", Array.FindAll(item.ContainedItems, it => it != null).Select(it => it.Name)) + ")";
+            }
+            else
+            {
+                identifier = item.Name;
+            }
+
             switch (connection.Name)
             {
                 case "activate":
                 case "use":
-                    item.Use(1.0f);
+                    item.Use(1.0f, null, sender, identifier);
                     break;
                 case "toggle":
                     IsActive = !isActive;
@@ -532,7 +541,7 @@ namespace Barotrauma.Items.Components
             return true;
         }
         
-        public void ApplyStatusEffects(ActionType type, float deltaTime, Character character = null)
+        public void ApplyStatusEffects(ActionType type, float deltaTime, Character character = null, Character causecharacter = null, string identifier = "")
         {
             if (statusEffectLists == null) return;
 
@@ -541,7 +550,7 @@ namespace Barotrauma.Items.Components
 
             foreach (StatusEffect effect in statusEffects)
             {
-                item.ApplyStatusEffect(effect, type, deltaTime, character);
+                item.ApplyStatusEffect(effect, type, deltaTime, character, false, causecharacter, identifier);
             }
         }
         

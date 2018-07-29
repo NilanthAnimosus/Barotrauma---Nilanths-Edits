@@ -601,14 +601,14 @@ namespace Barotrauma
                 {
                     if (impact > ImpactTolerance)
                     {
-                        float Damage = MathHelper.Clamp((impact - ImpactTolerance)*GameMain.NilMod.ImpactDamageMultiplier,GameMain.NilMod.MinImpactDamage,GameMain.NilMod.MaxImpactDamage);
+                        float Damage = MathHelper.Clamp((impact - ImpactTolerance) * GameMain.NilMod.ImpactDamageMultiplier,GameMain.NilMod.MinImpactDamage,GameMain.NilMod.MaxImpactDamage);
                         float BleedDamage = MathHelper.Clamp((impact - ImpactTolerance) * GameMain.NilMod.ImpactBleedMultiplier, GameMain.NilMod.MinImpactBleed, GameMain.NilMod.MaxImpactBleed);
 
                         if(Damage > 0)
                         {
                             character.AddDamage(CauseOfDeath.Damage, impact - ImpactTolerance, null);
 
-                            if (BleedDamage > 0) character.Bleeding += BleedDamage;
+                            if (BleedDamage > 0f) character.Bleeding += BleedDamage;
                         }
 
                         strongestImpact = Math.Max(strongestImpact, impact - ImpactTolerance);
