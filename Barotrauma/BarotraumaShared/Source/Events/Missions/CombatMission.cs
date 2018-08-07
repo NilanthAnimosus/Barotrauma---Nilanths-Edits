@@ -1,4 +1,5 @@
-﻿using Barotrauma.Networking;
+﻿using Barotrauma.Items.Components;
+using Barotrauma.Networking;
 using Microsoft.Xna.Framework;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,6 +14,8 @@ namespace Barotrauma
 
         private int state = 0;
         private int winner = -1;
+
+        private float VictoryTimer = 0f;
 
         private string[] descriptions;
 
@@ -235,6 +238,23 @@ namespace Barotrauma
             subs[1].SetPosition(Level.Loaded.EndPosition - new Vector2(0.0f, 2000.0f));
             subs[1].FlipX();
 
+            //prevent wifi components from communicating between subs 
+            List<WifiComponent> wifiComponents = new List<WifiComponent>();
+            foreach (Item item in Item.ItemList)
+            {
+                wifiComponents.AddRange(item.GetComponents<WifiComponent>());
+            }
+            foreach (WifiComponent wifiComponent in wifiComponents)
+            {
+                for (int i = 0; i < 2; i++)
+                {
+                    if (wifiComponent.Item.Submarine == subs[i] || subs[i].DockedTo.Contains(wifiComponent.Item.Submarine))
+                    {
+                        wifiComponent.TeamID = subs[i].TeamID;
+                    }
+                }
+            }
+
             crews = new List<Character>[] { new List<Character>(), new List<Character>() };
 
             foreach (Submarine submarine in Submarine.Loaded)
@@ -248,6 +268,7 @@ namespace Barotrauma
         {
             if (!initialized)
             {
+                VictoryTimer = 0f;
                 crews[0].Clear();
                 crews[1].Clear();
                 foreach (Character character in Character.CharacterList)
@@ -281,10 +302,10 @@ namespace Barotrauma
             {
                 for (int i = 0; i < teamDead.Length; i++)
                 {
-                    if (!teamDead[i] && teamDead[1-i])
+                    if (!teamDead[i] && teamDead[1 - i])
                     {
                         //make sure nobody in the other team can be revived because that would be pretty weird
-                        crews[1-i].ForEach(c => { if (!c.IsDead) c.Kill(CauseOfDeath.Damage); });
+                        crews[1 - i].ForEach(c => { if (!c.IsDead) c.Kill(CauseOfDeath.Damage); });
 
                         winner = i;
 
@@ -298,14 +319,23 @@ namespace Barotrauma
             }
             else
             {
-                if (winner>=0 && subs[winner] != null && 
-                    (winner == 0 && subs[winner].AtStartPosition) || (winner == 1 && subs[winner].AtEndPosition) &&
+                /*
+                if (winner >= 0 && subs[winner] != null &&
+                    (winner == 0 && (subs[winner].AtStartPosition || subs[winner].AtEndPosition))
+                    || (winner == 1 && subs[winner].AtEndPosition || subs[winner].AtStartPosition) &&
                     crews[winner].Any(c => !c.IsDead && c.Submarine == subs[winner]))
+                    */
+                if (winner >= 0)
                 {
+                    VictoryTimer += deltaTime;
+
+                    if (VictoryTimer >= 3f)
+                    {
 #if CLIENT
-                    GameMain.GameSession.CrewManager.WinningTeam = winner+1;
+                        GameMain.GameSession.CrewManager.WinningTeam = winner + 1;
 #endif
-                    if (GameMain.Server != null) GameMain.Server.EndGame();
+                        if (GameMain.Server != null) GameMain.Server.EndGame();
+                    }
                 }
             }
 

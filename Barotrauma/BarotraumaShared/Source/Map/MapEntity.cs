@@ -391,9 +391,12 @@ namespace Barotrauma
 
                 mapEntityList[i].OnMapLoaded();
             }
-            
-            Item.UpdateHulls();
-            Gap.UpdateHulls();
+
+            if (sub != null)
+            {
+                Item.UpdateHulls();
+                Gap.UpdateHulls();
+            }
 
             foreach (LinkedSubmarine linkedSub in linkedSubs)
             {

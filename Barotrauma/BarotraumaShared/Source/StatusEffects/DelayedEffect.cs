@@ -86,12 +86,19 @@ namespace Barotrauma
                     continue;
                 }
 
+                element.Targets.RemoveAll(t => t is Entity entity && entity.Removed);
+                if (element.Targets.Count == 0)
+                {
+                    DelayList.RemoveAt(i);
+                    continue;
+                }
+
                 element.StartTimer -= deltaTime;
 
                 if (element.StartTimer > 0.0f) continue;
 
                 element.Parent.Apply(1.0f, element.Entity, element.Targets, element.CancelledEffects, element.causecharacter, element.identifier);
-                DelayList.Remove(element);
+                DelayList.RemoveAt(i);
             }
         }
     }

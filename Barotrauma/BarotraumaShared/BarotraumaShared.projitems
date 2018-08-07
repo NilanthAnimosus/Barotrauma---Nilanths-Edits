@@ -1621,13 +1621,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)Source\Networking\ServerLog.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Source\Networking\Voting.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Source\Networking\WhiteList.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Source\NilModification\ClientLogServer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Source\NilModification\JoinLog.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Source\NilModification\NilMod.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Source\NilModification\NilmodAlerts.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Source\NilModification\NilModChatter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Source\NilModification\NilModHelpCommands.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Source\NilModification\NilModPermissions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Source\NilModification\RemovedBanList.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Source\NilModification\VPNBanlist.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Source\Physics\Physics.cs" />

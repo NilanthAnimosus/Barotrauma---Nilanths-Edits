@@ -31,6 +31,8 @@ namespace Barotrauma.Items.Components
         private Vector2 avoidStrength;
 
         private float neutralBallastLevel;
+
+        public Character lastuser;
                 
         public bool AutoPilot
         {
@@ -128,6 +130,8 @@ namespace Barotrauma.Items.Components
                 }
             }
 
+            if (lastuser != null && lastuser.SelectedConstruction != item) lastuser = null;
+
             currPowerConsumption = powerConsumption;
 
             if (voltage < minVoltage && currPowerConsumption > 0.0f) return;
@@ -211,8 +215,9 @@ namespace Barotrauma.Items.Components
                     {
                         Vector2 diff = item.Submarine.WorldPosition - (Vector2)intersection;
 
-                        //far enough -> ignore
-                        if (diff.Length() > avoidRadius) continue;
+                        float dist = diff.Length();
+                        //far enough or too close to normalize the diff -> ignore 
+                        if (dist > avoidRadius || dist < 0.00001f) continue;
 
                         float dot = item.Submarine.Velocity == Vector2.Zero ?
                             0.0f : Vector2.Dot(item.Submarine.Velocity, -Vector2.Normalize(diff));
@@ -241,16 +246,15 @@ namespace Barotrauma.Items.Components
                 float otherSize = Math.Max(sub.Borders.Width, sub.Borders.Height);
 
                 Vector2 diff = item.Submarine.WorldPosition - sub.WorldPosition;
-
                 float dist = diff == Vector2.Zero ? 0.0f : diff.Length();
 
                 //far enough -> ignore
                 if (dist > thisSize + otherSize) continue;
 
-                diff = Vector2.Normalize(diff);
+                Vector2 dir = dist <= 0.0001f ? Vector2.UnitY : diff / dist;
 
                 float dot = item.Submarine.Velocity == Vector2.Zero ?
-                    0.0f : Vector2.Dot(Vector2.Normalize(item.Submarine.Velocity), -Vector2.Normalize(diff));
+                    0.0f : Vector2.Dot(Vector2.Normalize(item.Submarine.Velocity), -dir);
 
                 //heading away -> ignore
                 if (dot < 0.0f) continue;
@@ -373,7 +377,15 @@ namespace Barotrauma.Items.Components
                 newTargetVelocity = new Vector2(msg.ReadFloat(), msg.ReadFloat());
             }
 
-            if (!item.CanClientAccess(c)) return; 
+            if (lastuser == null) lastuser = c.Character;
+
+            if (!item.CanClientAccess(c)) return;
+
+            if(lastuser != c.Character)
+            {
+                if (!CoroutineManager.IsCoroutineRunning("warnislocked_" + item.ID + "_" + c.Character.ID)) CoroutineManager.StartCoroutine(Warnislocked(c,item), "warnislocked_" + item.ID + "_" + c.Character.ID);
+                return;
+            }
 
             AutoPilot = autoPilot;
 
@@ -402,6 +414,27 @@ namespace Barotrauma.Items.Components
 
             //notify all clients of the changed state
             unsentChanges = true;
+        }
+
+        public static System.Collections.Generic.IEnumerable<Object> Warnislocked(Client c, Item item)
+        {
+            float Timer = 0f;
+            Steering steering = item.GetComponent<Barotrauma.Items.Components.Steering>();
+            var chatMsg = ChatMessage.Create(
+                "",
+                "The " + item.Name + " is in use by " + steering.lastuser.Name,
+                (ChatMessageType)ChatMessageType.Server,
+                null);
+
+            GameMain.Server.SendChatMessage(chatMsg, c);
+
+            while(Timer <= 3f)
+            {
+                Timer += CoroutineManager.DeltaTime;
+                yield return CoroutineStatus.Running;
+            }
+
+            yield return CoroutineStatus.Success;
         }
 
         public void ServerWrite(Lidgren.Network.NetBuffer msg, Barotrauma.Networking.Client c, object[] extraData = null)

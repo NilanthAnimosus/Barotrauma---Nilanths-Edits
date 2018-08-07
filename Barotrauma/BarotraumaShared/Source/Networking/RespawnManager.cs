@@ -421,12 +421,21 @@ namespace Barotrauma.Networking
 
         private IEnumerable<object> ForceShuttleToPos(Vector2 position, float speed)
         {
+            if (respawnShuttle == null)
+            {
+                yield return CoroutineStatus.Success;
+            }
+
             respawnShuttle.PhysicsBody.FarseerBody.IgnoreCollisionWith(Level.Loaded.TopBarrier);
 
             while (Math.Abs(position.Y - respawnShuttle.WorldPosition.Y) > 100.0f)
             {
-                Vector2 displayVel = Vector2.Normalize(position - respawnShuttle.WorldPosition) * speed;
-                respawnShuttle.SubBody.Body.LinearVelocity = ConvertUnits.ToSimUnits(displayVel);
+                Vector2 diff = position - respawnShuttle.WorldPosition;
+                if (diff.LengthSquared() > 0.01f)
+                {
+                    Vector2 displayVel = Vector2.Normalize(diff) * speed;
+                    respawnShuttle.SubBody.Body.LinearVelocity = ConvertUnits.ToSimUnits(displayVel);
+                }
                 yield return CoroutineStatus.Running;
 
                 if (respawnShuttle.SubBody == null) yield return CoroutineStatus.Success;
@@ -441,6 +450,8 @@ namespace Barotrauma.Networking
         {
             shuttleTransportTimer = maxTransportTime;
             shuttleReturnTimer = maxTransportTime;
+
+            if (respawnShuttle == null) return;
 
             foreach (Item item in Item.ItemList)
             {
@@ -543,8 +554,8 @@ namespace Barotrauma.Networking
             var server = networkMember as GameServer;
             if (server == null) return;
 
-            var respawnSub = respawnShuttle != null ? respawnShuttle : Submarine.MainSub;
-            
+            var respawnSub = respawnShuttle ?? Submarine.MainSub;
+
             var clients = GetClientsToRespawn();
             foreach (Client c in clients)
             {
@@ -555,8 +566,8 @@ namespace Barotrauma.Networking
             }
 
             List<CharacterInfo> characterInfos = clients.Select(c => c.CharacterInfo).ToList();
-            if (server.Character != null && server.Character.IsDead
-                && (Character.Controlled == null || Character.Controlled != null && Character.Controlled.IsDead)
+            if ((server.Character == null || (server.Character != null && server.Character.IsDead))
+                && (Character.Controlled == null || (Character.Controlled != null && Character.Controlled.IsDead))
                 && GameMain.Server.CharacterInfo != null)
             {
                 characterInfos.Add(server.CharacterInfo);
@@ -564,9 +575,9 @@ namespace Barotrauma.Networking
 
             //NilMod Jobs fix attempt
             
-            server.AssignJobs(clients, (server.Character != null && server.Character.IsDead
-                && (Character.Controlled == null || Character.Controlled != null && Character.Controlled.IsDead)
-                && GameMain.Server.CharacterInfo != null));
+            server.AssignJobs(clients, (server.Character == null || (server.Character != null && server.Character.IsDead))
+                && (Character.Controlled == null || (Character.Controlled != null && Character.Controlled.IsDead))
+                && GameMain.Server.CharacterInfo != null);
                 
 
             foreach (Client c in clients)
@@ -574,6 +585,14 @@ namespace Barotrauma.Networking
                 if (c.AssignedJob != null)
                 {
                     c.CharacterInfo.Job = new Job(c.AssignedJob);
+
+                    if (c.BypassSkillRequirements)
+                    {
+                        foreach (Skill skill in c.CharacterInfo.Job.Skills)
+                        {
+                            skill.Level = 100;
+                        }
+                    }
                 }
             }
 
@@ -659,43 +678,83 @@ namespace Barotrauma.Networking
                 {
 #endif
                     clients[i].Character = character;
-                    GameServer.Log("Respawn: " + clients[i].Character.Name + " As " + clients[i].Character.Info.Job.Name + " On " + clients[i].Connection.RemoteEndPoint.Address, ServerLog.MessageType.Spawns);
+                    character.OwnerClientIP = clients[i].Connection.RemoteEndPoint.Address.ToString();
+                    character.OwnerClientName = clients[i].Name;
+
+                    string spawnlogentry = "respawn: " + clients[i].CharacterInfo.Name + " As " + clients[i].CharacterInfo.Job.Name;
+                    if (GameMain.Server.KarmaEnabled)
+                    {
+                        if (clients[i].Karma < 1f)
+                        {
+                            spawnlogentry = spawnlogentry + " with " + Math.Round(clients[i].Karma, 2) + "% Karma";
+                        }
+                    }
+                    spawnlogentry = spawnlogentry + " On " + clients[i].Connection.RemoteEndPoint.Address;
+
+                    GameServer.Log(spawnlogentry, ServerLog.MessageType.Spawns);
 
 #if CLIENT
                     GameSession.inGameInfo.UpdateClientCharacter(clients[i], character, true);
                 }
 #endif
 
-                Vector2 pos = cargoSp == null ? character.Position : cargoSp.Position;
+                Item divingSuit = null;
+                Item scooter = null;
 
-                if (divingSuitPrefab != null && oxyPrefab != null)
+                if (respawnShuttle != null)
                 {
-                    var divingSuit  = new Item(divingSuitPrefab, pos, respawnSub);
-                    Spawner.CreateNetworkEvent(divingSuit, false);
-                    respawnItems.Add(divingSuit);
+                    Vector2 pos = cargoSp == null ? character.Position : cargoSp.Position;
 
-                    var oxyTank     = new Item(oxyPrefab, pos, respawnSub);
-                    Spawner.CreateNetworkEvent(oxyTank, false);
-                    divingSuit.Combine(oxyTank);
-                    respawnItems.Add(oxyTank);
-                }
+                    if (divingSuitPrefab != null && oxyPrefab != null)
+                    {
+                        divingSuit = new Item(divingSuitPrefab, pos, respawnSub);
+                        Spawner.CreateNetworkEvent(divingSuit, false);
+                        respawnItems.Add(divingSuit);
 
-                if (scooterPrefab != null && batteryPrefab != null)
-                {
-                    var scooter     = new Item(scooterPrefab, pos, respawnSub);
-                    Spawner.CreateNetworkEvent(scooter, false);
-                    
+                        var oxyTank = new Item(oxyPrefab, pos, respawnSub);
+                        Spawner.CreateNetworkEvent(oxyTank, false);
+                        divingSuit.Combine(oxyTank);
+                        respawnItems.Add(oxyTank);
+                    }
 
-                    var battery     = new Item(batteryPrefab, pos, respawnSub);
-                    Spawner.CreateNetworkEvent(battery, false);
+                    if (scooterPrefab != null && batteryPrefab != null)
+                    {
+                        scooter = new Item(scooterPrefab, pos, respawnSub);
+                        Spawner.CreateNetworkEvent(scooter, false);
 
-                    scooter.Combine(battery);
-                    respawnItems.Add(scooter);
-                    respawnItems.Add(battery);
+
+                        var battery = new Item(batteryPrefab, pos, respawnSub);
+                        Spawner.CreateNetworkEvent(battery, false);
+
+                        scooter.Combine(battery);
+                        respawnItems.Add(scooter);
+                        respawnItems.Add(battery);
+                    }
                 }
                                 
                 //give the character the items they would've gotten if they had spawned in the main sub
                 character.GiveJobItems(mainSubSpawnPoints[i]);
+
+                Hull characterhull = Hull.FindHull(character.WorldPosition, character.CurrentHull);
+
+                if (characterhull.WaterVolume >= (characterhull.Volume * 0.75f))
+                {
+                    if (divingSuit != null)
+                    {
+                        List<InvSlotType> allowedSlots = new List<InvSlotType>(divingSuit.AllowedSlots);
+                        allowedSlots.Remove(InvSlotType.Any);
+
+                        character.Inventory.TryPutItem(divingSuit, null, allowedSlots);
+                    }
+
+                    if (scooter != null)
+                    {
+                        List<InvSlotType> allowedSlots = new List<InvSlotType>(scooter.AllowedSlots);
+                        allowedSlots.Remove(InvSlotType.Any);
+
+                        character.Inventory.TryPutItem(scooter, null, allowedSlots);
+                    }
+                }
 
                 //add the ID card tags they should've gotten when spawning in the shuttle
                 foreach (Item item in character.Inventory.Items)

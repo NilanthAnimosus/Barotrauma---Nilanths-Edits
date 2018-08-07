@@ -86,12 +86,24 @@ namespace Barotrauma
                     }
 
 #if LINUX
-                    System.Diagnostics.Process.Start(System.Reflection.Assembly.GetEntryAssembly().CodeBase + "\\Barotrauma NilEdit.exe");
+                    //System.Diagnostics.Process.Start(System.Reflection.Assembly.GetEntryAssembly().CodeBase + "\\Barotrauma NilEdit.exe");
+                    
+                    System.Diagnostics.Process process = new System.Diagnostics.Process();
+                    process.StartInfo.FileName = "Barotrauma NilEdit.exe";
+                    process.StartInfo.WorkingDirectory = System.Reflection.Assembly.GetEntryAssembly().CodeBase;
+                    process.Start();
+                    
                     //Kind of flipping the table here after the last one or two didnt work.
                     //inputThread.Abort(); inputThread.Join();
                     Environment.Exit(-1);
 #else
-                    System.Diagnostics.Process.Start(Application.StartupPath + "\\Barotrauma NilEdit.exe");
+                    //System.Diagnostics.Process.Start(Application.StartupPath + "\\Barotrauma NilEdit.exe");
+
+                    System.Diagnostics.Process process = new System.Diagnostics.Process();
+                    process.StartInfo.FileName = "Barotrauma NilEdit.exe";
+                    process.StartInfo.WorkingDirectory = Application.StartupPath;
+                    process.Start();
+
                     Application.ExitThread();
                     Application.Exit();
                     Environment.Exit(-1);
@@ -255,14 +267,14 @@ namespace Barotrauma
             }
 
 #if LINUX
-            if (GameMain.NilMod != null && GameMain.NilMod.AutoRestart)
+            if (GameMain.NilMod != null && GameMain.NilMod.CrashRestart)
             {
                 sb.AppendLine("\n");
                 sb.AppendLine("Attempted restart of process using: " + System.Diagnostics.Process.Start(System.Reflection.Assembly.GetEntryAssembly().CodeBase + "\\Barotrauma NilEdit.exe"));
                 sb.AppendLine("\n");
             }
 #else
-            if (GameMain.NilMod != null && GameMain.NilMod.AutoRestart)
+            if (GameMain.NilMod != null && GameMain.NilMod.CrashRestart)
             {
                 sb.AppendLine("\n");
                 sb.AppendLine("Attempted restart of process using: " + Application.StartupPath + "\\Barotrauma NilEdit.exe");

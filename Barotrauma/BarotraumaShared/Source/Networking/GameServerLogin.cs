@@ -460,6 +460,7 @@ namespace Barotrauma.Networking
             newClient.GlobalChatSend = savedPermissions.GlobalChatSend;
             newClient.GlobalChatReceive = savedPermissions.GlobalChatReceive;
             newClient.KarmaImmunity = savedPermissions.KarmaImmunity;
+            newClient.BypassSkillRequirements = savedPermissions.BypassSkillRequirements;
             newClient.PrioritizeJob = savedPermissions.PrioritizeJob;
             newClient.IgnoreJobMinimum = savedPermissions.IgnoreJobMinimum;
             newClient.KickImmunity = savedPermissions.KickImmunity;

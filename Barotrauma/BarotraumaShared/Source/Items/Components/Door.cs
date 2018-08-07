@@ -33,7 +33,25 @@ namespace Barotrauma.Items.Components
         private bool isHorizontal;
 
         private bool isStuck;
-        
+
+        public bool IsStuck
+        {
+            get { return isStuck; }
+            set
+            {
+                if (isStuck == value) return;
+                isStuck = value;
+                if (isStuck)
+                {
+                    Stuck = 100f;
+                }
+                else
+                {
+                    Stuck = 0f;
+                }
+            }
+        }
+
         private bool? predictedState;
         private float resetPredictionTimer;
 
@@ -533,11 +551,13 @@ namespace Barotrauma.Items.Components
                 yield return CoroutineStatus.Running;
             }
 
-            if(!isRespawn) NilMod.NilModGriefWatcher.SendWarning((c != null ? c.Character.LogName : c.Name)
-                + " left airlock door open named: " + door.item.Name + " for over " + Math.Round(basetimer, 1) + " seconds", c);
-            else NilMod.NilModGriefWatcher.SendWarning((c != null ? c.Character.LogName : c.Name)
-                + " left respawn airlock door open named: " + door.item.Name + " for over " + Math.Round(basetimer, 1) + " seconds", c);
-
+            if (NilMod.NilModGriefWatcher.AirlockLeftOpen)
+            {
+                if (!isRespawn) NilMod.NilModGriefWatcher.SendWarning((c != null ? c.Character.LogName : c.Name)
+                     + " left airlock door open named: " + door.item.Name + " for over " + Math.Round(basetimer, 1) + " seconds", c);
+                else NilMod.NilModGriefWatcher.SendWarning((c != null ? c.Character.LogName : c.Name)
+                    + " left respawn airlock door open named: " + door.item.Name + " for over " + Math.Round(basetimer, 1) + " seconds", c);
+            }
 
             yield return CoroutineStatus.Success;
         }

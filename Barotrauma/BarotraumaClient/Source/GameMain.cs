@@ -391,6 +391,8 @@ namespace Barotrauma
             LocationType.Init();
             MainMenuScreen.Select();
 
+            NilMod.GameInitialize(true);
+
             TitleScreen.LoadState = 100.0f;
             hasLoaded = true;
             if (GameSettings.VerboseLogging)

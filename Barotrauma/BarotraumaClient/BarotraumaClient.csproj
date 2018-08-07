@@ -199,7 +199,6 @@
     <Compile Include="Source\Networking\ServerLog.cs" />
     <Compile Include="Source\Networking\Voting.cs" />
     <Compile Include="Source\Networking\WhiteList.cs" />
-    <Compile Include="Source\NilModification\ClientLog.cs" />
     <Compile Include="Source\NilModification\InGameInfo.cs" />
     <Compile Include="Source\NilModification\LagDiagnostics.cs" />
     <Compile Include="Source\Particles\Decal.cs" />

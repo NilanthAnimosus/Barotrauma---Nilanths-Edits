@@ -36,6 +36,7 @@ namespace Barotrauma.Networking
             public Boolean GlobalChatSend = false;
             public Boolean GlobalChatReceive = false;
             public Boolean KarmaImmunity = false;
+            public Boolean BypassSkillRequirements = false;
             public Boolean PrioritizeJob = false;
             public Boolean IgnoreJobMinimum = false;
             public Boolean KickImmunity = false;
@@ -244,6 +245,13 @@ namespace Barotrauma.Networking
 
         [Serialize(0.6f, true)]
         public float KickVoteRequiredRatio
+        {
+            get;
+            private set;
+        }
+
+        [Serialize(30.0f, true)]
+        public float KillDisconnectedTime
         {
             get;
             private set;
@@ -487,6 +495,7 @@ namespace Barotrauma.Networking
                 defaultpermission.AllowInGamePM = Xdefaultperms.GetAttributeBool("AllowInGamePM", false);
                 defaultpermission.GlobalChatSend = Xdefaultperms.GetAttributeBool("GlobalChatSend", false);
                 defaultpermission.GlobalChatReceive = Xdefaultperms.GetAttributeBool("GlobalChatReceive", false);
+                defaultpermission.BypassSkillRequirements = Xdefaultperms.GetAttributeBool("BypassSkillRequirements", false);
                 defaultpermission.IgnoreJobMinimum = Xdefaultperms.GetAttributeBool("IgnoreJobMinimum", false);
 
                 defaultpermission.HideJoin = Xdefaultperms.GetAttributeBool("HideJoin", false);
@@ -551,6 +560,7 @@ namespace Barotrauma.Networking
                 newsavedpermission.GlobalChatSend = clientElement.GetAttributeBool("GlobalChatSend", false);
                 newsavedpermission.GlobalChatReceive = clientElement.GetAttributeBool("GlobalChatReceive", false);
                 newsavedpermission.KarmaImmunity = clientElement.GetAttributeBool("KarmaImmunity", false);
+                newsavedpermission.BypassSkillRequirements = clientElement.GetAttributeBool("BypassSkillRequirements", false);
                 newsavedpermission.PrioritizeJob = clientElement.GetAttributeBool("PrioritizeJob", false);
                 newsavedpermission.IgnoreJobMinimum = clientElement.GetAttributeBool("IgnoreJobMinimum", false);
                 newsavedpermission.KickImmunity = clientElement.GetAttributeBool("KickImmunity", false);
@@ -682,6 +692,7 @@ namespace Barotrauma.Networking
                 new XAttribute("AllowInGamePM", defaultpermission.AllowInGamePM),
                 new XAttribute("GlobalChatSend", defaultpermission.GlobalChatSend),
                 new XAttribute("GlobalChatReceive", defaultpermission.GlobalChatReceive),
+                new XAttribute("BypassSkillRequirements", defaultpermission.BypassSkillRequirements),
                 new XAttribute("IgnoreJobMinimum", defaultpermission.IgnoreJobMinimum),
                 //new XText(""),
                 //"\r\n\r\n ",
@@ -741,6 +752,7 @@ namespace Barotrauma.Networking
                 clientElement.Add(new XAttribute("GlobalChatSend", clientPermission.GlobalChatSend));
                 clientElement.Add(new XAttribute("GlobalChatReceive", clientPermission.GlobalChatReceive));
                 clientElement.Add(new XAttribute("KarmaImmunity", clientPermission.KarmaImmunity));
+                clientElement.Add(new XAttribute("BypassSkillRequirements", clientPermission.BypassSkillRequirements));
                 clientElement.Add(new XAttribute("PrioritizeJob", clientPermission.PrioritizeJob));
                 clientElement.Add(new XAttribute("IgnoreJobMinimum", clientPermission.IgnoreJobMinimum));
                 clientElement.Add(new XAttribute("KickImmunity", clientPermission.KickImmunity));

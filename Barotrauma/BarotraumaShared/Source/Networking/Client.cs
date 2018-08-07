@@ -66,6 +66,7 @@ namespace Barotrauma.Networking
         public Boolean IgnoreJobMinimum = false;
         public Boolean KickImmunity = false;
         public Boolean BanImmunity = false;
+        public Boolean BypassSkillRequirements = false;
 
         //Admin Features
         public Boolean HideJoin = false;
@@ -115,8 +116,6 @@ namespace Barotrauma.Networking
 
         public List<JobPrefab> JobPreferences;
         public JobPrefab AssignedJob;
-
-        public float DeleteDisconnectedTimer;
 
         public ClientPermissions Permissions = ClientPermissions.None;
         public List<DebugConsole.Command> PermittedConsoleCommands

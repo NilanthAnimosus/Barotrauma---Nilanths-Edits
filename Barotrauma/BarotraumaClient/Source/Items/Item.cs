@@ -379,7 +379,8 @@ namespace Barotrauma
                     (components[componentIndex] as IServerSerializable).ClientRead(type, msg, sendingTime);
                     break;
                 case NetEntityEvent.Type.InventoryState:
-                    ownInventory.ClientRead(type, msg, sendingTime);
+                    int containerIndex = msg.ReadRangedInteger(0, components.Count - 1);
+                    (components[containerIndex] as ItemContainer).Inventory.ClientRead(type, msg, sendingTime);
                     break;
                 case NetEntityEvent.Type.Status:
                     condition = msg.ReadRangedSingle(0.0f, prefab.Health, 8);
@@ -403,10 +404,13 @@ namespace Barotrauma
                     ushort targetID = msg.ReadUInt16();
 
                     Character target = FindEntityByID(targetID) as Character;
-                    ApplyStatusEffects(actionType, (float)Timing.Step, target, true);
+                    //ignore deltatime - using an item with the useOnSelf buttons is instantaneous 
+                    ApplyStatusEffects(actionType, 1.0f, target, true);
                     break;
                 case NetEntityEvent.Type.ChangeProperty:
                     ReadPropertyChange(msg);
+                    break;
+                case NetEntityEvent.Type.Invalid:
                     break;
             }
         }
@@ -425,11 +429,12 @@ namespace Barotrauma
                 case NetEntityEvent.Type.ComponentState:
                     int componentIndex = (int)extraData[1];
                     msg.WriteRangedInteger(0, components.Count - 1, componentIndex);
-
                     (components[componentIndex] as IClientSerializable).ClientWrite(msg, extraData);
                     break;
                 case NetEntityEvent.Type.InventoryState:
-                    ownInventory.ClientWrite(msg, extraData);
+                    int containerIndex = (int)extraData[1];
+                    msg.WriteRangedInteger(0, components.Count - 1, containerIndex);
+                    (components[containerIndex] as ItemContainer).Inventory.ClientWrite(msg, extraData);
                     break;
                 case NetEntityEvent.Type.Repair:
                     if (FixRequirements.Count > 0)

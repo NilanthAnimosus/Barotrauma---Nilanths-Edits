@@ -46,7 +46,7 @@ namespace Barotrauma
     class NilMod
     {
         const string SettingsSavePath = "Data/NilMod/Settings.xml";
-        public const string NilModVersionDate = "29/07/2018-1";
+        public const string NilModVersionDate = "07/08/2018-1";
         public Version NilModNetworkingVersion = new Version(0,0,0,1);
 
         public Stopwatch serverruntime;
@@ -115,7 +115,6 @@ namespace Barotrauma
         public Client ClickTargetClient;
 
         //Classes for the help system and event Chatter system
-        public static NilModPermissions NilModPermissions;
         public static NilModHelpCommands NilModHelpCommands;
         public static NilModEventChatter NilModEventChatter;
         public static NilModGriefWatcher NilModGriefWatcher;
@@ -194,7 +193,6 @@ namespace Barotrauma
 
         public Boolean EnableEventChatterSystem;
         public Boolean EnableHelpSystem;
-        public Boolean EnableAdminSystem;
         public Boolean EnableGriefWatcher;
         public Boolean EnablePlayerLogSystem;
         public Boolean EnableVPNBanlist;
@@ -273,6 +271,8 @@ namespace Barotrauma
         public float ItemPosUpdateDistance;
         public float DesyncTimerMultiplier;
         public Boolean LogAIDamage;
+        public Boolean LogDamageRecordAI;
+        public Boolean LogDamageRecordFull;
         public Boolean LogStatusEffectStun;
         public Boolean LogStatusEffectHealth;
         public Boolean LogStatusEffectBleed;
@@ -286,9 +286,9 @@ namespace Barotrauma
         public Boolean DisableParticlesOnStart;
         public Boolean DisableLightsOnStart;
         public Boolean DisableLOSOnStart;
-        public Boolean AllowReconnect;
-        public float ReconnectAddStun;
-        public float ReconnectTimeAllowed;
+        //public Boolean AllowReconnect;
+        //public float ReconnectAddStun;
+        //public float ReconnectTimeAllowed;
         public float WaitForResponseTimer;
 
         //Campaign Settings
@@ -626,6 +626,7 @@ namespace Barotrauma
                         }
                     }
 
+                    /*
                     //Code support for allowing client reconnect
                     for (int i = DisconnectedCharacters.Count - 1; i >= 0; i--)
                     {
@@ -694,6 +695,7 @@ namespace Barotrauma
                             DisconnectedCharacters.RemoveAt(i);
                         }
                     }
+                    */
                 }
 
                 //Handle kicked clients timers
@@ -780,6 +782,8 @@ namespace Barotrauma
             GameMain.Server.ServerLog.WriteLine("SubVotingServerLog = " + (SubVotingServerLog ? "Enabled" : "Disabled"), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("SubVotingAnnounce = " + (SubVotingAnnounce ? "Enabled" : "Disabled"), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("LogAIDamage = " + (LogAIDamage ? "Enabled" : "Disabled"), ServerLog.MessageType.NilMod);
+            GameMain.Server.ServerLog.WriteLine("LogDamageRecordAI = " + (LogDamageRecordAI ? "Enabled" : "Disabled"), ServerLog.MessageType.NilMod);
+            GameMain.Server.ServerLog.WriteLine("LogDamageRecordFull = " + (LogDamageRecordFull ? "Enabled" : "Disabled"), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("LogStatusEffectStun = " + (LogStatusEffectStun ? "Enabled" : "Disabled"), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("LogStatusEffectHealth = " + (LogStatusEffectHealth ? "Enabled" : "Disabled"), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("LogStatusEffectBleed = " + (LogStatusEffectBleed ? "Enabled" : "Disabled"), ServerLog.MessageType.NilMod);
@@ -1044,7 +1048,6 @@ namespace Barotrauma
 
             NilModHelpCommands = new NilModHelpCommands();
             NilModEventChatter = new NilModEventChatter();
-            NilModPermissions = new NilModPermissions();
             NilModPlayerLog = new PlayerLog();
             NilModGriefWatcher = new NilModGriefWatcher();
 
@@ -1114,7 +1117,6 @@ namespace Barotrauma
                         StartToServer = ServerModGeneralSettings.GetAttributeBool("StartToServer", false); //Implemented
                         EnableEventChatterSystem = ServerModGeneralSettings.GetAttributeBool("EnableEventChatterSystem", false);
                         EnableHelpSystem = ServerModGeneralSettings.GetAttributeBool("EnableHelpSystem", false);
-                        EnableAdminSystem = ServerModGeneralSettings.GetAttributeBool("EnableAdminSystem", false);
                         EnableGriefWatcher = ServerModGeneralSettings.GetAttributeBool("EnableGriefWatcher", false);
                         EnablePlayerLogSystem = ServerModGeneralSettings.GetAttributeBool("EnablePlayerLogSystem", false);
                         NilMod.NilModPlayerLog.PlayerLogStateNames = ServerModGeneralSettings.GetAttributeBool("PlayerLogStateNames", false);
@@ -1125,6 +1127,8 @@ namespace Barotrauma
                         SubVotingServerLog = ServerModGeneralSettings.GetAttributeBool("SubVotingServerLog", false);
                         SubVotingAnnounce = ServerModGeneralSettings.GetAttributeBool("SubVotingAnnounce", false);
                         LogAIDamage = ServerModGeneralSettings.GetAttributeBool("LogAIDamage", false);
+                        LogDamageRecordAI = ServerModGeneralSettings.GetAttributeBool("LogDamageRecordAI", false);
+                        LogDamageRecordFull = ServerModGeneralSettings.GetAttributeBool("LogDamageRecordFull", false);
                         LogStatusEffectStun = ServerModGeneralSettings.GetAttributeBool("LogStatusEffectStun", false);
                         LogStatusEffectHealth = ServerModGeneralSettings.GetAttributeBool("LogStatusEffectHealth", false);
                         LogStatusEffectBleed = ServerModGeneralSettings.GetAttributeBool("LogStatusEffectBleed", false);
@@ -1213,9 +1217,9 @@ namespace Barotrauma
                         DisableParticlesOnStart = ServerModDefaultServerSettings.GetAttributeBool("DisableParticlesOnStart", false);
                         DisableLightsOnStart = ServerModDefaultServerSettings.GetAttributeBool("DisableLightsOnStart", false);
                         DisableLOSOnStart = ServerModDefaultServerSettings.GetAttributeBool("DisableLOSOnStart", false);
-                        AllowReconnect = ServerModDefaultServerSettings.GetAttributeBool("AllowReconnect", false);
-                        ReconnectAddStun = MathHelper.Clamp(ServerModDefaultServerSettings.GetAttributeFloat("ReconnectAddStun", 5.00f), 0.00f, 60.00f);
-                        ReconnectTimeAllowed = MathHelper.Clamp(ServerModDefaultServerSettings.GetAttributeFloat("ReconnectTimeAllowed", 10.00f), 10.00f, 600.00f);
+                        //AllowReconnect = ServerModDefaultServerSettings.GetAttributeBool("AllowReconnect", false);
+                        //ReconnectAddStun = MathHelper.Clamp(ServerModDefaultServerSettings.GetAttributeFloat("ReconnectAddStun", 5.00f), 0.00f, 60.00f);
+                        //ReconnectTimeAllowed = MathHelper.Clamp(ServerModDefaultServerSettings.GetAttributeFloat("ReconnectTimeAllowed", 10.00f), 10.00f, 600.00f);
                         WaitForResponseTimer = MathHelper.Clamp(ServerModDefaultServerSettings.GetAttributeFloat("WaitForResponseTimer", 5.00f), 3.00f, 20.00f);
 
                         UseDesyncPrevention = ServerModDefaultServerSettings.GetAttributeBool("UseDesyncPrevention", true);
@@ -1672,6 +1676,8 @@ namespace Barotrauma
                 @"    SubVotingServerLog=""" + SubVotingServerLog + @"""",
                 @"    SubVotingAnnounce=""" + SubVotingAnnounce + @"""",
                 @"    LogAIDamage=""" + LogAIDamage + @"""",
+                @"    LogDamageRecordAI=""" + LogDamageRecordAI + @"""",
+                @"    LogDamageRecordFull=""" + LogDamageRecordFull + @"""",
                 @"    LogStatusEffectStun=""" + LogStatusEffectStun + @"""",
                 @"    LogStatusEffectHealth=""" + LogStatusEffectHealth + @"""",
                 @"    LogStatusEffectBleed=""" + LogStatusEffectBleed + @"""",
@@ -1716,7 +1722,7 @@ namespace Barotrauma
                 @"    MaxPlayers=""" + MaxPlayers + @"""",
                 @"    UseServerPassword=""" + UseServerPassword + @"""",
                 @"    ServerPassword=""" + ServerPassword + @"""",
-                @"    AdminAuth=""" + AdminAuth + @"""",
+                //@"    AdminAuth=""" + AdminAuth + @"""",
                 @"    PublicServer=""" + PublicServer + @"""",
                 @"    UPNPForwarding=""" + UPNPForwarding + @"""",
                 @"    AutoRestart=""" + AutoRestart + @"""",
@@ -1733,9 +1739,9 @@ namespace Barotrauma
                 @"    DisableParticlesOnStart=""" + DisableParticlesOnStart + @"""",
                 @"    DisableLightsOnStart=""" + DisableLightsOnStart + @"""",
                 @"    DisableLOSOnStart=""" + DisableLOSOnStart + @"""",
-                @"    AllowReconnect=""" + AllowReconnect + @"""",
-                @"    ReconnectAddStun=""" + ReconnectAddStun + @"""",
-                @"    ReconnectTimeAllowed=""" + ReconnectTimeAllowed + @"""",
+                //@"    AllowReconnect=""" + AllowReconnect + @"""",
+                //@"    ReconnectAddStun=""" + ReconnectAddStun + @"""",
+                //@"    ReconnectTimeAllowed=""" + ReconnectTimeAllowed + @"""",
                 @"    WaitForResponseTimer=""" + WaitForResponseTimer + @"""",
                 @"    UseDesyncPrevention=""" + UseDesyncPrevention + @"""",
                 @"    DesyncPreventionItemPassTimer=""" + DesyncPreventionItemPassTimer + @"""",
@@ -1950,18 +1956,18 @@ namespace Barotrauma
                 @"    PlayerHealthRegen=""" + PlayerHealthRegen + @"""",
                 @"    PlayerHealthRegenMin=""" + (PlayerHealthRegenMin * 100f) + @"""",
                 @"    PlayerHealthRegenMax=""" + (PlayerHealthRegenMax * 100f) + @"""",
-                @"    PlayerCPROnlyWhileUnconcious=""" + PlayerCPROnlyWhileUnconcious + @"""",
-                @"    PlayerCPRHealthBaseValue=""" + PlayerCPRHealthBaseValue + @"""",
-                @"    PlayerCPRHealthSkillMultiplier=""" + PlayerCPRHealthSkillMultiplier + @"""",
-                @"    PlayerCPRHealthSkillNeeded=""" + PlayerCPRHealthSkillNeeded + @"""",
-                @"    PlayerCPRStunBaseValue=""" + PlayerCPRStunBaseValue + @"""",
-                @"    PlayerCPRStunSkillMultiplier=""" + PlayerCPRStunSkillMultiplier + @"""",
-                @"    PlayerCPRStunSkillNeeded=""" + PlayerCPRStunSkillNeeded + @"""",
-                @"    PlayerCPRClotBaseValue=""" + PlayerCPRClotBaseValue + @"""",
-                @"    PlayerCPRClotSkillMultiplier=""" + PlayerCPRClotSkillMultiplier + @"""",
-                @"    PlayerCPRClotSkillNeeded=""" + PlayerCPRClotSkillNeeded + @"""",
-                @"    PlayerCPROxygenBaseValue=""" + PlayerCPROxygenBaseValue + @"""",
-                @"    PlayerCPROxygenSkillMultiplier=""" + PlayerCPROxygenSkillMultiplier + @"""",
+                //@"    PlayerCPROnlyWhileUnconcious=""" + PlayerCPROnlyWhileUnconcious + @"""",
+                //@"    PlayerCPRHealthBaseValue=""" + PlayerCPRHealthBaseValue + @"""",
+                //@"    PlayerCPRHealthSkillMultiplier=""" + PlayerCPRHealthSkillMultiplier + @"""",
+                //@"    PlayerCPRHealthSkillNeeded=""" + PlayerCPRHealthSkillNeeded + @"""",
+                //@"    PlayerCPRStunBaseValue=""" + PlayerCPRStunBaseValue + @"""",
+                //@"    PlayerCPRStunSkillMultiplier=""" + PlayerCPRStunSkillMultiplier + @"""",
+                //@"    PlayerCPRStunSkillNeeded=""" + PlayerCPRStunSkillNeeded + @"""",
+                //@"    PlayerCPRClotBaseValue=""" + PlayerCPRClotBaseValue + @"""",
+                //@"    PlayerCPRClotSkillMultiplier=""" + PlayerCPRClotSkillMultiplier + @"""",
+                //@"    PlayerCPRClotSkillNeeded=""" + PlayerCPRClotSkillNeeded + @"""",
+                //@"    PlayerCPROxygenBaseValue=""" + PlayerCPROxygenBaseValue + @"""",
+                //@"    PlayerCPROxygenSkillMultiplier=""" + PlayerCPROxygenSkillMultiplier + @"""",
                 @"    PlayerUnconciousTimer=""" + PlayerUnconciousTimer + @"""",
                 @"    PlayerSpawnProtectStart=""" + PlayerSpawnProtectStart + @"""",
                 @"    PlayerSpawnProtectMidgame=""" + PlayerSpawnProtectMidgame + @"""",
@@ -2095,6 +2101,8 @@ namespace Barotrauma
                 "  <!--SubVotingServerLog =-->",
                 "  <!--SubVotingAnnounce =-->",
                 "  <!--LogAIDamage =-->",
+                "  <!--LogDamageRecordAI =-->",
+                "  <!--LogDamageRecordFull =-->",
                 "  <!--LogStatusEffectStun =-->",
                 "  <!--LogStatusEffectHealth =-->",
                 "  <!--LogStatusEffectBleed =-->",
@@ -2214,7 +2222,6 @@ namespace Barotrauma
             StartToServer = false;
             EnableEventChatterSystem = false;
             EnableHelpSystem = false;
-            EnableAdminSystem = false;
             EnablePlayerLogSystem = false;
             NilMod.NilModPlayerLog.PlayerLogStateNames = false;
             NilMod.NilModPlayerLog.PlayerLogStateFirstJoinedNames = false;
@@ -2224,6 +2231,8 @@ namespace Barotrauma
             SubVotingServerLog = false;
             SubVotingAnnounce = false;
             LogAIDamage = false;
+            LogDamageRecordAI = false;
+            LogDamageRecordFull = false;
             LogStatusEffectStun = false;
             LogStatusEffectHealth = false;
             LogStatusEffectBleed = false;
@@ -2301,9 +2310,9 @@ namespace Barotrauma
             if(!ClientMode) DisableParticlesOnStart = false;
             DisableLightsOnStart = false;
             DisableLOSOnStart = false;
-            AllowReconnect = false;
-            ReconnectAddStun = 5f;
-            ReconnectTimeAllowed = 30f;
+            //AllowReconnect = false;
+            //ReconnectAddStun = 5f;
+            //ReconnectTimeAllowed = 30f;
             WaitForResponseTimer = 5f;
 
             //Debug Settings

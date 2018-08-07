@@ -19,6 +19,7 @@ namespace Barotrauma
             public string charactername = "";
             public string identifier;
             public float damage;
+            public float recovered;
         }
 
         Character MyCharacter;
@@ -42,7 +43,7 @@ namespace Barotrauma
         public void DamageStat(string stat, float amount, Character inflicter, string identifier)
         {
             if (GameMain.Server == null || MyCharacter.IsDead) return;
-            if ((MyCharacter != GameMain.Server.Character && !MyCharacter.IsRemotePlayer)) return;
+            //if ((MyCharacter != GameMain.Server.Character && !MyCharacter.IsRemotePlayer)) return;
             RecordItem record;
             switch (stat)
             {
@@ -142,7 +143,7 @@ namespace Barotrauma
         public void RecoverStat(string stat, float amount)
         {
             if (GameMain.Server == null || MyCharacter.IsDead) return;
-            if ((MyCharacter != GameMain.Server.Character && !MyCharacter.IsRemotePlayer)) return;
+            //if ((MyCharacter != GameMain.Server.Character && !MyCharacter.IsRemotePlayer)) return;
 
             List<RecordItem> record;
             RecordItem ri;
@@ -154,52 +155,62 @@ namespace Barotrauma
                     if (HealthRecord.Count == 0) return;
                     record = HealthRecord;
                     ri = record.Find(r => r.identifier == "Unconcious");
-                    if(ri == null) record.Find(r => r.identifier == "Bleeding");
-                    else if(ri == null) ri = record.FirstOrDefault();
+                    if(ri == null || ri.damage == 0f) record.Find(r => r.identifier == "Bleeding");
+                    else if(ri == null || ri.damage == 0f) ri = record.Find(r => r.damage > 0f);
                     break;
                 case "bleeding":
                 case "bleed":
                     if (BleedRecord.Count == 0) return;
                     record = BleedRecord;
                     ri = record.Find(r => r.identifier == "Unconcious");
-                    if (ri == null) ri = record.FirstOrDefault();
+                    if (ri == null || ri.damage == 0f) ri = record.Find(r => r.damage > 0f);
                     break;
                 case "oxygen":
                     if (OxygenRecord.Count == 0) return;
                     record = OxygenRecord;
                     ri = record.Find(r => r.identifier == "Unconcious");
-                    if (ri == null) ri = record.Find(r => r.identifier == "Suffocation");
-                    else if (ri == null) ri = record.FirstOrDefault();
+                    if (ri == null || ri.damage == 0f) ri = record.Find(r => r.identifier == "Suffocation");
+                    else if (ri == null || ri.damage == 0f) ri = record.Find(r => r.damage > 0f);
                     break;
                 case "stun":
                     if (StunRecord.Count == 0) return;
                     record = StunRecord;
-                    ri = record.LastOrDefault();
+                    ri = record.Find(r => r.damage > 0f);
                     break;
                 case "husk":
                 case "huskinfection":
                     if (HuskRecord.Count == 0) return;
                     record = HuskRecord;
                     ri = record.Find(r => r.identifier == "Husk Infection");
-                    if (ri == null) ri = record.LastOrDefault();
+                    if (ri == null || ri.damage == 0f) ri = record.Find(r => r.damage > 0f);
                     break;
                 default:
                     return;
             }
 
-            if (ri != null)
+            if (ri != null && ri.damage > 0f)
             {
-                if (ri.damage >= amount) ri.damage -= amount;
+                if (ri.damage >= amount)
+                {
+                    ri.damage -= amount;
+                    ri.recovered += amount;
+                }
                 else
                 {
                     amount = amount - ri.damage;
-                    record.Remove(ri);
+                    ri.recovered = ri.recovered + ri.damage;
+                    ri.damage = 0f;
+                    //record.Remove(ri);
                     switch (stat)
                     {
                         case "health":
                             if (MyCharacter.Health == MyCharacter.MaxHealth)
                             {
-                                HealthRecord = new List<RecordItem>();
+                                foreach(RecordItem hr in HealthRecord)
+                                {
+                                    hr.recovered = hr.recovered + hr.damage;
+                                    hr.damage = 0f;
+                                }
                                 return;
                             }
                             break;
@@ -207,21 +218,33 @@ namespace Barotrauma
                         case "bleed":
                             if (MyCharacter.Bleeding <= 0f)
                             {
-                                BleedRecord = new List<RecordItem>();
+                                foreach (RecordItem bl in BleedRecord)
+                                {
+                                    bl.recovered = bl.recovered + bl.damage;
+                                    bl.damage = 0f;
+                                }
                                 return;
                             }
                             break;
                         case "oxygen":
                             if (MyCharacter.Oxygen == 100f)
                             {
-                                OxygenRecord = new List<RecordItem>();
+                                foreach (RecordItem ox in OxygenRecord)
+                                {
+                                    ox.recovered = ox.recovered + ox.damage;
+                                    ox.damage = 0f;
+                                }
                                 return;
                             }
                             break;
                         case "stun":
                             if (MyCharacter.Stun == 0f)
                             {
-                                StunRecord = new List<RecordItem>();
+                                foreach (RecordItem st in StunRecord)
+                                {
+                                    st.recovered = st.recovered + st.damage;
+                                    st.damage = 0f;
+                                }
                                 return;
                             }
                             break;
@@ -229,7 +252,11 @@ namespace Barotrauma
                         case "huskinfection":
                             if (MyCharacter.HuskInfectionState <= 0f)
                             {
-                                HuskRecord = new List<RecordItem>();
+                                foreach (RecordItem hi in HuskRecord)
+                                {
+                                    hi.recovered = hi.recovered + hi.damage;
+                                    hi.damage = 0f;
+                                }
                                 return;
                             }
                             break;
@@ -241,10 +268,10 @@ namespace Barotrauma
             }
         }
 
-        public void ReportRecord()
+        public void ReportRecord(Boolean gaveIn = false)
         {
             if (GameMain.Server == null || MyCharacter.IsDead) return;
-            if ((MyCharacter != GameMain.Server.Character && !MyCharacter.IsRemotePlayer)) return;
+            if ((MyCharacter != GameMain.Server.Character && (!MyCharacter.IsRemotePlayer && !GameMain.NilMod.LogDamageRecordAI))) return;
 
             string message = "";
             //GameServer.Log("Character died of the following:", ServerLog.MessageType.Spawns);
@@ -257,7 +284,7 @@ namespace Barotrauma
 
             foreach (RecordItem ri in HealthRecord)
             {
-                if (ri.damage <= 1f) continue;
+                if (ri.damage <= 1f && ri.recovered <= 1f && !GameMain.NilMod.LogDamageRecordFull) continue;
 
                 string Identifier = "";
                 string source = "";
@@ -284,9 +311,11 @@ namespace Barotrauma
                     }
                 }
 
-                if (MyCharacter.Health <= (MyCharacter.MinHealth + (MyCharacter.MaxHealth / 5)))
+                if (MyCharacter.Health <= (MyCharacter.MinHealth + (MyCharacter.MaxHealth / 5))
+                    || (gaveIn && MyCharacter.Health <= 0f) || GameMain.NilMod.LogDamageRecordFull)
                 {
-                    message = "Health -" + Math.Round(ri.damage, 1)
+                    message = "Health - Untreated: " + Math.Round(ri.damage, 1)
+                        + (" Healed: " + Math.Round(ri.recovered, 1))
                         + source
                         + "via " + Identifier;
                     GameServer.Log(message, ServerLog.MessageType.Spawns);
@@ -295,7 +324,7 @@ namespace Barotrauma
 
             foreach (RecordItem ri in BleedRecord)
             {
-                if (ri.damage <= 1f) continue;
+                if (ri.damage <= 1f && ri.recovered <= 1f && !GameMain.NilMod.LogDamageRecordFull) continue;
 
                 string Identifier = "";
                 string source = "";
@@ -322,9 +351,12 @@ namespace Barotrauma
                     }
                 }
 
-                if (MyCharacter.Bleeding >= 0.25f)
+                if (MyCharacter.Bleeding >= 0.1f
+                    || (gaveIn && MyCharacter.Health <= 0f && MyCharacter.Bleeding >= 0.005f)
+                    || GameMain.NilMod.LogDamageRecordFull)
                 {
-                    message = "Bleed +" + Math.Round(ri.damage, 1)
+                    message = "Bleed - Untreated: " + Math.Round(ri.damage, 1)
+                        + (" Healed: " + Math.Round(ri.recovered, 1))
                         + source
                         + "via " + Identifier;
                     GameServer.Log(message, ServerLog.MessageType.Spawns);
@@ -333,7 +365,7 @@ namespace Barotrauma
 
             foreach (RecordItem ri in OxygenRecord)
             {
-                if (ri.damage <= 1f) continue;
+                if (ri.damage <= 1f && ri.recovered <= 1f && !GameMain.NilMod.LogDamageRecordFull) continue;
 
                 string Identifier = "";
                 string source = "";
@@ -360,9 +392,12 @@ namespace Barotrauma
                     }
                 }
 
-                if (MyCharacter.Oxygen <= -80f)
+                if (MyCharacter.Oxygen <= -80f
+                    || (gaveIn && MyCharacter.Oxygen <= 0f)
+                    || GameMain.NilMod.LogDamageRecordFull)
                 {
-                    message = "Oxygen -" + Math.Round(ri.damage, 1)
+                    message = "Oxygen - Untreated: " + Math.Round(ri.damage, 1)
+                        + (" Healed: " + Math.Round(ri.recovered, 1))
                         + source
                         + "via " + Identifier;
                     GameServer.Log(message, ServerLog.MessageType.Spawns);
@@ -371,7 +406,7 @@ namespace Barotrauma
 
             foreach (RecordItem ri in StunRecord)
             {
-                if (ri.damage <= 1f) continue;
+                if (ri.damage <= 1f && ri.recovered <= 1f && !GameMain.NilMod.LogDamageRecordFull) continue;
 
                 string Identifier = "";
                 string source = "";
@@ -398,9 +433,12 @@ namespace Barotrauma
                     }
                 }
 
-                if (MyCharacter.Stun > 5f)
+                if (MyCharacter.Stun > 5f
+                    || gaveIn
+                    || GameMain.NilMod.LogDamageRecordFull)
                 {
-                    message = "Stun -" + Math.Round(ri.damage, 1)
+                    message = "Stun - Remaining: " + Math.Round(ri.damage, 1)
+                        + (" Healed: " + Math.Round(ri.recovered, 1))
                         + source
                         + "via " + Identifier;
                     GameServer.Log(message, ServerLog.MessageType.Spawns);
@@ -436,7 +474,8 @@ namespace Barotrauma
 
                 if (MyCharacter.HuskInfectionState > 0f)
                 {
-                    message = "Husk -" + Math.Round(ri.damage, 1)
+                    message = "Husk - Untreated: " + Math.Round(ri.damage, 1)
+                        + (" Healed: " + Math.Round(ri.recovered, 1))
                         + source
                         + "via " + Identifier;
                     GameServer.Log(message, ServerLog.MessageType.Spawns);
@@ -1642,10 +1681,15 @@ namespace Barotrauma
 
         public int GetSkillLevel(string skillName)
         {
+            Client client = null;
+            if (GameMain.Server != null) client = GameMain.Server.ConnectedClients.Find(c => c.Character == this);
             //NilMod Host Skill code changes
             if (controlled == this && GameMain.NilMod.HostBypassSkills)
             {
-                //return (Info == null || Info.Job == null) ? 0 : Info.Job.GetSkillLevel(skillName);
+                return 100;
+            }
+            else if(client != null && client.BypassSkillRequirements)
+            {
                 return 100;
             }
             else
@@ -2505,7 +2549,10 @@ namespace Barotrauma
             if (IsUnconscious)
             {
                 UpdateUnconscious(deltaTime);
-                return;
+            }
+            else
+            {
+
             }
 
             //Do ragdoll shenanigans before Stun because it's still technically a stun, innit? Less network updates for us!
@@ -2548,11 +2595,8 @@ namespace Barotrauma
                 charRecord.DamageStat("health", -(bleeding * deltaTime), null, "Bleeding");
                 Health -= (Bleeding * GameMain.NilMod.CreatureBleedMultiplier) * deltaTime;
                 Bleeding -= (BleedingDecreaseSpeed * GameMain.NilMod.ConciousPassiveBleedRecoveryMult) * deltaTime;
+                charRecord.RecoverStat("bleed", (BleedingDecreaseSpeed * GameMain.NilMod.ConciousPassiveBleedRecoveryMult) * deltaTime);
             }
-
-            if (health <= minHealth) Kill(CauseOfDeath.Bloodloss);
-
-            if (!IsDead) LockHands = false;
 
             //ragdoll button
             if (IsRagdolled)
@@ -2562,27 +2606,27 @@ namespace Barotrauma
                     GameMain.Server.CreateEntityEvent(this, new object[] { NetEntityEvent.Type.Status });*/
                 AnimController.ResetPullJoints();
                 selectedConstruction = null;
-                return;
             }
-
-            //AI and control stuff
-
-            Control(deltaTime, cam);
-            if (controlled != this && (!(this is AICharacter) || IsRemotePlayer))
+            else
             {
-                Vector2 mouseSimPos = ConvertUnits.ToSimUnits(cursorPosition);
-                DoInteractionUpdate(deltaTime, mouseSimPos);
-            }
-                        
-            if (selectedConstruction != null && !CanInteractWith(selectedConstruction))
-            {
-                selectedConstruction = null;
-            }
+                //AI and control stuff
+                Control(deltaTime, cam);
+                if (controlled != this && (!(this is AICharacter) || IsRemotePlayer))
+                {
+                    Vector2 mouseSimPos = ConvertUnits.ToSimUnits(cursorPosition);
+                    DoInteractionUpdate(deltaTime, mouseSimPos);
+                }
 
-            UpdateSightRange();
-            if (aiTarget != null) aiTarget.SoundRange = 0.0f;
+                if (selectedConstruction != null && !CanInteractWith(selectedConstruction))
+                {
+                    selectedConstruction = null;
+                }
 
-            lowPassMultiplier = MathHelper.Lerp(lowPassMultiplier, 1.0f, 0.1f);
+                UpdateSightRange();
+                if (aiTarget != null) aiTarget.SoundRange = 0.0f;
+
+                lowPassMultiplier = MathHelper.Lerp(lowPassMultiplier, 1.0f, 0.1f);
+            }
 
             //NilMod Anti death code
             if (Health <= minHealth)
@@ -2597,7 +2641,7 @@ namespace Barotrauma
                             100.0f : Math.Min(AnimController.CurrentHull.LethalPressure, 100.0f);
                             if (PressureProtection > 0.0f && (WorldPosition.Y > GameMain.NilMod.PlayerCrushDepthOutsideHull || (WorldPosition.Y > GameMain.NilMod.PlayerCrushDepthInHull && CurrentHull != null))) pressureFactor = 0.0f;
 
-                            Kill(pressureFactor == 100f ? CauseOfDeath.Pressure : CauseOfDeath.Bloodloss);
+                            Kill(pressureFactor == 100f ? CauseOfDeath.Pressure : (Bleeding > 0f ? CauseOfDeath.Bloodloss : CauseOfDeath.Damage));
                         }
                         else
                         {
@@ -2625,7 +2669,7 @@ namespace Barotrauma
                     100.0f : Math.Min(AnimController.CurrentHull.LethalPressure, 100.0f);
                     if (PressureProtection > 0.0f && (WorldPosition.Y > GameMain.NilMod.PlayerCrushDepthOutsideHull || (WorldPosition.Y > GameMain.NilMod.PlayerCrushDepthInHull && CurrentHull != null))) pressureFactor = 0.0f;
 
-                    Kill(pressureFactor == 100f ? CauseOfDeath.Pressure : CauseOfDeath.Bloodloss);
+                    Kill(pressureFactor == 100f ? CauseOfDeath.Pressure : (Bleeding > 0f ? CauseOfDeath.Bloodloss : CauseOfDeath.Damage));
                 }
             }
 
@@ -3129,7 +3173,7 @@ namespace Barotrauma
             if(!gaveIn) GameServer.Log(LogName + " has died (Cause of death: " + causeOfDeath + ")", ServerLog.MessageType.Attack);
             else GameServer.Log(LogName + " has given in and died (Cause of death: " + causeOfDeath + ")", ServerLog.MessageType.Attack);
 
-            charRecord.ReportRecord();
+            charRecord.ReportRecord(gaveIn);
 
             string characterType = "Unknown";
             if (this == controlled)
@@ -3247,6 +3291,25 @@ namespace Barotrauma
 
             base.Remove();
 
+            //Purge all status effects related to this entity
+            for (int i = StatusEffect.DurationList.Count() - 1; i >= 0; i--)
+            {
+                for (int y = StatusEffect.DurationList[i].Targets.Count() - 1; y >= 0; y--)
+                {
+                    if (StatusEffect.DurationList[i].Targets[y] == this) StatusEffect.DurationList[i].Targets.Remove(this);
+                    if (StatusEffect.DurationList[i].Targets.Count == 0) StatusEffect.DurationList.Remove(StatusEffect.DurationList[i]);
+                }
+            }
+            //Purge all delayed status effects related to this entity
+            for (int i = DelayedEffect.DelayList.Count() - 1; i >= 0; i--)
+            {
+                for (int y = DelayedEffect.DelayList[i].Targets.Count() - 1; y >= 0; y--)
+                {
+                    if (DelayedEffect.DelayList[i].Targets[y] == this) DelayedEffect.DelayList[i].Targets.Remove(this);
+                    if (DelayedEffect.DelayList[i].Targets.Count == 0) DelayedEffect.DelayList.Remove(DelayedEffect.DelayList[i]);
+                }
+            }
+
             charRecord = null;
 
 #if CLIENT
@@ -3254,6 +3317,9 @@ namespace Barotrauma
             if (SpawnCharacter == this) SpawnCharacter = null;
 #endif
             if (Controlled == this) Controlled = null;
+
+            if (selectedItems[0] != null) selectedItems[0].Drop(this);
+            if (selectedItems[1] != null) selectedItems[1].Drop(this);
 
             if (info != null) info.Remove();
 
@@ -3298,9 +3364,6 @@ namespace Barotrauma
             if (aiTarget != null) aiTarget.Remove();            
 
             if (AnimController != null) AnimController.Remove();
-
-            if (selectedItems[0] != null) selectedItems[0].Drop(this);
-            if (selectedItems[1] != null) selectedItems[1].Drop(this);
 
             foreach (Character c in CharacterList)
             {

@@ -25,6 +25,7 @@ namespace Barotrauma.Items.Components
         //protected bool aimable;
 
         private bool attachable, attached, attachedByDefault;
+        public Character attachedby;
         private PhysicsBody body;
 
         //the angle in which the Character holds the item
@@ -126,6 +127,17 @@ namespace Barotrauma.Items.Components
             }    
         }
 
+        public override void Load(XElement componentElement)
+        {
+            base.Load(componentElement);
+            if (attachable)
+            {
+                prevMsg = Msg;
+                prevPickKey = PickKey;
+                prevRequiredItems = new List<RelatedItem>(requiredItems);
+            }
+        }
+
         public override void Drop(Character dropper)
         {
             Drop(true, dropper);
@@ -162,7 +174,24 @@ namespace Barotrauma.Items.Components
             if (item.body != null)
             {
                 item.body.ResetDynamics();
-                item.SetTransform(picker.SimPosition, 0.0f);
+                Limb heldHand;
+                Limb arm;
+                if (picker.Inventory.IsInLimbSlot(item, InvSlotType.LeftHand))
+                {
+                    heldHand = picker.AnimController.GetLimb(LimbType.LeftHand);
+                    arm = picker.AnimController.GetLimb(LimbType.LeftArm);
+
+                }
+                else
+                {
+                    heldHand = picker.AnimController.GetLimb(LimbType.RightHand);
+                    arm = picker.AnimController.GetLimb(LimbType.RightArm);
+                }
+
+                float xDif = (heldHand.SimPosition.X - arm.SimPosition.X) / 2f;
+                float yDif = (heldHand.SimPosition.Y - arm.SimPosition.Y) / 2.5f;
+                //hand simPosition is actually in the wrist so need to move the item out from it slightly 
+                item.SetTransform(heldHand.SimPosition + new Vector2(xDif, yDif), 0.0f);
             }
 
             picker.DeselectItem(item);
@@ -330,6 +359,7 @@ namespace Barotrauma.Items.Components
             }
             
             AttachToWall();
+            if (attached && character != null) attachedby = character;
 
             return true;
         }
@@ -341,6 +371,7 @@ namespace Barotrauma.Items.Components
 
         public override void Update(float deltaTime, Camera cam)
         {
+            if (attachedby != null && attachedby.Removed) attachedby = null;
             if (item.body == null || !item.body.Enabled) return;
             if (picker == null || !picker.HasEquippedItem(item))
             {
@@ -435,7 +466,7 @@ namespace Barotrauma.Items.Components
 
         public void ClientRead(ServerNetObject type, NetBuffer msg, float sendingTime)
         {
-            bool isAttached = msg.ReadBoolean();
+            bool shouldBeAttached = msg.ReadBoolean();
             Vector2 simPosition = new Vector2(msg.ReadFloat(), msg.ReadFloat());
 
             if (!attachable)
@@ -444,7 +475,7 @@ namespace Barotrauma.Items.Components
                 return;
             }
 
-            if (isAttached)
+            if (shouldBeAttached)
             {
                 Drop(false, null);
                 item.SetTransform(simPosition, 0.0f);
@@ -452,16 +483,19 @@ namespace Barotrauma.Items.Components
             }
             else
             {
-                DropConnectedWires(null);
-
-                if (body != null)
+                if (attached)
                 {
-                    item.body = body;
-                    item.body.Enabled = true;
-                }
-                IsActive = false;
+                    DropConnectedWires(null);
 
-                DeattachFromWall();
+                    if (body != null)
+                    {
+                        item.body = body;
+                        item.body.Enabled = true;
+                    }
+                    IsActive = false;
+
+                    DeattachFromWall();
+                }
             }
         }
     }

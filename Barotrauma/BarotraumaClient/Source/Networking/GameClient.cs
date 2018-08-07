@@ -13,9 +13,6 @@ namespace Barotrauma.Networking
     {
         public NetClient client;
 
-        private ClientLog clientLog;
-        private GUIButton clientLogButton;
-
         private GUIMessageBox reconnectBox;
         
         private GUIButton endRoundButton;
@@ -71,7 +68,12 @@ namespace Barotrauma.Networking
         {
             get { return fileReceiver; }
         }
-        
+
+        public bool MidRoundSyncing
+        {
+            get { return entityEventManager.MidRoundSyncing; }
+        }
+
         public GameClient(string newName)
         {
             endVoteTickBox = new GUITickBox(new Rectangle(GameMain.GraphicsWidth - 170, 20, 20, 20), "End round", Alignment.TopLeft, inGameHUD);
@@ -88,17 +90,6 @@ namespace Barotrauma.Networking
                 return true; 
             };
             endRoundButton.Visible = false;
-
-            clientLogButton = new GUIButton(new Rectangle(GameMain.GraphicsWidth - 170 - 170 - 170, 20, 150, 20), "Client Logs", Alignment.TopLeft, "", inGameHUD);
-            clientLogButton.OnClicked = (btn, userdata) =>
-            {
-                if (!permissions.HasFlag(ClientPermissions.Ban) || !permissions.HasFlag(ClientPermissions.Kick)) return false;
-
-                clientLog.CreateLogFrame();
-
-                return true;
-            };
-            clientLogButton.Visible = false;
 
             newName = newName.Replace(":", "");
             newName = newName.Replace(";", "");
@@ -119,8 +110,6 @@ namespace Barotrauma.Networking
             characterInfo.Job = null;
 
             otherClients = new List<Client>();
-
-            clientLog = new ClientLog();
 
             ChatMessage.LastID = 0;
             GameMain.NetLobbyScreen = new NetLobbyScreen();
@@ -1145,15 +1134,14 @@ namespace Barotrauma.Networking
                             }
                         }
 
-                        errorLines.Add("Last console messages:");
-                        for (int i = DebugConsole.Messages.Count - 1; i > 0; i--)
-                        {
-                            errorLines.Add("[" + DebugConsole.Messages[i].Time + "] " + DebugConsole.Messages[i].Text);
-                        }
-
                         foreach (string line in errorLines)
                         {
                             DebugConsole.ThrowError(line);
+                        }
+                        errorLines.Add("Last console messages:");
+                        for (int i = DebugConsole.Messages.Count - 1; i > Math.Max(0, DebugConsole.Messages.Count - 20); i--)
+                        {
+                            errorLines.Add((GameMain.NilMod.DebugConsoleTimeStamp ? "[" + DebugConsole.Messages[i].Time + "] " : "") + DebugConsole.Messages[i].Text);
                         }
                         GameAnalyticsManager.AddErrorEventOnce("GameClient.ReadInGameUpdate", GameAnalyticsSDK.Net.EGAErrorSeverity.Critical, string.Join("\n", errorLines));
 

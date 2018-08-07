@@ -83,6 +83,7 @@ namespace Barotrauma
         public Boolean DoorStuck;
         public Boolean PlayerIncapaciteDamage;
         public Boolean PlayerIncapaciteBleed;
+        public Boolean PlayerIncapaciteOxygen;
         public Boolean PlayerTakeIDOffLiving;
         public Boolean PumpPositive;
         public float PumpWarnTimer;
@@ -149,6 +150,7 @@ namespace Barotrauma
                     DoorStuck = NilModGriefWatchSettings.GetAttributeBool("DoorStuck", true);
                     PlayerIncapaciteDamage = NilModGriefWatchSettings.GetAttributeBool("PlayerIncapaciteDamage", true);
                     PlayerIncapaciteBleed = NilModGriefWatchSettings.GetAttributeBool("PlayerIncapaciteBleed", true);
+                    PlayerIncapaciteOxygen = NilModGriefWatchSettings.GetAttributeBool("PlayerIncapaciteOxygen", true);
                     PlayerTakeIDOffLiving = NilModGriefWatchSettings.GetAttributeBool("PlayerTakeIDOffLiving", true);
                     PumpWarnTimer = MathHelper.Clamp(NilModGriefWatchSettings.GetAttributeFloat("PumpWarnTimer", 6f), 0.2f, 30f);
                     PumpPositive = NilModGriefWatchSettings.GetAttributeBool("PumpPositive", true);
@@ -459,9 +461,10 @@ namespace Barotrauma
                 @"    AirlockLeftOpenTimer=""" + AirlockLeftOpenTimer + @"""",
                 @"    AirlockLeftOpenRespawnMult=""" + AirlockLeftOpenRespawnMult + @"""",
                 //@"    DoorBroken=""" + DoorBroken + @"""",
-                //@"    DoorStuck=""" + DoorStuck + @"""",
+                @"    DoorStuck=""" + DoorStuck + @"""",
                 @"    PlayerIncapaciteDamage=""" + PlayerIncapaciteDamage + @"""",
                 //@"    PlayerIncapaciteBleed=""" + PlayerIncapaciteBleed + @"""",
+                @"    PlayerIncapaciteOxygen=""" + PlayerIncapaciteOxygen + @"""",
                 //@"    PlayerTakeIDOffLiving=""" + PlayerTakeIDOffLiving + @"""",
                 @"    PumpWarnTimer=""" + PumpWarnTimer + @"""",
                 @"    PumpPositive=""" + PumpPositive + @"""",

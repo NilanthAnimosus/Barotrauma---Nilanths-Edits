@@ -368,10 +368,10 @@ namespace Barotrauma.Items.Components
                 float previoushealth = targetCharacter.Health;
                 targetCharacter.AddDamage(CauseOfDeath.Damage, -LimbFixAmount * degreeOfSuccess, user, effectidentifier);
                 if (GameMain.NilMod.EnableGriefWatcher && NilMod.NilModGriefWatcher.PlayerIncapaciteDamage &&
-                    previoushealth > 0f && targetLimb.character.Health <= 0f)
+                    previoushealth > 0f && targetCharacter.Health <= 0f)
                 {
                     Barotrauma.Networking.Client attackingclient = GameMain.Server.ConnectedClients.Find(c => c.Character != null && c.Character == user);
-                    Barotrauma.Networking.Client targetclient = GameMain.Server.ConnectedClients.Find(c => c.Character != null && !c.Character.IsDead && c.Character == targetLimb.character);
+                    Barotrauma.Networking.Client targetclient = GameMain.Server.ConnectedClients.Find(c => c.Character != null && !c.Character.IsDead && c.Character == targetCharacter);
                     if (attackingclient != null && targetclient != null)
                     {
                         NilMod.NilModGriefWatcher.SendWarning(attackingclient.Character.LogName
@@ -395,7 +395,16 @@ namespace Barotrauma.Items.Components
 
                 float prevCondition = targetItem.Condition;
 
-                ApplyStatusEffectsOnTarget(deltaTime, ActionType.OnUse, targetItem.AllPropertyObjects);
+                if (item.ContainedItems != null && item.ContainedItems.Length > 0)
+                {
+                    effectidentifier = item.Name + " (" + string.Join(", ", Array.FindAll(item.ContainedItems, i => i != null).Select(i => i.Name)) + ")";
+                }
+                else
+                {
+                    effectidentifier = item.Name;
+                }
+
+                ApplyStatusEffectsOnTarget(deltaTime, ActionType.OnUse, targetItem.AllPropertyObjects, user, effectidentifier);
 
 #if CLIENT
                 if (item.Condition != prevCondition)

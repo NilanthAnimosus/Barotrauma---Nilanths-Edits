@@ -62,8 +62,14 @@ namespace Barotrauma
                         GameMain.Server.ServerLog.WriteLine("Server Has Suffered a fatal Crash (Autorestarting).", Networking.ServerLog.MessageType.Error);
                         GameMain.Server.ServerLog.Save();
                     }
-                    
-                    System.Diagnostics.Process.Start(System.Reflection.Assembly.GetEntryAssembly().CodeBase + "\\BarotraumaServer NilEdit.exe");
+
+                    //System.Diagnostics.Process.Start(System.Reflection.Assembly.GetEntryAssembly().CodeBase + "\\BarotraumaServer NilEdit.exe");
+
+                    System.Diagnostics.Process process = new System.Diagnostics.Process();
+                    process.StartInfo.WorkingDirectory = System.Reflection.Assembly.GetEntryAssembly().CodeBase;
+                    process.StartInfo.FileName = "BarotraumaServer NilEdit.exe";
+                    process.Start();
+
                     //Kind of flipping the table here after the last one or two didnt work.
                     inputThread.Abort(); inputThread.Join();
                     if (GameSettings.SendUserStatistics) GameAnalytics.OnStop();

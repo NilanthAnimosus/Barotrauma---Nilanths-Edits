@@ -229,7 +229,18 @@ namespace Barotrauma.Items.Components
         
         public override void Update(float deltaTime, Camera cam)
         {
-            ApplyStatusEffects(ActionType.OnActive, deltaTime, null); 
+            string effectidentifier = "";
+
+            if (item.ContainedItems != null && item.ContainedItems.Length > 0)
+            {
+                effectidentifier = item.Name + " (" + string.Join(", ", Array.FindAll(item.ContainedItems, i => i != null).Select(i => i.Name)) + ")";
+            }
+            else
+            {
+                effectidentifier = item.Name;
+            }
+
+            ApplyStatusEffects(ActionType.OnActive, deltaTime, null, User, effectidentifier); 
 
             if (item.body != null && item.body.FarseerBody.IsBullet)
             {
@@ -300,6 +311,16 @@ namespace Barotrauma.Items.Components
 
             AttackResult attackResult = new AttackResult();
             Character character = null;
+
+            if (item.ContainedItems != null && item.ContainedItems.Length > 0)
+            {
+                effectidentifier = item.Name + " (" + string.Join(", ", Array.FindAll(item.ContainedItems, i => i != null).Select(i => i.Name)) + ")";
+            }
+            else
+            {
+                effectidentifier = item.Name;
+            }
+
             if (attack != null)
             {
                 if (target.Body.UserData is Submarine submarine)
@@ -313,15 +334,6 @@ namespace Barotrauma.Items.Components
                 Structure structure;
                 if (target.Body.UserData is Limb limb)
                 {
-                    if (item.ContainedItems != null && item.ContainedItems.Length > 0)
-                    {
-                        effectidentifier = item.Name + " (" + string.Join(", ", Array.FindAll(item.ContainedItems, i => i != null).Select(i => i.Name)) + ")";
-                    }
-                    else
-                    {
-                        effectidentifier = item.Name;
-                    }
-
                     attackResult = attack.DoDamageToLimb(User, limb, item.WorldPosition, 1.0f, true, effectidentifier);
                     if (limb.character != null)
                         character = limb.character;

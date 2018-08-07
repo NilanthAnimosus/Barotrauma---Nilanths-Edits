@@ -84,6 +84,7 @@ namespace Barotrauma
 
         public void Load()
         {
+            SetDefault();
             XDocument doc = null;
 
             if (File.Exists(ChatSavePath))
@@ -102,15 +103,13 @@ namespace Barotrauma
             }
             else
             {
-
-
                 //Chatter Settings
                 XElement NilModEventChatterSettings = doc.Root.Element("NilModEventChatterSettings");
 
-                ChatModServerJoin = NilModEventChatterSettings.GetAttributeBool("ChatModServerJoin", false); //Implemented
-                ChatTraitorReminder = NilModEventChatterSettings.GetAttributeBool("ChatTraitorReminder", false); //Implemented
-                ChatNoneTraitorReminder = NilModEventChatterSettings.GetAttributeBool("ChatNoneTraitorReminder", false); //Implemented
-                ChatShuttleRespawn = NilModEventChatterSettings.GetAttributeBool("ChatShuttleRespawn", false); //Implemented
+                ChatModServerJoin = NilModEventChatterSettings.GetAttributeBool("ChatModServerJoin", false);
+                ChatTraitorReminder = NilModEventChatterSettings.GetAttributeBool("ChatTraitorReminder", false);
+                ChatNoneTraitorReminder = NilModEventChatterSettings.GetAttributeBool("ChatNoneTraitorReminder", false);
+                ChatShuttleRespawn = NilModEventChatterSettings.GetAttributeBool("ChatShuttleRespawn", false);
                 ChatShuttleLeaving500 = NilModEventChatterSettings.GetAttributeBool("ChatShuttleLeaving500", false);
                 ChatShuttleLeaving400 = NilModEventChatterSettings.GetAttributeBool("ChatShuttleLeaving400", false);
                 ChatShuttleLeaving300 = NilModEventChatterSettings.GetAttributeBool("ChatShuttleLeaving300", false);
@@ -120,23 +119,22 @@ namespace Barotrauma
                 ChatShuttleLeaving030 = NilModEventChatterSettings.GetAttributeBool("ChatShuttleLeaving030", false);
                 ChatShuttleLeaving015 = NilModEventChatterSettings.GetAttributeBool("ChatShuttleLeaving015", false);
                 ChatShuttleLeavingKill = NilModEventChatterSettings.GetAttributeBool("ChatShuttleLeavingKill", false);
-                ChatSubvsSub = NilModEventChatterSettings.GetAttributeBool("ChatSubvsSub", false); //Implemented
-                ChatSalvage = NilModEventChatterSettings.GetAttributeBool("ChatSalvage", false); //Implemented
-                ChatMonster = NilModEventChatterSettings.GetAttributeBool("ChatMonster", false); //Implemented
-                ChatCargo = NilModEventChatterSettings.GetAttributeBool("ChatCargo", false); //Implemented
-                ChatSandbox = NilModEventChatterSettings.GetAttributeBool("ChatSandbox", false); //Implemented
-                ChatVoteEnd = NilModEventChatterSettings.GetAttributeBool("ChatVoteEnd", false); //Implemented
+                ChatSubvsSub = NilModEventChatterSettings.GetAttributeBool("ChatSubvsSub", false);
+                ChatSalvage = NilModEventChatterSettings.GetAttributeBool("ChatSalvage", false);
+                ChatMonster = NilModEventChatterSettings.GetAttributeBool("ChatMonster", false);
+                ChatCargo = NilModEventChatterSettings.GetAttributeBool("ChatCargo", false);
+                ChatSandbox = NilModEventChatterSettings.GetAttributeBool("ChatSandbox", false);
+                ChatVoteEnd = NilModEventChatterSettings.GetAttributeBool("ChatVoteEnd", false);
 
                 //Rules + Greeting Text On Lobby Join
 
                 XElement NilModRulesdoc = doc.Root.Element("NilModServerJoin");
-                NilModRules = new List<string>();
 
-                if (NilModRulesdoc?.Elements().Count() > 0)
+                if (NilModRulesdoc != null)
                 {
+                    NilModRules = new List<string>();
                     foreach (XElement subElement in NilModRulesdoc.Elements())
                     {
-
                         NilModRules.Add(subElement.GetAttributeString("Text", ""));
                     }
                 }
@@ -144,13 +142,12 @@ namespace Barotrauma
                 //Traitor reminder on spawn
 
                 XElement NilTraitorReminderdoc = doc.Root.Element("NilTraitorReminder");
-                NilTraitorReminder = new List<string>();
 
-                if (NilTraitorReminderdoc?.Elements().Count() > 0)
+                if (NilTraitorReminderdoc != null)
                 {
+                    NilTraitorReminder = new List<string>();
                     foreach (XElement subElement in NilTraitorReminderdoc.Elements())
                     {
-
                         NilTraitorReminder.Add(subElement.GetAttributeString("Text", ""));
                     }
                 }
@@ -158,13 +155,12 @@ namespace Barotrauma
                 //Non-Traitor reminder on spawn
 
                 XElement NilNoneTraitorReminderdoc = doc.Root.Element("NilNoneTraitorReminder");
-                NilNoneTraitorReminder = new List<string>();
 
-                if (NilNoneTraitorReminderdoc?.Elements().Count() > 0)
+                if (NilNoneTraitorReminderdoc != null)
                 {
+                    NilNoneTraitorReminder = new List<string>();
                     foreach (XElement subElement in NilNoneTraitorReminderdoc.Elements())
                     {
-
                         NilNoneTraitorReminder.Add(subElement.GetAttributeString("Text", ""));
                     }
                 }
@@ -172,13 +168,12 @@ namespace Barotrauma
                 //Text for respawning players
 
                 XElement NilShuttleRespawndoc = doc.Root.Element("NilShuttleRespawn");
-                NilShuttleRespawn = new List<string>();
 
-                if (NilShuttleRespawndoc?.Elements().Count() > 0)
+                if (NilShuttleRespawndoc != null)
                 {
+                    NilShuttleRespawn = new List<string>();
                     foreach (XElement subElement in NilShuttleRespawndoc.Elements())
                     {
-
                         NilShuttleRespawn.Add(subElement.GetAttributeString("Text", ""));
                     }
                 }
@@ -186,13 +181,12 @@ namespace Barotrauma
                 //Text for players when the shuttle has 5 minutes remaining
 
                 XElement NilShuttleLeaving500doc = doc.Root.Element("NilShuttleLeaving500");
-                NilShuttleLeaving500 = new List<string>();
 
-                if (NilShuttleLeaving500doc?.Elements().Count() > 0)
+                if (NilShuttleLeaving500doc != null)
                 {
+                    NilShuttleLeaving500 = new List<string>();
                     foreach (XElement subElement in NilShuttleLeaving500doc.Elements())
                     {
-
                         NilShuttleLeaving500.Add(subElement.GetAttributeString("Text", ""));
                     }
                 }
@@ -200,13 +194,12 @@ namespace Barotrauma
                 //Text for players when the shuttle has 4 minutes remaining
 
                 XElement NilShuttleLeaving400doc = doc.Root.Element("NilShuttleLeaving400");
-                NilShuttleLeaving400 = new List<string>();
 
-                if (NilShuttleLeaving400doc?.Elements().Count() > 0)
+                if (NilShuttleLeaving400doc != null)
                 {
+                    NilShuttleLeaving400 = new List<string>();
                     foreach (XElement subElement in NilShuttleLeaving400doc.Elements())
                     {
-
                         NilShuttleLeaving400.Add(subElement.GetAttributeString("Text", ""));
                     }
                 }
@@ -214,13 +207,12 @@ namespace Barotrauma
                 //Text for players when the shuttle has 3 minutes remaining
 
                 XElement NilShuttleLeaving300doc = doc.Root.Element("NilShuttleLeaving300");
-                NilShuttleLeaving300 = new List<string>();
 
-                if (NilShuttleLeaving300doc?.Elements().Count() > 0)
+                if (NilShuttleLeaving300doc != null)
                 {
+                    NilShuttleLeaving300 = new List<string>();
                     foreach (XElement subElement in NilShuttleLeaving300doc.Elements())
                     {
-
                         NilShuttleLeaving300.Add(subElement.GetAttributeString("Text", ""));
                     }
                 }
@@ -228,13 +220,12 @@ namespace Barotrauma
                 //Text for players when the shuttle has 2 minutes remaining
 
                 XElement NilShuttleLeaving200doc = doc.Root.Element("NilShuttleLeaving200");
-                NilShuttleLeaving200 = new List<string>();
 
-                if (NilShuttleLeaving200doc?.Elements().Count() > 0)
+                if (NilShuttleLeaving200doc != null)
                 {
+                    NilShuttleLeaving200 = new List<string>();
                     foreach (XElement subElement in NilShuttleLeaving200doc.Elements())
                     {
-
                         NilShuttleLeaving200.Add(subElement.GetAttributeString("Text", ""));
                     }
                 }
@@ -242,13 +233,12 @@ namespace Barotrauma
                 //Text for players when the shuttle has 1:30 minutes remaining
 
                 XElement NilShuttleLeaving130doc = doc.Root.Element("NilShuttleLeaving130");
-                NilShuttleLeaving130 = new List<string>();
 
-                if (NilShuttleLeaving130doc?.Elements().Count() > 0)
+                if (NilShuttleLeaving130doc != null)
                 {
+                    NilShuttleLeaving130 = new List<string>();
                     foreach (XElement subElement in NilShuttleLeaving130doc.Elements())
                     {
-
                         NilShuttleLeaving130.Add(subElement.GetAttributeString("Text", ""));
                     }
                 }
@@ -256,13 +246,12 @@ namespace Barotrauma
                 //Text for players when the shuttle has 1 minutes remaining
 
                 XElement NilShuttleLeaving100doc = doc.Root.Element("NilShuttleLeaving100");
-                NilShuttleLeaving100 = new List<string>();
 
-                if (NilShuttleLeaving100doc?.Elements().Count() > 0)
+                if (NilShuttleLeaving100doc != null)
                 {
+                    NilShuttleLeaving100 = new List<string>();
                     foreach (XElement subElement in NilShuttleLeaving100doc.Elements())
                     {
-
                         NilShuttleLeaving100.Add(subElement.GetAttributeString("Text", ""));
                     }
                 }
@@ -270,13 +259,12 @@ namespace Barotrauma
                 //Text for players when the shuttle has 30 seconds remaining
 
                 XElement NilShuttleLeaving030doc = doc.Root.Element("NilShuttleLeaving030");
-                NilShuttleLeaving030 = new List<string>();
 
-                if (NilShuttleLeaving030doc?.Elements().Count() > 0)
+                if (NilShuttleLeaving030doc != null)
                 {
+                    NilShuttleLeaving030 = new List<string>();
                     foreach (XElement subElement in NilShuttleLeaving030doc.Elements())
                     {
-
                         NilShuttleLeaving030.Add(subElement.GetAttributeString("Text", ""));
                     }
                 }
@@ -284,13 +272,12 @@ namespace Barotrauma
                 //Text for players when the shuttle has 15 seconds remaining
 
                 XElement NilShuttleLeaving015doc = doc.Root.Element("NilShuttleLeaving015");
-                NilShuttleLeaving015 = new List<string>();
 
-                if (NilShuttleLeaving015doc?.Elements().Count() > 0)
+                if (NilShuttleLeaving015doc != null)
                 {
+                    NilShuttleLeaving015 = new List<string>();
                     foreach (XElement subElement in NilShuttleLeaving015doc.Elements())
                     {
-
                         NilShuttleLeaving015.Add(subElement.GetAttributeString("Text", ""));
                     }
                 }
@@ -298,13 +285,12 @@ namespace Barotrauma
                 //Text for players when the shuttle is going to leave and kill its occupants
 
                 XElement NilShuttleLeavingKilldoc = doc.Root.Element("NilShuttleLeavingKill");
-                NilShuttleLeavingKill = new List<string>();
 
-                if (NilShuttleLeavingKilldoc?.Elements().Count() > 0)
+                if (NilShuttleLeavingKilldoc != null)
                 {
+                    NilShuttleLeavingKill = new List<string>();
                     foreach (XElement subElement in NilShuttleLeavingKilldoc.Elements())
                     {
-
                         NilShuttleLeavingKill.Add(subElement.GetAttributeString("Text", ""));
                     }
                 }
@@ -312,13 +298,12 @@ namespace Barotrauma
                 //Text for sub vs sub - Coalition team spawns
 
                 XElement NilSubvsSubCoalitiondoc = doc.Root.Element("NilSubvsSubCoalition");
-                NilSubvsSubCoalition = new List<string>();
 
-                if (NilSubvsSubCoalitiondoc?.Elements().Count() > 0)
+                if (NilSubvsSubCoalitiondoc != null)
                 {
+                    NilSubvsSubCoalition = new List<string>();
                     foreach (XElement subElement in NilSubvsSubCoalitiondoc.Elements())
                     {
-
                         NilSubvsSubCoalition.Add(subElement.GetAttributeString("Text", ""));
                     }
                 }
@@ -326,76 +311,72 @@ namespace Barotrauma
                 //Text for sub vs sub - Renegade team spawns
 
                 XElement NilSubvsSubRenegadedoc = doc.Root.Element("NilSubvsSubRenegade");
-                NilSubvsSubRenegade = new List<string>();
 
-                if (NilSubvsSubRenegadedoc?.Elements().Count() > 0)
+                if (NilSubvsSubRenegadedoc != null)
                 {
+                    NilSubvsSubRenegade = new List<string>();
                     foreach (XElement subElement in NilSubvsSubRenegadedoc.Elements())
                     {
-
                         NilSubvsSubRenegade.Add(subElement.GetAttributeString("Text", ""));
                     }
                 }
 
                 XElement NilSalvagedoc = doc.Root.Element("NilSalvage");
-                NilSalvage = new List<string>();
 
-                if (NilSalvagedoc?.Elements().Count() > 0)
+                if (NilSalvagedoc != null)
                 {
+                    NilSalvage = new List<string>();
                     foreach (XElement subElement in NilSalvagedoc.Elements())
                     {
-
                         NilSalvage.Add(subElement.GetAttributeString("Text", ""));
                     }
                 }
 
                 XElement NilMonsterdoc = doc.Root.Element("NilMonster");
-                NilMonster = new List<string>();
 
-                if (NilMonsterdoc?.Elements().Count() > 0)
+                if (NilMonsterdoc != null)
                 {
+                    NilMonster = new List<string>();
                     foreach (XElement subElement in NilMonsterdoc.Elements())
                     {
-
                         NilMonster.Add(subElement.GetAttributeString("Text", ""));
                     }
                 }
 
                 XElement NilCargodoc = doc.Root.Element("NilCargo");
-                NilCargo = new List<string>();
 
-                if (NilCargodoc?.Elements().Count() > 0)
+                if (NilCargodoc != null)
                 {
+                    NilCargo = new List<string>();
                     foreach (XElement subElement in NilCargodoc.Elements())
                     {
-
                         NilCargo.Add(subElement.GetAttributeString("Text", ""));
                     }
                 }
 
                 XElement NilSandboxdoc = doc.Root.Element("NilSandbox");
-                NilSandbox = new List<string>();
 
-                if (NilSandboxdoc?.Elements().Count() > 0)
+                if (NilSandboxdoc != null)
                 {
+                    NilSandbox = new List<string>();
                     foreach (XElement subElement in NilSandboxdoc.Elements())
                     {
-
                         NilSandbox.Add(subElement.GetAttributeString("Text", ""));
                     }
                 }
 
                 XElement NilVoteEnddoc = doc.Root.Element("NilVoteEnd");
-                NilVoteEnd = new List<string>();
 
-                if (NilVoteEnddoc?.Elements().Count() > 0)
+                if (NilVoteEnddoc != null)
                 {
+                    NilVoteEnd = new List<string>();
                     foreach (XElement subElement in NilVoteEnddoc.Elements())
                     {
-
                         NilVoteEnd.Add(subElement.GetAttributeString("Text", ""));
                     }
                 }
+
+                Save();
             }
         }
 
@@ -419,6 +400,7 @@ namespace Barotrauma
                 "  <!--ChatNoneTraitorReminder = Setting to enable per-client-sending of messages to none-traitors on initial spawn (configured at bottom of the xml), Default=false-->",
                 "  <!--ChatShuttleRespawn = Setting to enable per-client-sending of messages on shuttle respawn (configured at bottom of the xml), Default=false-->",
                 "  <!--ChatShuttleLeavingKill = Setting to enable per-client-sending of messages if shuttle kills the player by leaving (configured at bottom of the xml), Default=false-->",
+                "  <!--ChatShuttleLeaving### = Settings to use when the shuttle transport duration has this long left, in minute # then seconds ##, Default=false-->",
                 "  <!--ChatSubvsSub = Setting to enable per-client-sending of the Coalition/Renegade text below (configured at bottom of the xml), Default=false-->",
                 "  <!--ChatSalvage = Setting to enable per-client-sending of the text below (configured at bottom of the xml), Default=false-->",
                 "  <!--ChatMonster = Setting to enable per-client-sending of the text below (configured at bottom of the xml), Default=false-->",
@@ -430,136 +412,228 @@ namespace Barotrauma
 
                 "<NilModEvents>",
                 "  <NilModEventChatterSettings",
-                @"    ChatModServerJoin=""false""",
-                @"    ChatTraitorReminder=""false""",
-                @"    ChatNoneTraitorReminder=""false""",
-                @"    ChatShuttleRespawn=""false""",
-                @"    ChatShuttleLeavingKill=""false""",
-                @"    ChatSubvsSub=""false""",
-                @"    ChatSalvage=""false""",
-                @"    ChatMonster=""false""",
-                @"    ChatCargo=""false""",
-                @"    ChatSandbox=""false""",
-                @"    ChatVoteEnd=""false""",
-                "  />",
+                @"    ChatModServerJoin=""" + ChatModServerJoin + @"""",
+                @"    ChatTraitorReminder=""" + ChatTraitorReminder + @"""",
+                @"    ChatNoneTraitorReminder=""" + ChatNoneTraitorReminder + @"""",
+                @"    ChatShuttleRespawn=""" + ChatShuttleRespawn + @"""",
+                @"    ChatShuttleLeaving500=""" + ChatShuttleLeaving500 + @"""",
+                @"    ChatShuttleLeaving400=""" + ChatShuttleLeaving400 + @"""",
+                @"    ChatShuttleLeaving300=""" + ChatShuttleLeaving300 + @"""",
+                @"    ChatShuttleLeaving200=""" + ChatShuttleLeaving200 + @"""",
+                @"    ChatShuttleLeaving130=""" + ChatShuttleLeaving130 + @"""",
+                @"    ChatShuttleLeaving100=""" + ChatShuttleLeaving100 + @"""",
+                @"    ChatShuttleLeaving030=""" + ChatShuttleLeaving030 + @"""",
+                @"    ChatShuttleLeaving015=""" + ChatShuttleLeaving015 + @"""",
+                @"    ChatShuttleLeavingKill=""" + ChatShuttleLeavingKill + @"""",
+                @"    ChatSubvsSub=""" + ChatSubvsSub + @"""",
+                @"    ChatSalvage=""" + ChatSalvage + @"""",
+                @"    ChatMonster=""" + ChatMonster + @"""",
+                @"    ChatCargo=""" + ChatCargo + @"""",
+                @"    ChatSandbox=""" + ChatSandbox + @"""",
+                @"    ChatVoteEnd=""" + ChatVoteEnd + @"""",
+                "  />" };
 
-                "",
+            lines.Add("");
 
-                "  <!--This is for the initial On server join messages to inform players of rules, welcome text or otherwise for your server!-->",
-                "  <NilModServerJoin>",
-                @"    <Line Text=""Welcome to #SERVERNAME! Feel free to visit our website for communication! - Please read the following:""/>",
-                @"    <Line Text=""1.) Do your job - Security / Captains can stun/ cuff for unauthorised access or anyone may perform actions towards the mission goal.""/>",
-                @"    <Line Text=""2.) No Random Murders - if you can cuff use it, if you can stun and disarm do it.""/>",
-                @"    <Line Text=""3.) No Griefing -annoying everybody for your fun only is not really fun.""/>",
-                @"    <Line Text=""4.) Server is heavilly modified to be very difficult!expect slight oddities as your client attempts to cope.""/>",
-                "  </NilModServerJoin>",
-                "  <!--This is the custom text a TRAITOR will see on spawn, it replaces the none-traitor round text.-->",
-                "",
-                @"  <NilTraitorReminder>",
-                @"    <Line Text=""You have been handed a secret mission by your fellow Renegade forces!""/>",
-                @"    <Line Text=""Your task is to Assassinate #TRAITORTARGET! Though take care in this important endeavour""/>",
-                @"    <Line Text=""Take as few Coalition out as possible and make it back in one piece #TRAITORNAME, They must not find out your involvement.""/>",
-                "  </NilTraitorReminder>",
-                "  <!--This is the custom text a NONE TRAITOR will see on spawn, if it is set to MAYBE or YES (Regardless of traitors)-->",
-                "  <NilNoneTraitorReminder>",
-                @"    <Line Text=""The coalition have potential reports of renegade spies targeting key personnel!""/>",
-                @"    <Line Text=""Although it is unknown if they have made it onboard or what their target may be...""/>",
-                @"    <Line Text=""The coalition finds it unacceptable to let these scum have their way!""/>",
-                @"    <Line Text=""Ensure the submarine reaches its objective and the traitor either hangs or fails.""/>",
-                "  </NilNoneTraitorReminder>",
-                "  <!--This is the text a player will see when respawning Via Shuttle-->",
-                "  <NilShuttleRespawn>",
-                @"    <Line Text=""The coalition have sent you useless meatbags as additional backup.""/>",
-                @"    <Line Text=""Locate the submarine and use your provided supplies to aid its mission.""/>",
-                @"    <Line Text=""You only have limited time to disembark the shuttle, we will be disappointed if you should fail us.""/>",
-                "  </NilShuttleRespawn>",
-                "  <!--This is the text a player will see if they have 5 minutes remaining inside the shuttle-->",
-                "  <NilShuttleLeavingWarn500>",
-                @"    <Line Text=""You have #SHUTTLELEAVETIME to reach the main submarine and disembark.""/>",
-                "  </NilShuttleLeavingWarn500>",
-                "  <!--This is the text a player will see if they have 4 minutes remaining inside the shuttle-->",
-                "  <NilShuttleLeavingWarn400>",
-                @"    <Line Text=""You have #SHUTTLELEAVETIME to reach the main submarine and disembark.""/>",
-                "  </NilShuttleLeavingWarn400>",
-                "  <!--This is the text a player will see if they have 3 minutes remaining inside the shuttle-->",
-                "  <NilShuttleLeavingWarn300>",
-                @"    <Line Text=""You have #SHUTTLELEAVETIME to reach the main submarine and disembark.""/>",
-                "  </NilShuttleLeavingWarn300>",
-                "  <!--This is the text a player will see if they have 2 minutes remaining inside the shuttle-->",
-                "  <NilShuttleLeavingWarn200>",
-                @"    <Line Text=""You have #SHUTTLELEAVETIME to reach the main submarine and disembark.""/>",
-                "  </NilShuttleLeavingWarn200>",
-                "  <!--This is the text a player will see if they have 1:30 minutes remaining inside the shuttle-->",
-                "  <NilShuttleLeavingWarn130>",
-                @"    <Line Text=""You have #SHUTTLELEAVETIME to reach the main submarine and disembark.""/>",
-                "  </NilShuttleLeavingWarn130>",
-                "  <!--This is the text a player will see if they have 1 minute remaining inside the shuttle-->",
-                "  <NilShuttleLeavingWarn100>",
-                @"    <Line Text=""You only have #SHUTTLELEAVETIME to reach the main submarine and disembark!""/>",
-                "  </NilShuttleLeavingWarn100>",
-                "  <!--This is the text a player will see if they have 30 seconds remaining inside the shuttle-->",
-                "  <NilShuttleLeavingWarn030>",
-                @"    <Line Text=""You only have #SHUTTLELEAVETIME to reach the main submarine and disembark.""/>",
-                "  </NilShuttleLeavingWarn030>",
-                "  <!--This is the text a player will see if they have 15 seconds remaining inside the shuttle-->",
-                "  <NilShuttleLeavingWarn015>",
-                @"    <Line Text=""You only have #SHUTTLELEAVETIME to reach the main submarine and disembark!""/>",
-                @"    <Line Text=""You must leave before the shuttle returns or we will throw you in the drink for insubordination!""/>",
-                "  </NilShuttleLeavingWarn015>",
-                "  <!--This is the text a player will see if they are killed by staying on a shuttle as it leaves-->",
-                "  <NilShuttleLeavingKill>",
-                @"    <Line Text=""Cowardess is not tolerated by the coalition #CLIENTNAME.""/>",
-                @"    <Line Text=""You will be sent back into the drink, Fish food or otherwise...""/>",
-                @"    <Line Text=""(Next time examine a shuttle for invisible suits, supplies and disembark before the timer ends!) ""/>",
-                "  </NilShuttleLeavingKill>",
-                "  <!--This is the text a player will see if its sub vs sub and they are on the Coalition team-->",
-                "  <NilSubvsSubCoalition>",
-                @"    <Line Text=""A renegade vessel has been located in the nearby area, Remove the subversive elements.""/>",
-                @"    <Line Text=""Gear up and use sonar to find the Renegade sub, then shoot, board and do anything it takes.""/>",
-                @"    <Line Text=""Failiure is not an option.""/>",
-                "  </NilSubvsSubCoalition>",
-                "  <!--This is the text a player will see if its sub vs sub and they are on the Renegade team-->",
-                "  <NilSubvsSubRenegade>",
-                @"    <Line Text=""A Nearby coalition sub has likely identified we are not with the coalition, dispose of them!""/>",
-                @"    <Line Text=""Gear up and use sonar to find the Coalition sub, then shoot, board and do anything it takes.""/>",
-                @"    <Line Text=""Failiure is not an option.""/>",
-                "  </NilSubvsSubRenegade>",
-                "  <!--This is the text a player will see on spawn if the mission is Salvage-->",
-                "  <NilSalvage>",
-                @"    <Line Text=""#CLIENTNAME! You have been employed by the coalition to embark from #STARTLOCATION and collect an artifact!""/>",
-                @"    <Line Text=""Gear up into your diving suits and use a portable Sonar to locate the #RADARLABEL""/>",
-                @"    <Line Text=""You will be compensated with #REWARD Credits to divy up amongst your fellow crewmates.""/>",
-                @"    <Line Text=""Provided you successfully get our artifact to #ENDLOCATION without losing it.""/>",
-                @"    <Line Text=""Some artifacts are very dangerous, Great care is to be taken depending on its type.""/>",
-                "  </NilSalvage>",
-                "  <!--This is the text a player will see on spawn if the mission is Monster-->",
-                "  <NilMonster>",
-                @"    <Line Text=""#CLIENTNAME! You have been employed by the coalition to embark from #STARTLOCATION for monster patrol!""/>",
-                @"    <Line Text=""Prepare your submarine for combat and reach the designated target: #RADARLABEL""/>",
-                @"    <Line Text=""You will be compensated with #REWARD Credits to divy up amongst your fellow crewmates.""/>",
-                @"    <Line Text=""Provided you successfully survive the ordeal and actually reach #ENDLOCATION with the submarine intact""/>",
-                @"    <Line Text=""The coalition is not in the business of losing submarines, It is unacceptable to return without it.""/>",
-                "  </NilMonster>",
-                "  <!--This is the text a player will see on spawn if the mission is Cargo-->",
-                "  <NilCargo>",
-                @"    <Line Text=""#CLIENTNAME! You have been employed by the coalition to embark from #STARTLOCATION for a Cargo run""/>",
-                @"    <Line Text=""Simply reach #ENDLOCATION without losing the cargo.""/>",
-                @"    <Line Text=""You will be compensated with #REWARD Credits to divy up amongst your fellow crewmates.""/>",
-                @"    <Line Text=""Consider it an almost free meal and paycheck for this simple work.""/>",
-                "  </NilCargo>",
-                "  <!--This is the text a player will see on spawn if the Gamemode is Sandbox-->",
-                "  <NilSandbox>",
-                @"    <Line Text=""#CLIENTNAME! Welcome to sandbox mode.""/>",
-                @"    <Line Text=""No Goals, No paychecks, no respawning fishies im afraid(They spawn once per level generation)""/>",
-                @"    <Line Text=""When your bored of this feel free to hit the vote end at the top right""/>",
-                @"    <Line Text=""Simply reach #ENDLOCATION alive.""/>",
-                "  </NilSandbox>",
-                "  <!--Text for players voting end round-->",
-                "  <NilVoteEnd>",
-                @"    <Line Text=""#CLIENTNAME you and your crew are dishonerable cowards! x:""/>",
-                "  </NilVoteEnd>",
-                "</NilModEvents>"
-            };
+            lines.Add("  <!--This is for the initial On server join messages to inform players of rules, welcome text or otherwise for your server!-->");
+            lines.Add("  <NilModServerJoin>");
+            foreach (string line in NilModRules)
+            {
+                lines.Add(@"    <Line Text=""" + line + @"""/>");
+            }
+            lines.Add("  </NilModServerJoin>");
+
+            lines.Add("");
+
+            lines.Add("  <!--This is the custom text a TRAITOR will see on spawn, it replaces the none-traitor round text.-->");
+            lines.Add("  <NilTraitorReminder>");
+            foreach (string line in NilTraitorReminder)
+            {
+                lines.Add(@"    <Line Text=""" + line + @"""/>");
+            }
+            lines.Add("  </NilTraitorReminder>");
+
+            lines.Add("");
+
+            lines.Add("  <!--This is the custom text a NONE TRAITOR will see on spawn, if it is set to MAYBE or YES (Regardless of traitors)-->");
+            lines.Add("  <NilNoneTraitorReminder>");
+            foreach (string line in NilNoneTraitorReminder)
+            {
+                lines.Add(@"    <Line Text=""" + line + @"""/>");
+            }
+            lines.Add("  </NilNoneTraitorReminder>");
+
+            lines.Add("");
+
+            lines.Add("  <!--This is the text a player will see when respawning via Shuttle-->");
+            lines.Add("  <NilShuttleRespawn>");
+            foreach (string line in NilShuttleRespawn)
+            {
+                lines.Add(@"    <Line Text=""" + line + @"""/>");
+            }
+            lines.Add("  </NilShuttleRespawn>");
+
+            lines.Add("");
+
+            lines.Add("  <!--This is the text a player will see if they have 5 minutes remaining inside the shuttle-->");
+            lines.Add("  <NilShuttleLeavingWarn500>");
+            foreach (string line in NilShuttleLeaving500)
+            {
+                lines.Add(@"    <Line Text=""" + line + @"""/>");
+            }
+            lines.Add("  </NilShuttleLeavingWarn500>");
+
+            lines.Add("");
+
+            lines.Add("  <!--This is the text a player will see if they have 4 minutes remaining inside the shuttle-->");
+            lines.Add("  <NilShuttleLeavingWarn400>");
+            foreach (string line in NilShuttleLeaving400)
+            {
+                lines.Add(@"    <Line Text=""" + line + @"""/>");
+            }
+            lines.Add("  </NilShuttleLeavingWarn400>");
+
+            lines.Add("");
+
+            lines.Add("  <!--This is the text a player will see if they have 3 minutes remaining inside the shuttle-->");
+            lines.Add("  <NilShuttleLeavingWarn300>");
+            foreach (string line in NilShuttleLeaving300)
+            {
+                lines.Add(@"    <Line Text=""" + line + @"""/>");
+            }
+            lines.Add("  </NilShuttleLeavingWarn300>");
+
+            lines.Add("");
+
+            lines.Add("  <!--This is the text a player will see if they have 2 minutes remaining inside the shuttle-->");
+            lines.Add("  <NilShuttleLeavingWarn200>");
+            foreach (string line in NilShuttleLeaving200)
+            {
+                lines.Add(@"    <Line Text=""" + line + @"""/>");
+            }
+            lines.Add("  </NilShuttleLeavingWarn200>");
+
+            lines.Add("");
+
+            lines.Add("  <!--This is the text a player will see if they have 1:30 minutes remaining inside the shuttle-->");
+            lines.Add("  <NilShuttleLeavingWarn130>");
+            foreach (string line in NilShuttleLeaving130)
+            {
+                lines.Add(@"    <Line Text=""" + line + @"""/>");
+            }
+            lines.Add("  </NilShuttleLeavingWarn130>");
+
+            lines.Add("");
+
+            lines.Add("  <!--This is the text a player will see if they have 1 minute remaining inside the shuttle-->");
+            lines.Add("  <NilShuttleLeavingWarn100>");
+            foreach (string line in NilShuttleLeaving100)
+            {
+                lines.Add(@"    <Line Text=""" + line + @"""/>");
+            }
+            lines.Add("  </NilShuttleLeavingWarn100>");
+
+            lines.Add("");
+
+            lines.Add("  <!--This is the text a player will see if they have 30 seconds remaining inside the shuttle-->");
+            lines.Add("  <NilShuttleLeavingWarn030>");
+            foreach (string line in NilShuttleLeaving030)
+            {
+                lines.Add(@"    <Line Text=""" + line + @"""/>");
+            }
+            lines.Add("  </NilShuttleLeavingWarn030>");
+
+            lines.Add("");
+
+            lines.Add("  <!--This is the text a player will see if they have 15 seconds remaining inside the shuttle-->");
+            lines.Add("  <NilShuttleLeavingWarn015>");
+            foreach (string line in NilShuttleLeaving015)
+            {
+                lines.Add(@"    <Line Text=""" + line + @"""/>");
+            }
+            lines.Add("  </NilShuttleLeavingWarn015>");
+
+            lines.Add("");
+
+            lines.Add("  <!--This is the text a player will see if they are killed by staying on a shuttle as it leaves-->");
+            lines.Add("  <NilShuttleLeavingKill>");
+            foreach (string line in NilShuttleLeavingKill)
+            {
+                lines.Add(@"    <Line Text=""" + line + @"""/>");
+            }
+            lines.Add("  </NilShuttleLeavingKill>");
+
+            lines.Add("");
+
+            lines.Add("  <!--This is the text a player will see if its sub vs sub and they are on the Coalition team-->");
+            lines.Add("  <NilSubvsSubCoalition>");
+            foreach (string line in NilSubvsSubCoalition)
+            {
+                lines.Add(@"    <Line Text=""" + line + @"""/>");
+            }
+            lines.Add("  </NilSubvsSubCoalition>");
+
+            lines.Add("");
+
+            lines.Add("  <!--This is the text a player will see if its sub vs sub and they are on the Renegade team-->");
+            lines.Add("  <NilSubvsSubRenegade>");
+            foreach (string line in NilSubvsSubRenegade)
+            {
+                lines.Add(@"    <Line Text=""" + line + @"""/>");
+            }
+            lines.Add("  </NilSubvsSubRenegade>");
+
+            lines.Add("");
+
+            lines.Add("  <!--This is the text a player will see on spawn if the mission is Salvage-->");
+            lines.Add("  <NilSalvage>");
+            foreach (string line in NilSalvage)
+            {
+                lines.Add(@"    <Line Text=""" + line + @"""/>");
+            }
+            lines.Add("  </NilSalvage>");
+
+            lines.Add("");
+
+            lines.Add("  <!--This is the text a player will see on spawn if the mission is Monster-->");
+            lines.Add("  <NilMonster>");
+            foreach (string line in NilMonster)
+            {
+                lines.Add(@"    <Line Text=""" + line + @"""/>");
+            }
+            lines.Add("  </NilMonster>");
+
+            lines.Add("");
+
+            lines.Add("  <!--This is the text a player will see on spawn if the mission is Cargo-->");
+            lines.Add("  <NilCargo>");
+            foreach (string line in NilModRules)
+            {
+                lines.Add(@"    <Line Text=""" + line + @"""/>");
+            }
+            lines.Add("  </NilCargo>");
+
+            lines.Add("");
+
+            lines.Add("  <!--This is the text a player will see on spawn if the Gamemode is Sandbox-->");
+            lines.Add("  <NilSandbox>");
+            foreach (string line in NilModRules)
+            {
+                lines.Add(@"    <Line Text=""" + line + @"""/>");
+            }
+            lines.Add("  </NilSandbox>");
+
+            lines.Add("");
+
+            lines.Add("  <!--Text for players voting end round-->");
+            lines.Add("  <NilVoteEnd>");
+            foreach (string line in NilModRules)
+            {
+                lines.Add(@"    <Line Text=""" + line + @"""/>");
+            }
+            lines.Add("  </NilVoteEnd>");
+            lines.Add("</NilModEvents>");
+
             using (System.IO.StreamWriter file =
             new System.IO.StreamWriter(ChatSavePath, false, Encoding.UTF8))
             {
@@ -568,6 +642,119 @@ namespace Barotrauma
                     file.WriteLine(line);
                 }
             }
+        }
+
+        public void SetDefault()
+        {
+            ChatModServerJoin = false;
+            ChatTraitorReminder = false;
+            ChatNoneTraitorReminder = false;
+            ChatShuttleRespawn = false;
+            ChatShuttleLeaving500 = false;
+            ChatShuttleLeaving400 = false;
+            ChatShuttleLeaving300 = false;
+            ChatShuttleLeaving200 = false;
+            ChatShuttleLeaving130 = false;
+            ChatShuttleLeaving100 = false;
+            ChatShuttleLeaving030 = false;
+            ChatShuttleLeaving015 = false;
+            ChatShuttleLeavingKill = false;
+            ChatSubvsSub = false;
+            ChatSalvage = false;
+            ChatMonster = false;
+            ChatCargo = false;
+            ChatSandbox = false;
+            ChatVoteEnd = false;
+
+            NilModRules = new List<string>();
+            NilModRules.Add("Welcome to #SERVERNAME!");
+            NilModRules.Add("This is a good place to greet and add your rules!");
+            NilModRules.Add("Clients will see this text on join.");
+
+            NilTraitorReminder = new List<string>();
+            NilTraitorReminder.Add("You have been handed a secret mission by your fellow Renegade forces!");
+            NilTraitorReminder.Add("Your task is to Assassinate #TRAITORTARGET! Though take care in this important endeavour");
+            NilTraitorReminder.Add("Take as few Coalition out as possible and make it back in one piece #TRAITORNAME, They must not find out your involvement.");
+
+            NilNoneTraitorReminder = new List<string>();
+            NilNoneTraitorReminder.Add("The coalition have potential reports of renegade spies targeting key personnel!");
+            NilNoneTraitorReminder.Add("Although it is unknown if they have made it onboard or what their target may be...");
+            NilNoneTraitorReminder.Add("The coalition finds it unacceptable to let these scum have their way!");
+            NilNoneTraitorReminder.Add("Ensure the submarine reaches its objective and the traitor either hangs or fails.");
+
+            NilShuttleRespawn = new List<string>();
+            NilShuttleRespawn.Add("The coalition have sent you useless meatbags as additional backup.");
+            NilShuttleRespawn.Add("Locate the submarine and use your provided supplies to aid its mission.");
+            NilShuttleRespawn.Add("You only have limited time to disembark the shuttle, we will be disappointed if you should fail us.");
+
+            NilShuttleLeaving500 = new List<string>();
+            NilShuttleLeaving500.Add("You have #SHUTTLELEAVETIME to reach the main submarine and disembark.");
+
+            NilShuttleLeaving400 = new List<string>();
+            NilShuttleLeaving400.Add("You have #SHUTTLELEAVETIME to reach the main submarine and disembark.");
+
+            NilShuttleLeaving300 = new List<string>();
+            NilShuttleLeaving300.Add("You have #SHUTTLELEAVETIME to reach the main submarine and disembark.");
+
+            NilShuttleLeaving200 = new List<string>();
+            NilShuttleLeaving200.Add("You have #SHUTTLELEAVETIME to reach the main submarine and disembark.");
+
+            NilShuttleLeaving130 = new List<string>();
+            NilShuttleLeaving130.Add("You have #SHUTTLELEAVETIME to reach the main submarine and disembark.");
+
+            NilShuttleLeaving100 = new List<string>();
+            NilShuttleLeaving100.Add("You have #SHUTTLELEAVETIME to reach the main submarine and disembark.");
+
+            NilShuttleLeaving030 = new List<string>();
+            NilShuttleLeaving030.Add("You have #SHUTTLELEAVETIME to reach the main submarine and disembark.");
+
+            NilShuttleLeaving015 = new List<string>();
+            NilShuttleLeaving015.Add("You only have #SHUTTLELEAVETIME to reach the main submarine and disembark!");
+            NilShuttleLeaving015.Add("You must leave before the shuttle returns or we will throw you in the drink for insubordination!");
+
+            NilShuttleLeavingKill = new List<string>();
+            NilShuttleLeavingKill.Add("Cowardess is not tolerated by the coalition #CLIENTNAME.");
+            NilShuttleLeavingKill.Add("You will be sent back into the drink, Fish food or otherwise...");
+            NilShuttleLeavingKill.Add("(Next time examine a shuttle for invisible suits, supplies and disembark before the timer ends!)");
+
+            NilSubvsSubCoalition = new List<string>();
+            NilSubvsSubCoalition.Add("A renegade vessel has been located in the nearby area, Remove the subversive elements.");
+            NilSubvsSubCoalition.Add("Gear up and use sonar to find the Renegade sub, then shoot, board and do anything it takes.");
+            NilSubvsSubCoalition.Add("Failiure is not an option.");
+
+            NilSubvsSubRenegade = new List<string>();
+            NilSubvsSubRenegade.Add("A Nearby coalition sub has likely identified we are not with the coalition, dispose of them!");
+            NilSubvsSubRenegade.Add("Gear up and use sonar to find the Coalition sub, then shoot, board and do anything it takes.");
+            NilSubvsSubRenegade.Add("Failiure is not an option.");
+
+            NilSalvage = new List<string>();
+            NilSalvage.Add("#CLIENTNAME! You have been employed by the coalition to embark from #STARTLOCATION and collect an artifact!");
+            NilSalvage.Add("Gear up into your diving suits and use a portable Sonar to locate the #RADARLABEL");
+            NilSalvage.Add("You will be compensated with #REWARD Credits to divy up amongst your fellow crewmates.");
+            NilSalvage.Add("Provided you successfully get our artifact to #ENDLOCATION without losing it.");
+            NilSalvage.Add("Some artifacts are very dangerous, Great care is to be taken depending on its type.");
+
+            NilMonster = new List<string>();
+            NilMonster.Add("#CLIENTNAME! You have been employed by the coalition to embark from #STARTLOCATION for monster patrol!");
+            NilMonster.Add("Prepare your submarine for combat and reach the designated target: #RADARLABEL");
+            NilMonster.Add("You will be compensated with #REWARD Credits to divy up amongst your fellow crewmates.");
+            NilMonster.Add("Provided you successfully survive the ordeal and actually reach #ENDLOCATION with the submarine intact");
+            NilMonster.Add("The coalition is not in the business of losing submarines, It is unacceptable to return without it.");
+
+            NilCargo = new List<string>();
+            NilCargo.Add("#CLIENTNAME! You have been employed by the coalition to embark from #STARTLOCATION for a Cargo run");
+            NilCargo.Add("Simply reach #ENDLOCATION without losing the cargo.");
+            NilCargo.Add("You will be compensated with #REWARD Credits to divy up amongst your fellow crewmates.");
+            NilCargo.Add("Consider it an almost free meal and paycheck for this simple work.");
+
+            NilSandbox = new List<string>();
+            NilSandbox.Add("#CLIENTNAME! Welcome to sandbox mode.");
+            NilSandbox.Add("No Goals, No paychecks, no respawning fishies im afraid(They spawn once per level generation)");
+            NilSandbox.Add("When your bored of this feel free to hit the vote end at the top right");
+            NilSandbox.Add("Simply reach #ENDLOCATION alive.");
+
+            NilVoteEnd = new List<string>();
+            NilVoteEnd.Add("#CLIENTNAME you and your crew are dishonerable cowards! x:");
         }
 
         //Code related stuff for sending messages

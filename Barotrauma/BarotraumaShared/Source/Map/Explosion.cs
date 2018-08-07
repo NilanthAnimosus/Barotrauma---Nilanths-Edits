@@ -96,9 +96,6 @@ namespace Barotrauma
                     float distSqr = Vector2.DistanceSquared(item.WorldPosition, worldPosition);
                     if (distSqr > displayRangeSqr) continue;
 
-                    //ignore reactors (don't want to blow them up)
-                    if (item.GetComponent<Reactor>() != null) continue;
-
                     float distFactor = 1.0f - (float)Math.Sqrt(distSqr) / displayRange;
 
                     //damage repairable power-consuming items
@@ -202,6 +199,7 @@ namespace Barotrauma
                     if (limb.WorldPosition != worldPosition && force > 0.0f)
                     {
                         Vector2 limbDiff = Vector2.Normalize(limb.WorldPosition - worldPosition);
+                        if (!MathUtils.IsValid(limbDiff)) limbDiff = Rand.Vector(1.0f);
                         Vector2 impulsePoint = limb.SimPosition - limbDiff * limbRadius;
                         limb.body.ApplyLinearImpulse(limbDiff * distFactor * force, impulsePoint);
                     }

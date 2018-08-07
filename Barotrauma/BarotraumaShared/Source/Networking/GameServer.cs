@@ -464,6 +464,29 @@ namespace Barotrauma.Networking
                 if (respawnManager != null) respawnManager.Update(deltaTime);
 
                 entityEventManager.Update(connectedClients);
+
+                foreach (Character character in Character.CharacterList)
+                {
+                    if (character.IsDead || !character.ClientDisconnected) continue;
+
+                    character.KillDisconnectedTimer += deltaTime;
+                    character.SetStun(1.0f);
+                    if (character.KillDisconnectedTimer > KillDisconnectedTime)
+                    {
+                        character.Kill(CauseOfDeath.Disconnected);
+                        continue;
+                    }
+
+                    Client owner = connectedClients.Find(c =>
+                        c.InGame && !c.NeedsMidRoundSync &&
+                        c.Name == character.OwnerClientName &&
+                        c.Connection.RemoteEndPoint.Address.ToString() == character.OwnerClientIP);
+                    if (owner != null && (!AllowSpectating || !owner.SpectateOnly))
+                    {
+                        SetClientCharacter(owner, character);
+                    }
+                }
+
 #if CLIENT
                 if (GameMain.NilMod.ActiveClickCommand)
                 {
@@ -647,6 +670,9 @@ namespace Barotrauma.Networking
                         catch (Exception e)
                         {
                             DebugConsole.ThrowError("Failed to write a network message for the client \"" + c.Name + "\"!", e);
+                            GameAnalyticsManager.AddErrorEventOnce("GameServer.Update:ClientWriteFailed" + e.StackTrace, GameAnalyticsSDK.Net.EGAErrorSeverity.Error,
+                                "Failed to write a network message for the client \"" + c.Name + "\"! (MidRoundSyncing: " + c.NeedsMidRoundSync + ")\n"
+                                + e.Message + "\n" + e.StackTrace);
                         }
                     }
 
@@ -985,6 +1011,7 @@ namespace Barotrauma.Networking
                                 lastRecvEntityEventID = (UInt16)(c.FirstNewEventID - 1);
                                 c.LastRecvEntityEventID = lastRecvEntityEventID;
 
+                                /*
                                 if (GameMain.NilMod.AllowReconnect)
                                 {
                                     DisconnectedCharacter disconnectedcharcheck = GameMain.NilMod.DisconnectedCharacters.Find(dc => dc.character != null && dc.character.Name == c.Name && c.Connection.RemoteEndPoint.Address.ToString() == dc.IPAddress);
@@ -995,6 +1022,7 @@ namespace Barotrauma.Networking
                                         disconnectedcharcheck.TimeUntilKill = GameMain.NilMod.ReconnectTimeAllowed * 1.5f;
                                     }
                                 }
+                                */
                             }
                             else
                             {
@@ -1172,6 +1200,7 @@ namespace Barotrauma.Networking
             }
             else
             {
+                /*
                 //if 30 seconds have passed since the round started and the client isn't ingame yet,
                 //kill the client's character
                 if (gameStarted && c.Character != null && (DateTime.Now - roundStartTime).Seconds > (GameMain.NilMod.AllowReconnect ? Math.Max(GameMain.NilMod.ReconnectTimeAllowed, 30f) : 30.0f))
@@ -1186,7 +1215,25 @@ namespace Barotrauma.Networking
                     }
                     //c.Character = null;
                 }
+                */
 
+                //if 30 seconds have passed since the round started and the client isn't ingame yet,
+                //kill the client's character
+                if (gameStarted && c.Character != null && (DateTime.Now - roundStartTime).Seconds > 30f)
+                {
+                    if (KillDisconnectedTime > 30f)
+                    {
+                        c.Character.ClientDisconnected = true;
+                        c.Character.OwnerClientIP = c.Connection.RemoteEndPoint.Address.ToString();
+                        c.Character.OwnerClientName = c.Name;
+                        c.Character.ClearInputs();
+                        c.Character = null;
+                    }
+                    else
+                    {
+                        c.Character.ClientDisconnected = true;
+                    }
+                }
                 ClientWriteLobby(c);
 
                 MultiPlayerCampaign campaign = GameMain.GameSession?.GameMode as MultiPlayerCampaign;
@@ -1735,8 +1782,16 @@ namespace Barotrauma.Networking
                 {
                     Character spawnedCharacter = Character.Create(teamClients[i].CharacterInfo, assignedWayPoints[i].WorldPosition, true, false);
                     spawnedCharacter.AnimController.Frozen = true;
-                    spawnedCharacter.GiveJobItems(assignedWayPoints[i]);
                     spawnedCharacter.TeamID = (byte)teamID;
+                    spawnedCharacter.GiveJobItems(assignedWayPoints[i]);
+
+                    if (teamClients[i].BypassSkillRequirements)
+                    {
+                        foreach (Skill skill in teamClients[i].CharacterInfo.Job.Skills)
+                        {
+                            skill.Level = 100;
+                        }
+                    }
 
                     //Spawn protection
                     if (GameMain.NilMod.PlayerSpawnProtectStart)
@@ -1749,6 +1804,9 @@ namespace Barotrauma.Networking
                     }
 
                     teamClients[i].Character = spawnedCharacter;
+                    spawnedCharacter.OwnerClientIP = teamClients[i].Connection.RemoteEndPoint.Address.ToString();
+                    spawnedCharacter.OwnerClientName = teamClients[i].Name;
+
 #if CLIENT
                     GameSession.inGameInfo.UpdateClientCharacter(teamClients[i], spawnedCharacter, false);
 #endif
@@ -1770,8 +1828,8 @@ namespace Barotrauma.Networking
                     }
 
                     myCharacter = Character.Create(characterInfo, assignedWayPoints[assignedWayPoints.Length - 1].WorldPosition, false, false);
-                    myCharacter.GiveJobItems(assignedWayPoints.Last());
                     myCharacter.TeamID = (byte)teamID;
+                    myCharacter.GiveJobItems(assignedWayPoints.Last());
 
                     //Spawn protection
                     if (GameMain.NilMod.PlayerSpawnProtectStart)
@@ -1818,7 +1876,7 @@ namespace Barotrauma.Networking
                     string spawnlogentry = "spawn: " + client.CharacterInfo.Name + " As " + client.CharacterInfo.Job.Name;
                     if (KarmaEnabled)
                     {
-                        if (client.Karma <= 1f)
+                        if (client.Karma < 1f)
                         {
                             spawnlogentry = spawnlogentry + " with " + Math.Round(client.Karma, 2) + "% Karma";
                         }
@@ -2293,7 +2351,7 @@ namespace Barotrauma.Networking
         public void DisconnectClient(Client client, string msg = "", string targetmsg = "")
         {
             if (client == null) return;
-
+            /*
             if (gameStarted && client.Character != null && GameMain.NilMod.AllowReconnect)
             {
                 client.Character.ClearInputs();
@@ -2306,10 +2364,12 @@ namespace Barotrauma.Networking
                 disconnectedchar.ClientSetCooldown = 1.0f;
                 GameMain.NilMod.DisconnectedCharacters.Add(disconnectedchar);
             }
-            else if (gameStarted && client.Character != null)
+            else
+            */
+            if (gameStarted && client.Character != null)
             {
+                client.Character.ClientDisconnected = true;
                 client.Character.ClearInputs();
-                client.Character.Kill(CauseOfDeath.Disconnected, true);
             }
 
             client.Character = null;
@@ -2975,8 +3035,11 @@ namespace Barotrauma.Networking
             {
                 client.Character.IsRemotePlayer = false;
                 oldcharacter = client.Character;
+                client.Character.OwnerClientIP = null;
+                client.Character.OwnerClientName = null;
+                client.Character.ClientDisconnected = false;
+                client.Character.KillDisconnectedTimer = 0.0f;
             }
-
             if (newCharacter == null)
             {
                 if (client.Character != null) //removing control of the current character
@@ -2990,12 +3053,16 @@ namespace Barotrauma.Networking
             }
             else //taking control of a new character
             {
+                newCharacter.ClientDisconnected = false;
+                newCharacter.KillDisconnectedTimer = 0.0f;
                 newCharacter.ResetNetState();
                 if (client.Character != null)
                 {
                     newCharacter.LastNetworkUpdateID = client.Character.LastNetworkUpdateID;
                 }
 
+                newCharacter.OwnerClientIP = client.Connection.RemoteEndPoint.Address.ToString();
+                newCharacter.OwnerClientName = client.Name;
                 newCharacter.IsRemotePlayer = true;
                 newCharacter.Enabled = true;
                 client.Character = newCharacter;
@@ -3017,7 +3084,7 @@ namespace Barotrauma.Networking
                 }
                 else
                 {
-                    oldcharacter.Kill(CauseOfDeath.Disconnected, true);
+                    oldcharacter.Kill(CauseOfDeath.Disconnected);
                     oldcharacter.Health -= 99999f;
                     oldcharacter.Oxygen -= 99999f;
                 }
@@ -4335,16 +4402,31 @@ namespace Barotrauma.Networking
             yield return CoroutineStatus.Success;
         }
 
-        public void AddRestartClients(List<Client> previousclients,ushort PrevLobbyUpdate = 0)
+        public void AddRestartClients(List<Client> previousclients, ushort PrevLobbyUpdate = 0)
         {
+            ushort highhestchatmessageID = 0;
+
             for (int i = previousclients.Count() - 1; i >= 0; i--)
             {
-                Client newClient = new Client(previousclients[i].Name, GetNewClientID());
+                Client newClient = new Client(previousclients[i].Name, previousclients[i].ID);
                 newClient.IsNilModClient = previousclients[i].IsNilModClient;
                 newClient.RequiresNilModSync = previousclients[i].IsNilModClient;
                 newClient.NilModSyncResendTimer = 4f;
-                newClient.InitClientSync();
+
+                newClient.LastSentChatMsgID = previousclients[i].LastSentChatMsgID;
+                newClient.LastRecvChatMsgID = previousclients[i].LastRecvChatMsgID;
+                newClient.LastRecvGeneralUpdate = previousclients[i].LastRecvGeneralUpdate;
+                newClient.LastRecvEntityEventID = previousclients[i].LastRecvEntityEventID;
+                newClient.UnreceivedEntityEventCount = previousclients[i].UnreceivedEntityEventCount;
+                newClient.NeedsMidRoundSync = false;
+
+                newClient.CharacterInfo = previousclients[i].CharacterInfo;
+                newClient.JobPreferences = previousclients[i].JobPreferences;
+                newClient.SpectateOnly = previousclients[i].SpectateOnly;
+                newClient.Karma = previousclients[i].Karma;
+
                 newClient.Connection = previousclients[i].Connection;
+                if (previousclients[i].LastRecvChatMsgID >= highhestchatmessageID) highhestchatmessageID = previousclients[i].LastRecvChatMsgID;
 
                 SavedClientPermission savedPermissions = clientPermissions.Find(cp => cp.IP == newClient.Connection.RemoteEndPoint.Address.ToString());
                 if (savedPermissions == null) savedPermissions = defaultpermission;
@@ -4357,6 +4439,7 @@ namespace Barotrauma.Networking
                 newClient.GlobalChatSend = savedPermissions.GlobalChatSend;
                 newClient.GlobalChatReceive = savedPermissions.GlobalChatReceive;
                 newClient.KarmaImmunity = savedPermissions.KarmaImmunity;
+                newClient.BypassSkillRequirements = savedPermissions.BypassSkillRequirements;
                 newClient.PrioritizeJob = savedPermissions.PrioritizeJob;
                 newClient.IgnoreJobMinimum = savedPermissions.IgnoreJobMinimum;
                 newClient.KickImmunity = savedPermissions.KickImmunity;
@@ -4378,8 +4461,11 @@ namespace Barotrauma.Networking
                 GameSession.inGameInfo.AddClient(newClient);
                 GameMain.NetLobbyScreen.AddPlayer(newClient.Name);
 #endif
-                CoroutineManager.StartCoroutine(SyncPlayerLobbyDelayed(PrevLobbyUpdate), "SyncPlayerLobbyDelayed");
             }
+
+            ChatMessage.LastID = highhestchatmessageID;
+
+            CoroutineManager.StartCoroutine(SyncPlayerLobbyDelayed(PrevLobbyUpdate), "SyncPlayerLobbyDelayed");
         }
 
         private IEnumerable<object> SyncPlayerLobbyDelayed(ushort PrevLobbyUpdate)

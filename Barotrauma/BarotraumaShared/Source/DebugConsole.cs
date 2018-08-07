@@ -318,6 +318,7 @@ namespace Barotrauma
                 GameMain.Server.SendConsoleMessage("***************", client);
             }));
 
+            /*
             commands.Add(new Command("traitorlist", "traitorlist: List all the traitors and their targets.", (string[] args) =>
             {
                 if (GameMain.Server == null) return;
@@ -328,7 +329,19 @@ namespace Barotrauma
                     NewMessage("- Traitor " + t.Character.Name + "'s target is " + t.TargetCharacter.Name + ".", Color.Cyan);
                 }
                 NewMessage("The code words are: " + traitorManager.codeWords + ", response: " + traitorManager.codeResponse + ".", Color.Cyan);
+            }, 
+            null, 
+            (Client client, Vector2 cursorPos, string[] args) => 
+            { 
+                TraitorManager traitorManager = GameMain.Server.TraitorManager; 
+                if (traitorManager == null) return; 
+                foreach (Traitor t in traitorManager.TraitorList) 
+                { 
+                    GameMain.Server.SendConsoleMessage("- Traitor " + t.Character.Name + "'s target is " + t.TargetCharacter.Name + ".", client); 
+                } 
+                GameMain.Server.SendConsoleMessage("The code words are: " + traitorManager.codeWords + ", response: " + traitorManager.codeResponse + ".", client); 
             }));
+            */
 
             commands.Add(new Command("itemlist", "itemlist: List all the item prefabs available for spawning.", (string[] args) =>
             {
@@ -1797,6 +1810,11 @@ namespace Barotrauma
             (Client client, Vector2 cursorWorldPos, string[] args) =>
             {
                 Character killedCharacter = (args.Length == 0) ? client.Character : FindMatchingCharacter(args);
+                if (killedCharacter == null)
+                {
+                    GameMain.Server.SendConsoleMessage("Server could not find a character named: " + args, client);
+                    return;
+                }
 
                 //Use high damage values due to health multipliers
                 killedCharacter.AddDamage(CauseOfDeath.Damage, 1000000.0f, null);
@@ -2029,7 +2047,7 @@ namespace Barotrauma
                         var itemContainer = item.GetComponent<ItemContainer>();
                         if (itemContainer != null)
                         {
-                            GameMain.Server.CreateEntityEvent(item, new object[] { NetEntityEvent.Type.InventoryState });
+                            GameMain.Server.CreateEntityEvent(item, new object[] { NetEntityEvent.Type.InventoryState, 0 });
                         }
 
                         GameMain.Server.CreateEntityEvent(item, new object[] { NetEntityEvent.Type.Status });
@@ -3405,21 +3423,6 @@ namespace Barotrauma
                     DebugConsole.ExecuteCommand("finditem " + SearchItemName);
                 }
             }));
-
-            /*
-            commands.Add(new Command("checktraitor|traitor|traitorcheck",CommandType.Network, "checktraitor: States the current traitor if there was one and his target.", (string[] args) =>
-            {
-                if (GameMain.Server == null) return;
-                TraitorManager traitorManager = GameMain.Server.TraitorManager;
-                if (traitorManager == null)
-                {
-                    DebugConsole.NewMessage("No traitor existed this game.", Color.Cyan);
-                    return;
-                }
-                //Needs Fixing
-                //DebugConsole.NewMessage(traitorManager.TraitorCharacter + " Is the traitor and his target is: " + traitorManager.TargetCharacter, Color.Cyan);
-            }));
-            */
 
             commands.Add(new Command("debugarmor|debugarmour", CommandType.Debug, "debugarmor|debugarmour [Armour Value]: Shows a series of damage estimations for a lone modifier using nilmod/Vanilla armour calculation! - 1.0 by default is no damage and 0.5 is half (Configure nilmodsettings.xml to change behaviour!)", (string[] args) =>
             {

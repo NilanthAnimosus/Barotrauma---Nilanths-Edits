@@ -61,6 +61,7 @@ namespace Barotrauma.Items.Components
 
         private bool ToggleMaintainPosition(GUITickBox tickBox)
         {
+            if (Character.Controlled != null && lastuser == null) lastuser = Character.Controlled;
             unsentChanges = true;
 
             levelStartTickBox.Selected = false;
@@ -143,6 +144,7 @@ namespace Barotrauma.Items.Components
             {
                 if (PlayerInput.LeftButtonHeld())
                 {
+                    if (Character.Controlled != null && lastuser == null) lastuser = Character.Controlled;
                     TargetVelocity = PlayerInput.MousePosition - new Vector2(GuiFrame.Rect.Center.X, GuiFrame.Rect.Center.Y);
                     targetVelocity.Y = -targetVelocity.Y;
 
@@ -153,6 +155,7 @@ namespace Barotrauma.Items.Components
 
         private bool SelectDestination(GUITickBox tickBox)
         {
+            if (Character.Controlled != null && lastuser == null) lastuser = Character.Controlled;
             unsentChanges = true;
 
             if (tickBox == levelStartTickBox)

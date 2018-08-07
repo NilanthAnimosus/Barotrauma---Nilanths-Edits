@@ -83,7 +83,12 @@ namespace Barotrauma
         private bool networkUpdateSent;
 
         public bool isSynced = false;
-        
+
+        public string OwnerClientIP;
+        public string OwnerClientName;
+        public bool ClientDisconnected;
+        public float KillDisconnectedTimer;
+
         public List<CharacterStateInfo> MemState
         {
             get { return memState; }
@@ -310,6 +315,7 @@ namespace Barotrauma
                             newInteract = msg.ReadUInt16();                 
                         }
 
+                        /*
                         if (GameMain.NilMod.DisconnectedCharacters.Count > 0)
                         {
                             DisconnectedCharacter disconnectedcharcheck = GameMain.NilMod.DisconnectedCharacters.Find(dc => dc.character.Name == c.Name && c.Connection.RemoteEndPoint.Address.ToString() == dc.IPAddress);
@@ -345,6 +351,7 @@ namespace Barotrauma
                                 }
                             }
                         }
+                        */
 
                         //if (AllowInput)
                         //{

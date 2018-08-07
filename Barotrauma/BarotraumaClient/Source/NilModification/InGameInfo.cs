@@ -523,8 +523,8 @@ namespace Barotrauma
                             //GameMain.Server.AssignJobs(new List<Client>(), true);
                             WayPoint Waypoint = WayPoint.SelectCrewSpawnPoints(new List<CharacterInfo>() { GameMain.Server.CharacterInfo }, Submarine.MainSubs[teamID - 1])[0];
                             Character spawnedCharacter = Character.Create(GameMain.Server.CharacterInfo, Waypoint.WorldPosition, true, false);
-                            spawnedCharacter.GiveJobItems(Waypoint);
                             spawnedCharacter.TeamID = (byte)teamID;
+                            spawnedCharacter.GiveJobItems(Waypoint);
 
                             //Spawn protection
                             if (GameMain.NilMod.PlayerSpawnProtectMidgame)
@@ -559,10 +559,19 @@ namespace Barotrauma
                         GameMain.Server.AssignJobs(new List<Client>() { thischar.client }, false);
                         thischar.client.CharacterInfo.Job = new Job(thischar.client.AssignedJob);
 
+                        if(thischar.client.BypassSkillRequirements)
+                        {
+                            foreach (Skill skill in thischar.client.CharacterInfo.Job.Skills)
+                            {
+                                skill.Level = 100;
+                            }
+                        }
+
                         WayPoint Waypoint = WayPoint.SelectCrewSpawnPoints(new List<CharacterInfo>() { thischar.client.CharacterInfo }, Submarine.MainSubs[teamID - 1])[0];
                         Character spawnedCharacter = Character.Create(thischar.client.CharacterInfo, Waypoint.WorldPosition, true, false);
-                        spawnedCharacter.GiveJobItems(Waypoint);
                         spawnedCharacter.TeamID = (byte)teamID;
+                        spawnedCharacter.GiveJobItems(Waypoint);
+                        
 
                         //Spawn protection
                         if (GameMain.NilMod.PlayerSpawnProtectMidgame)
