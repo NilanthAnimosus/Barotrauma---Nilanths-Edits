@@ -407,6 +407,8 @@ namespace Barotrauma
                 Autostart();
             }
 
+            GameMain.NilMod.SuccesfulStart = true;
+
             yield return CoroutineStatus.Success;
 
         }

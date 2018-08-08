@@ -16,6 +16,21 @@ namespace Barotrauma
     public static class Program
     {
         public static string[] CommandLineArgs = Environment.GetCommandLineArgs();
+        private static Boolean CrashRestarted;
+
+#if WINDOWS
+        [Flags]
+        internal enum ErrorModes : uint
+        {
+            SYSTEM_DEFAULT = 0x0,
+            SEM_FAILCRITICALERRORS = 0x0001,
+            SEM_NOALIGNMENTFAULTEXCEPT = 0x0004,
+            SEM_NOGPFAULTERRORBOX = 0x0002,
+            SEM_NOOPENFILEERRORBOX = 0x8000
+        }
+        [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+        internal static extern ErrorModes SetErrorMode(ErrorModes mode);
+#endif
 
         static GameMain game = null;
         public static Thread inputThread = null;
@@ -26,10 +41,14 @@ namespace Barotrauma
         [STAThread]
         static void Main()
         {
+#if WINDOWS
+            SetErrorMode(ErrorModes.SEM_NOGPFAULTERRORBOX);
+#endif
             AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(UnrecoverableCrashHandler);
 
             try
             {
+                CrashRestarted = false;
                 game = new GameMain();
                 inputThread = new Thread(new ThreadStart(game.ProcessInput));
                 inputThread.Start();
@@ -51,17 +70,26 @@ namespace Barotrauma
 
         static void UnrecoverableCrashHandler(object sender, UnhandledExceptionEventArgs args)
         {
+            CrashRestart(sender, args.ExceptionObject);
+        }
+
+        static void CrashRestart(object sender, Object exception)
+        {
+            if (CrashRestarted) return;
             if (GameMain.NilMod != null)
             {
-                if (GameMain.NilMod.CrashRestart)
+                if (GameMain.NilMod.CrashRestart && GameMain.NilMod.SuccesfulStart)
                 {
-                    Exception e = (Exception)args.ExceptionObject;
+                    Exception e = null;
+                    if (exception != null) e = (Exception)exception;
                     //DebugConsole.NewMessage("Unhandled Exception Caught (Program has crashed!) : " + e.Message, Microsoft.Xna.Framework.Color.Red);
                     if (GameMain.Server != null)
                     {
                         GameMain.Server.ServerLog.WriteLine("Server Has Suffered a fatal Crash (Autorestarting).", Networking.ServerLog.MessageType.Error);
                         GameMain.Server.ServerLog.Save();
                     }
+
+                    CrashRestarted = true;
 
                     //System.Diagnostics.Process.Start(System.Reflection.Assembly.GetEntryAssembly().CodeBase + "\\BarotraumaServer NilEdit.exe");
 
@@ -169,6 +197,14 @@ namespace Barotrauma
                 Console.Write("A crash report(\"crashreport.log\") was saved in the root folder of the game. The error was not sent to the developers because user statistics have been disabled, but" +
                     "If you'd like to help fix this bug, please post the report on Barotrauma's GitHub issue tracker: https://github.com/Regalis11/Barotrauma/issues/" + Environment.NewLine +
                     "Alternatively, If you believe this to be a mod bug, please post the report on the forum topic or the mods GitHub issue tracker: https://github.com/NilanthAnimosus/Barotrauma---Nilanths-Edits/issues");
+            }
+
+            if (GameMain.NilMod != null)
+            {
+                if (GameMain.NilMod.CrashRestart && GameMain.NilMod.SuccesfulStart)
+                {
+                    CrashRestart(null, exception);
+                }
             }
         }
     }

@@ -180,6 +180,8 @@ namespace Barotrauma
             double CurrentUpdatesPerSecond = 0;
             double AverageUpdatesPerSecond = 0;
 
+            GameMain.NilMod.SuccesfulStart = true;
+
             stopwatch = Stopwatch.StartNew();
             prevTicks = stopwatch.ElapsedTicks;
             while (ShouldRun)
