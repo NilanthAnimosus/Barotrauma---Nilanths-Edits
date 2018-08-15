@@ -305,7 +305,7 @@ namespace Barotrauma.Networking
             else
             {
                 double midRoundSyncTimeOut = uniqueEvents.Count / MaxEventsPerWrite * server.UpdateInterval.TotalSeconds;
-                midRoundSyncTimeOut = (Math.Max(5.0f, midRoundSyncTimeOut * 2.0f) * GameMain.NilMod.DesyncTimerMultiplier);
+                midRoundSyncTimeOut = (Math.Max(10.0f, midRoundSyncTimeOut * 2.0f) * GameMain.NilMod.DesyncTimerMultiplier);
 
                 client.UnreceivedEntityEventCount = (UInt16)uniqueEvents.Count;
                 client.FirstNewEventID = 0;

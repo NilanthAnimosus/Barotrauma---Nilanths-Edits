@@ -126,7 +126,7 @@ namespace Barotrauma
                     byte kickedClientID = inc.ReadByte();
 
                     Client kicked = GameMain.Server.ConnectedClients.Find(c => c.ID == kickedClientID && !c.KickImmunity);
-                    if (kicked != null)
+                    if (kicked != null && !kicked.HasKickVoteFrom(sender))
                     {
                         kicked.AddKickVote(sender);
                         Client.UpdateKickVotes(GameMain.Server.ConnectedClients);

@@ -2598,35 +2598,10 @@ namespace Barotrauma
                 charRecord.RecoverStat("bleed", (BleedingDecreaseSpeed * GameMain.NilMod.ConciousPassiveBleedRecoveryMult) * deltaTime);
             }
 
-            //ragdoll button
-            if (IsRagdolled)
-            {
-                if (AnimController is HumanoidAnimController) ((HumanoidAnimController)AnimController).Crouching = false;
-                /*if(GameMain.Server != null)
-                    GameMain.Server.CreateEntityEvent(this, new object[] { NetEntityEvent.Type.Status });*/
-                AnimController.ResetPullJoints();
-                selectedConstruction = null;
-            }
-            else
-            {
-                //AI and control stuff
-                Control(deltaTime, cam);
-                if (controlled != this && (!(this is AICharacter) || IsRemotePlayer))
-                {
-                    Vector2 mouseSimPos = ConvertUnits.ToSimUnits(cursorPosition);
-                    DoInteractionUpdate(deltaTime, mouseSimPos);
-                }
+            UpdateSightRange();
+            if (aiTarget != null) aiTarget.SoundRange = 0.0f;
 
-                if (selectedConstruction != null && !CanInteractWith(selectedConstruction))
-                {
-                    selectedConstruction = null;
-                }
-
-                UpdateSightRange();
-                if (aiTarget != null) aiTarget.SoundRange = 0.0f;
-
-                lowPassMultiplier = MathHelper.Lerp(lowPassMultiplier, 1.0f, 0.1f);
-            }
+            lowPassMultiplier = MathHelper.Lerp(lowPassMultiplier, 1.0f, 0.1f);
 
             //NilMod Anti death code
             if (Health <= minHealth)
@@ -2673,8 +2648,32 @@ namespace Barotrauma
                 }
             }
 
+            //ragdoll button
+            if (IsRagdolled)
+            {
+                if (AnimController is HumanoidAnimController) ((HumanoidAnimController)AnimController).Crouching = false;
+                /*if(GameMain.Server != null)
+                    GameMain.Server.CreateEntityEvent(this, new object[] { NetEntityEvent.Type.Status });*/
+                AnimController.ResetPullJoints();
+                selectedConstruction = null;
+            }
+            else
+            {
+                //AI and control stuff
+                Control(deltaTime, cam);
+                if (controlled != this && (!(this is AICharacter) || IsRemotePlayer))
+                {
+                    Vector2 mouseSimPos = ConvertUnits.ToSimUnits(cursorPosition);
+                    DoInteractionUpdate(deltaTime, mouseSimPos);
+                }
+
+                if (selectedConstruction != null && !CanInteractWith(selectedConstruction))
+                {
+                    selectedConstruction = null;
+                }
+            }
+
             if (!IsDead) LockHands = false;
-            //CPR stuff is handled in the UpdateCPR function in HumanoidAnimController
         }
 
         partial void UpdateControlled(float deltaTime, Camera cam);
@@ -3220,7 +3219,7 @@ namespace Barotrauma
         }
         partial void KillProjSpecific();
 
-        public void Revive(bool isNetworkMessage)
+        public void Revive()
         {
             if (Removed)
             {
@@ -3265,6 +3264,7 @@ namespace Barotrauma
 
             foreach (Limb limb in AnimController.Limbs)
             {
+                limb.body.Enabled = true;
                 limb.IsSevered = false;
             }
 

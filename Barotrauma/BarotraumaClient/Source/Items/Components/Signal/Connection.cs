@@ -225,7 +225,7 @@ namespace Barotrauma.Items.Components
                 Vector2.Distance(end, PlayerInput.MousePosition) < 20.0f ||
                 new Rectangle((start.X < end.X) ? textX - 100 : textX, (int)start.Y - 5, 100, 14).Contains(PlayerInput.MousePosition));
 
-            string label = (wire.Locked || GameMain.NetworkMember.Character != null && GameMain.NetworkMember.Character.SpawnRewireWaitTimer > 0f) ? item.Name + "\n" + TextManager.Get("ConnectionLocked") : item.Name;
+            string label = (wire.Locked || (GameMain.NetworkMember != null && GameMain.NetworkMember.Character != null && GameMain.NetworkMember.Character.SpawnRewireWaitTimer > 0f)) ? item.Name + "\n" + TextManager.Get("ConnectionLocked") : item.Name;
 
             GUI.DrawString(spriteBatch,
                 new Vector2(start.X < end.X ? textX - GUI.SmallFont.MeasureString(label).X : textX, start.Y - 5.0f),
@@ -261,7 +261,7 @@ namespace Barotrauma.Items.Components
                 {
                     ConnectionPanel.HighlightedWire = wire;
 
-                    if (!wire.Locked && !(GameMain.NetworkMember.Character != null && GameMain.NetworkMember.Character.SpawnRewireWaitTimer > 0f))
+                    if (!wire.Locked && !(GameMain.NetworkMember != null && GameMain.NetworkMember.Character != null && GameMain.NetworkMember.Character.SpawnRewireWaitTimer > 0f))
                     {
                         //start dragging the wire
                         if (PlayerInput.LeftButtonHeld()) draggingConnected = wire;

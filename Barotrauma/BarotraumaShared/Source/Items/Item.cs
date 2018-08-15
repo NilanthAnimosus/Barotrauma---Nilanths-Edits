@@ -45,7 +45,9 @@ namespace Barotrauma
         public List<IDrawableComponent> drawableComponents;
 
         public PhysicsBody body;
-        
+
+        public readonly XElement staticBodyConfig;
+
         private Vector2 lastSentPos;
         private bool prevBodyAwake;
 
@@ -401,6 +403,9 @@ namespace Barotrauma
                     case "sprite":
                     case "deconstruct":
                     case "brokensprite":
+                        break;
+                    case "staticbody":
+                        staticBodyConfig = subElement;
                         break;
                     case "aitarget":
                         aiTarget = new AITarget(this);
@@ -1422,7 +1427,8 @@ namespace Barotrauma
                 case NetEntityEvent.Type.Status:
                     //clamp to (MaxHealth / 255.0f) if condition > 0.0f
                     //to prevent condition from being rounded down to 0.0 even if the item is not broken
-                    msg.WriteRangedSingle(condition > 0.0f ? Math.Max(condition, prefab.Health / 255.0f) : 0.0f, 0.0f, prefab.Health, 8);
+                    //Because .13 isn't released yet, Try to have it so the condition is slightly above its current value but not above the max
+                    msg.WriteRangedSingle(condition > 0.0f ? Math.Max(MathHelper.Clamp(condition * 1.02f, 0.0f, prefab.Health), prefab.Health / 255.0f) : 0.0f, 0.0f, prefab.Health, 8);
 
                     if (condition <= 0.0f && FixRequirements.Count > 0)
                     {
@@ -1440,7 +1446,7 @@ namespace Barotrauma
                 case NetEntityEvent.Type.ChangeProperty:
                     try
                     {
-                        WritePropertyChange(msg, extraData);
+                        WritePropertyChange(msg, extraData, false);
                     }
                     catch (Exception e)
                     {
@@ -1546,14 +1552,14 @@ namespace Barotrauma
                     
                     break;
                 case NetEntityEvent.Type.ChangeProperty:
-                    ReadPropertyChange(msg);
+                    ReadPropertyChange(msg, true);
                     break;
             }
         }
 
-        private void WritePropertyChange(NetBuffer msg, object[] extraData)
+        private void WritePropertyChange(NetBuffer msg, object[] extraData, bool inGameEditableOnly)
         {
-            var allProperties = GetProperties<InGameEditable>();
+            var allProperties = inGameEditableOnly ? GetProperties<InGameEditable>() : GetProperties<Editable>();
             SerializableProperty property = extraData[1] as SerializableProperty;
             if (property != null)
             {
@@ -1627,9 +1633,9 @@ namespace Barotrauma
             }
         }
 
-        private void ReadPropertyChange(NetBuffer msg)
+        private void ReadPropertyChange(NetBuffer msg, bool inGameEditableOnly)
         {
-            var allProperties = GetProperties<InGameEditable>();
+            var allProperties = inGameEditableOnly ? GetProperties<InGameEditable>() : GetProperties<Editable>();
             if (allProperties.Count == 0) return;
 
             int propertyIndex = 0;

@@ -46,7 +46,7 @@ namespace Barotrauma
     class NilMod
     {
         const string SettingsSavePath = "Data/NilMod/Settings.xml";
-        public const string NilModVersionDate = "08/08/2018-1";
+        public const string NilModVersionDate = "15/08/2018-1";
         public Version NilModNetworkingVersion = new Version(0,0,0,1);
 
         public Stopwatch serverruntime;
@@ -257,7 +257,6 @@ namespace Barotrauma
         public int MaxPlayers;
         public Boolean UseServerPassword;
         public string ServerPassword;
-        public string AdminAuth;
         public Boolean PublicServer;
         public Boolean UPNPForwarding;
         public Boolean AutoRestart;
@@ -453,9 +452,11 @@ namespace Barotrauma
         public float ElectricalRegenAmount;
         public float ElectricalOverloadDamage;
         public float ElectricalOverloadMinPower;
-        public float ElectricalOverloadVoltRangeMin;
-        public float ElectricalOverloadVoltRangeMax;
-        public float ElectricalOverloadFiresChance;
+        //public float ElectricalOverloadVoltRangeMin;
+        //public float ElectricalOverloadVoltRangeMax;
+        //public float ElectricalOverloadFiresChance;
+        public float ElectricalOverloadVoltMultiplier;
+        public float ElectricalOverloadFiresMultiplier;
         public float ElectricalFailMaxVoltage;
         public float ElectricalFailStunTime;
         public float ElectricalRelayMaxPowerMultiplier;
@@ -799,7 +800,6 @@ namespace Barotrauma
             GameMain.Server.ServerLog.WriteLine("ServerPort = " + ServerPort.ToString(), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("MaxPlayers = " + MaxPlayers.ToString(), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("UseServerPassword = " + (UseServerPassword ? "Enabled" : "Disabled") + "With Password: " + ServerPassword, ServerLog.MessageType.NilMod);
-            GameMain.Server.ServerLog.WriteLine("AdminAuth = " + AdminAuth.Length.ToString() + " Characters long", ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("PublicServer = " + (PublicServer ? "Enabled" : "Disabled"), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("UPNPForwarding = " + (UPNPForwarding ? "Enabled" : "Disabled"), ServerLog.MessageType.NilMod);
             GameMain.Server.ServerLog.WriteLine("AutoRestart = " + (AutoRestart ? "Enabled" : "Disabled"), ServerLog.MessageType.NilMod);
@@ -1197,7 +1197,6 @@ namespace Barotrauma
                         MaxPlayers = Math.Min(Math.Max(ServerModDefaultServerSettings.GetAttributeInt("MaxPlayers", 8), 1), 32);
                         UseServerPassword = ServerModDefaultServerSettings.GetAttributeBool("UseServerPassword", false);
                         ServerPassword = ServerModDefaultServerSettings.GetAttributeString("ServerPassword", "");
-                        AdminAuth = ServerModDefaultServerSettings.GetAttributeString("AdminAuth", "");
                         PublicServer = ServerModDefaultServerSettings.GetAttributeBool("PublicServer", true);
                         UPNPForwarding = ServerModDefaultServerSettings.GetAttributeBool("UPNPForwarding", false);
                         AutoRestart = ServerModDefaultServerSettings.GetAttributeBool("AutoRestart", false);
@@ -1399,9 +1398,11 @@ namespace Barotrauma
                         ElectricalRegenAmount = MathHelper.Clamp(ServerModSubmarineSettings.GetAttributeFloat("ElectricalRegenAmount", 0f), 0f, 1000f);
                         ElectricalOverloadDamage = MathHelper.Clamp(ServerModSubmarineSettings.GetAttributeFloat("ElectricalOverloadDamage", 10f), 0f, 60f);
                         ElectricalOverloadMinPower = MathHelper.Clamp(ServerModSubmarineSettings.GetAttributeFloat("ElectricalOverloadMinPower", 200f), 0f, 100000f);
-                        ElectricalOverloadVoltRangeMin = MathHelper.Clamp(ServerModSubmarineSettings.GetAttributeFloat("ElectricalOverloadVoltRangeMin", 1.9f), 0f, 60f);
-                        ElectricalOverloadVoltRangeMax = MathHelper.Clamp(ServerModSubmarineSettings.GetAttributeFloat("ElectricalOverloadVoltRangeMax", 2.1f), ElectricalOverloadVoltRangeMin, 60f);
-                        ElectricalOverloadFiresChance = MathHelper.Clamp(ServerModSubmarineSettings.GetAttributeFloat("ElectricalOverloadFiresChance", 100f), 0.5f, 60f);
+                        //ElectricalOverloadVoltRangeMin = MathHelper.Clamp(ServerModSubmarineSettings.GetAttributeFloat("ElectricalOverloadVoltRangeMin", 1.9f), 0f, 60f);
+                        //ElectricalOverloadVoltRangeMax = MathHelper.Clamp(ServerModSubmarineSettings.GetAttributeFloat("ElectricalOverloadVoltRangeMax", 2.1f), ElectricalOverloadVoltRangeMin, 60f);
+                        //ElectricalOverloadFiresChance = MathHelper.Clamp(ServerModSubmarineSettings.GetAttributeFloat("ElectricalOverloadFiresChance", 100f), 0.5f, 60f);
+                        ElectricalOverloadVoltMultiplier = MathHelper.Clamp(ServerModSubmarineSettings.GetAttributeFloat("ElectricalOverloadVoltMultiplier", 1f), 0.01f, 1000f);
+                        ElectricalOverloadFiresMultiplier = MathHelper.Clamp(ServerModSubmarineSettings.GetAttributeFloat("ElectricalOverloadFiresMultiplier", 1f), 0.01f, 1000f);
                         ElectricalFailMaxVoltage = MathHelper.Clamp(ServerModSubmarineSettings.GetAttributeFloat("ElectricalFailMaxVoltage", 0.1f), 0f, 100f);
                         ElectricalFailStunTime = MathHelper.Clamp(ServerModSubmarineSettings.GetAttributeFloat("ElectricalFailStunTime", 5f), 0.1f, 60f);
                         ElectricalRelayMaxPowerMultiplier = MathHelper.Clamp(ServerModSubmarineSettings.GetAttributeFloat("ElectricalRelayMaxPowerMultiplier", 1f), 0.01f, 1000f);
@@ -1723,7 +1724,6 @@ namespace Barotrauma
                 @"    MaxPlayers=""" + MaxPlayers + @"""",
                 @"    UseServerPassword=""" + UseServerPassword + @"""",
                 @"    ServerPassword=""" + ServerPassword + @"""",
-                //@"    AdminAuth=""" + AdminAuth + @"""",
                 @"    PublicServer=""" + PublicServer + @"""",
                 @"    UPNPForwarding=""" + UPNPForwarding + @"""",
                 @"    AutoRestart=""" + AutoRestart + @"""",
@@ -1883,9 +1883,11 @@ namespace Barotrauma
                 @"    ElectricalRegenAmount=""" + ElectricalRegenAmount + @"""",
                 @"    ElectricalOverloadDamage=""" + ElectricalOverloadDamage + @"""",
                 @"    ElectricalOverloadMinPower=""" + ElectricalOverloadMinPower + @"""",
-                @"    ElectricalOverloadVoltRangeMin=""" + ElectricalOverloadVoltRangeMin + @"""",
-                @"    ElectricalOverloadVoltRangeMax=""" + ElectricalOverloadVoltRangeMax + @"""",
-                @"    ElectricalOverloadFiresChance=""" + ElectricalOverloadFiresChance + @"""",
+                //@"    ElectricalOverloadVoltRangeMin=""" + ElectricalOverloadVoltRangeMin + @"""",
+                //@"    ElectricalOverloadVoltRangeMax=""" + ElectricalOverloadVoltRangeMax + @"""",
+                //@"    ElectricalOverloadFiresChance=""" + ElectricalOverloadFiresChance + @"""",
+                @"    ElectricalOverloadVoltMultiplier=""" + ElectricalOverloadVoltMultiplier + @"""",
+                @"    ElectricalOverloadFiresMultiplier=""" + ElectricalOverloadFiresMultiplier + @"""",
                 @"    ElectricalFailMaxVoltage=""" + ElectricalFailMaxVoltage + @"""",
                 @"    ElectricalFailStunTime=""" + ElectricalFailStunTime + @"""",
                 @"    ElectricalRelayMaxPowerMultiplier=""" + ElectricalRelayMaxPowerMultiplier + @"""",
@@ -2291,7 +2293,6 @@ namespace Barotrauma
             MaxPlayers = 8;
             UseServerPassword = false;
             ServerPassword = "";
-            AdminAuth = "";
             PublicServer = true;
             UPNPForwarding = false;
             AutoRestart = false;
@@ -2442,9 +2443,11 @@ namespace Barotrauma
             ElectricalRegenAmount = 0f;
             ElectricalOverloadDamage = 10f;
             ElectricalOverloadMinPower = 200f;
-            ElectricalOverloadVoltRangeMin = 1.9f;
-            ElectricalOverloadVoltRangeMax = 2.1f;
-            ElectricalOverloadFiresChance = 15f;
+            //ElectricalOverloadVoltRangeMin = 1.9f;
+            //ElectricalOverloadVoltRangeMax = 2.1f;
+            //ElectricalOverloadFiresChance = 15f;
+            ElectricalOverloadVoltMultiplier = 1.0f;
+            ElectricalOverloadFiresMultiplier = 1.0f;
             ElectricalFailMaxVoltage = 0.1f;
             ElectricalFailStunTime = 5f;
             ElectricalRelayMaxPowerMultiplier = 1f;
@@ -2581,7 +2584,6 @@ namespace Barotrauma
             NilModEventChatter.Load();
             NilModPlayerLog.Load();
             NilModGriefWatcher.Load();
-            //NilModPermissions.Load();
         }
 
         public void TestArmour(float Modifier = 1f)

@@ -255,7 +255,7 @@ namespace Barotrauma.Networking
                 GameServer.LogToClientconsole(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (name too short, minimum length is " + GameMain.NilMod.MinimumNameLength + " characters)");
                 return;
             }
-            if (!Client.IsValidName(clName))
+            if (!Client.IsValidName(clName, this))
             {
                 DisconnectUnauthClient(inc, unauthClient, "Your name contains illegal symbols.");
                 Log(clName + " (" + inc.SenderConnection.RemoteEndPoint.Address.ToString() + ") couldn't join the server (invalid name)", ServerLog.MessageType.Connection);

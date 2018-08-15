@@ -408,7 +408,7 @@ namespace Barotrauma
                     ApplyStatusEffects(actionType, 1.0f, target, true);
                     break;
                 case NetEntityEvent.Type.ChangeProperty:
-                    ReadPropertyChange(msg);
+                    ReadPropertyChange(msg, false);
                     break;
                 case NetEntityEvent.Type.Invalid:
                     break;
@@ -448,7 +448,7 @@ namespace Barotrauma
                     //on the character of the client who sent the message                    
                     break;
                 case NetEntityEvent.Type.ChangeProperty:
-                    WritePropertyChange(msg, extraData);
+                    WritePropertyChange(msg, extraData, true);
                     break;
             }
             msg.WritePadBits();

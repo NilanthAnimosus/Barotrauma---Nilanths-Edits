@@ -332,7 +332,7 @@ namespace Barotrauma
                     }
                     else
                     {
-                        thischar.character.Revive(true);
+                        thischar.character.Revive();
                         Client matchedclient = GameMain.Server.ConnectedClients.Find(c => c.Name == thischar.character.Name);
 
                         if (thischar.character.IsRemotePlayer && thischar.client == null

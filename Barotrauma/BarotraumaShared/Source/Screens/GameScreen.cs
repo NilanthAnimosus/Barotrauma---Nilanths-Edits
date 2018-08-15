@@ -314,7 +314,7 @@ namespace Barotrauma
                     case "revive":
                         //ARG0 = Character
                         character = (Character)Arguments[0];
-                        character.Revive(true);
+                        character.Revive();
                         break;
 
                     case "kill":

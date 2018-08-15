@@ -94,14 +94,22 @@ namespace Barotrauma
             {
                 levitatingCollider = false;
                 Collider.FarseerBody.FixedRotation = false;
-                
-                if (Math.Abs(Collider.Rotation-GetLimb(LimbType.Torso).Rotation)>Math.PI*0.6f)
+
+                if (Math.Abs(Collider.Rotation - GetLimb(LimbType.Torso).Rotation) > Math.PI * 0.6f)
                 {
                     Collider.SetTransform(Collider.SimPosition, MathHelper.WrapAngle(Collider.Rotation + (float)Math.PI));
                 }
-                Collider.SmoothRotate(GetLimb(LimbType.Torso).Rotation);
-                Collider.LinearVelocity = (GetLimb(LimbType.Waist).SimPosition - Collider.SimPosition) * 20.0f;           
-                
+
+                Vector2 diff = GetLimb(LimbType.Waist).SimPosition - Collider.SimPosition;
+                if (diff.LengthSquared() > 10.0f * 10.0f)
+                {
+                    Collider.SetTransform(GetLimb(LimbType.Waist).SimPosition, GetLimb(LimbType.Torso).Rotation);
+                }
+                else
+                {
+                    Collider.LinearVelocity = diff * 20.0f;
+                    Collider.SmoothRotate(GetLimb(LimbType.Torso).Rotation);
+                }
                 return;
             }
 
@@ -1217,25 +1225,29 @@ namespace Barotrauma
 
             if (itemPos == Vector2.Zero || Anim == Animation.Climbing || usingController)
             {
-                if (character.SelectedItems[1] == item)
-                {
-                    transformedHoldPos = leftHand.pullJoint.WorldAnchorA - transformedHandlePos[1];
-                    itemAngle = (leftHand.Rotation + (holdAngle - MathHelper.PiOver2) * Dir);
-                }
                 if (character.SelectedItems[0] == item)
                 {
+                    if (rightHand.IsSevered) return;
                     transformedHoldPos = rightHand.pullJoint.WorldAnchorA - transformedHandlePos[0];
                     itemAngle = (rightHand.Rotation + (holdAngle - MathHelper.PiOver2) * Dir);
+                }
+                if (character.SelectedItems[1] == item)
+                {
+                    if (leftHand.IsSevered) return;
+                    transformedHoldPos = leftHand.pullJoint.WorldAnchorA - transformedHandlePos[1];
+                    itemAngle = (leftHand.Rotation + (holdAngle - MathHelper.PiOver2) * Dir);
                 }
             }
             else
             {
                 if (character.SelectedItems[0] == item)
                 {
+                    if (rightHand.IsSevered) return;
                     rightHand.Disabled = true;
                 }
                 if (character.SelectedItems[1] == item)
                 {
+                    if (leftHand.IsSevered) return;
                     leftHand.Disabled = true;
                 }
 
@@ -1248,6 +1260,24 @@ namespace Barotrauma
             Vector2 currItemPos = (character.SelectedItems[0] == item) ?
                 rightHand.pullJoint.WorldAnchorA - transformedHandlePos[0] :
                 leftHand.pullJoint.WorldAnchorA - transformedHandlePos[1];
+
+            if (!MathUtils.IsValid(currItemPos))
+            {
+                string errorMsg = "Attempted to move the item \"" + item + "\" to an invalid position in HumanidAnimController.HoldItem: " +
+                    currItemPos + ", rightHandPos: " + rightHand.pullJoint.WorldAnchorA + ", leftHandPos: " + leftHand.pullJoint.WorldAnchorA +
+                    ", handlePos[0]: " + handlePos[0] + ", handlePos[1]: " + handlePos[1] +
+                    ", transformedHandlePos[0]: " + transformedHandlePos[0] + ", transformedHandlePos[1]:" + transformedHandlePos[1] +
+                    ", item pos: " + item.SimPosition + ", itemAngle: " + itemAngle +
+                    ", collider pos: " + character.SimPosition;
+                DebugConsole.Log(errorMsg);
+                GameAnalyticsManager.AddErrorEventOnce(
+                    "HumanoidAnimController.HoldItem:InvalidPos:" + character.Name + item.Name,
+                    GameAnalyticsSDK.Net.EGAErrorSeverity.Error,
+                    errorMsg);
+
+                return;
+            }
+
             item.SetTransform(currItemPos, itemAngle);
 
             //item.SetTransform(MathUtils.SmoothStep(item.body.SimPosition, transformedHoldPos + bodyVelocity, 0.5f), itemAngle);

@@ -1543,7 +1543,7 @@ namespace Barotrauma
                 Character revivedCharacter = (args.Length == 0) ? Character.Controlled : FindMatchingCharacter(args);
                 if (revivedCharacter == null) return;
 
-                revivedCharacter.Revive(true);
+                revivedCharacter.Revive();
                 if (GameMain.Server != null)
                 {
                     foreach (Client c in GameMain.Server.ConnectedClients)
@@ -1562,7 +1562,7 @@ namespace Barotrauma
                 Character revivedCharacter = (args.Length == 0) ? client.Character : FindMatchingCharacter(args);
                 if (revivedCharacter == null) return;
 
-                revivedCharacter.Revive(false);
+                revivedCharacter.Revive();
                 if (GameMain.Server != null)
                 {
                     foreach (Client c in GameMain.Server.ConnectedClients)
@@ -1820,6 +1820,13 @@ namespace Barotrauma
                 killedCharacter.AddDamage(CauseOfDeath.Damage, 1000000.0f, null);
                 //If still not dead make extra sure they are due to anti death code.
                 if (!killedCharacter.IsDead) killedCharacter.Kill(CauseOfDeath.Damage, true);
+            },
+            () =>
+            {
+                return new string[][]
+                {
+                    Character.CharacterList.Select(c => c.Name).Distinct().ToArray()
+                };
             }));
 
             commands.Add(new Command("killmonsters", CommandType.GamePower, "killmonsters: Immediately kills all AI-controlled enemies in the level.", (string[] args) =>

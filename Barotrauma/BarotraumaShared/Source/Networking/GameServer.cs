@@ -1326,8 +1326,9 @@ namespace Barotrauma.Networking
 
             WriteChatMessages(outmsg, c);
 
-            //write as many position updates as the message can fit
-            while (outmsg.LengthBytes < config.MaximumTransmissionUnit - 20 &&
+            //write as many position updates as the message can fit (only after midround syncing is done) 
+            while (!c.NeedsMidRoundSync &&
+                outmsg.LengthBytes < config.MaximumTransmissionUnit - 20 &&
                 c.PendingPositionUpdates.Count > 0)
             {
                 var entity = c.PendingPositionUpdates.Dequeue();
@@ -3968,7 +3969,7 @@ namespace Barotrauma.Networking
                                     }
                                     else
                                     {
-                                        closestDistChar.Revive(true);
+                                        closestDistChar.Revive();
                                     }
 
                                     ClearClickCommand();

@@ -10,9 +10,6 @@ namespace Barotrauma.Networking
 {
     class RespawnManager : Entity, IServerSerializable
     {
-        private readonly float respawnInterval;
-        private float maxTransportTime;
-        
         public enum State
         {
             Waiting,
@@ -66,6 +63,8 @@ namespace Barotrauma.Networking
 
         private float respawnTimer, shuttleReturnTimer, shuttleTransportTimer;
 
+        private float maxTransportTime;
+
         private float updateReturnTimer;
 
         public Submarine RespawnShuttle
@@ -114,15 +113,12 @@ namespace Barotrauma.Networking
             {
                 respawnShuttle = null;
             }
-            
-            var server = networkMember as GameServer;
-            if (server != null)
+
+            if (networkMember is GameServer server)
             {
-                respawnInterval = server.RespawnInterval;
+                respawnTimer = server.RespawnInterval;
                 maxTransportTime = server.MaxTransportTime;
             }
-
-            respawnTimer = respawnInterval;            
         }
         
         private List<Client> GetClientsToRespawn()
@@ -202,7 +198,7 @@ namespace Barotrauma.Networking
             respawnTimer -= deltaTime;
             if (respawnTimer <= 0.0f)
             {
-                respawnTimer = respawnInterval;
+                respawnTimer = server.RespawnInterval;
 
                 DispatchShuttle();
             }
@@ -285,6 +281,7 @@ namespace Barotrauma.Networking
                 server.CreateEntityEvent(this);
 
                 CountdownStarted = false;
+                maxTransportTime = server.MaxTransportTime;
                 if (GameMain.NilMod.RespawnShuttleLeaveAtTime >= 0.0f)
                 {
                     shuttleReturnTimer = GameMain.NilMod.RespawnShuttleLeaveAtTime;
@@ -379,7 +376,7 @@ namespace Barotrauma.Networking
                     GameServer.Log("The respawn shuttle has left.", ServerLog.MessageType.Spawns);
                     server.CreateEntityEvent(this);
 
-                    respawnTimer = respawnInterval;
+                    respawnTimer = server.RespawnInterval;
                     CountdownStarted = false;
                 }
             }

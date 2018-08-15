@@ -167,10 +167,49 @@ namespace Barotrauma.Networking
             JobPreferences = new List<JobPrefab>(JobPrefab.List.GetRange(0, Math.Min(JobPrefab.List.Count, 3)));
         }
 
-        public static bool IsValidName(string name)
+        public static bool IsValidName(string name, GameServer server)
         {
             if (name.Contains("\n") || name.Contains("\r")) return false;
 
+            if (name.Any(c =>
+                 c != ';' ||
+                 c != ',' ||
+                 c != '.' ||
+                 c != '<' ||
+                 c != '>' ||
+                 c != '=' ||
+                 c != '|' ||
+                 c != '(' ||
+                 c != ')' ||
+                 c != '[' ||
+                 c != ']' ||
+                 c != '{' ||
+                 c != '}' ||
+                 c != '-' ||
+                 c != '_' ||
+                 c != ':' ||
+                 c != '~' ||
+                 c != '#' ||
+                 c != '@' ||
+                 c != '`' ||
+                 c != '¬' ||
+                 c != '!' ||
+                 c != '"' ||
+                 c != '£' ||
+                 c != '$' ||
+                 c != '%' ||
+                 c != '^' ||
+                 c != '&' ||
+                 c != '/')) return false;
+
+            foreach (char character in name)
+            {
+                if (!server.AllowedClientNameChars.Any(charRange => (int)character >= charRange.First && (int)character <= charRange.Second)) return false;
+            }
+
+            return true;
+
+            /*
             return (name.All(c =>
                 c != ';' &&
                 c != ',' &&
@@ -201,6 +240,7 @@ namespace Barotrauma.Networking
                 c != '^' &&
                 c != '&' &&
                 c != '/'));
+            */
         }
 
         public static string SanitizeName(string name)
@@ -274,6 +314,11 @@ namespace Barotrauma.Networking
         public void RemoveKickVote(Client voter)
         {
             kickVoters.Remove(voter);
+        }
+
+        public bool HasKickVoteFrom(Client voter)
+        {
+            return kickVoters.Contains(voter);
         }
 
         public bool HasKickVoteFromID(int id)
